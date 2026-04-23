@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "efect-aim-trainer",
-  "version": "0.1.4",
   "identifier": "com.terrell.efect-aim-trainer",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -32,10 +31,11 @@
       "icons/icon.ico"
     ]
   },
+  "version": "0.1.6",
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://raw.githubusercontent.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/main/updater.json"
+        "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQxM0Q5NDdFMzk2RTUzMzYKUldRMlUyNDVmcFE5UVhRckF2K3E4cUQxWk96emxGSVJtc0VqdDVlSTRKKzA1TzZSQXh3aGdoTjQK"
     }

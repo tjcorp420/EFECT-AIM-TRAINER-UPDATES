@@ -3,7 +3,7 @@ name: Deploy EFECT Updater
 on:
   push:
     tags:
-      - 'v*' # This tells GitHub to ONLY run this when you push a version tag (e.g., v0.1.1)
+      - 'v*'
 
 jobs:
   release:
@@ -17,7 +17,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          
+          cache: 'npm' # AUTOMATICALLY CACHES NODE_MODULES
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2 # THE SILVER BULLET FOR SPEED
+        with:
+          workspaces: './src-tauri -> target'
+
       - name: Install EFECT Dependencies
         run: npm install
         

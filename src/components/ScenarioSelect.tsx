@@ -145,7 +145,7 @@ export default function ScenarioSelect() {
 
       {/* --- TELEMETRY BADGE --- */}
       <div style={{ color: color, fontSize: '0.9rem', letterSpacing: '6px', marginBottom: '-5px', marginTop: pendingUpdate ? '60px' : '0', transition: 'margin 0.3s', opacity: 0.7 }}>
-        BUILD v0.1.4
+        BUILD v0.1.6
       </div>
       <h1 style={{ color: color, fontSize: '3rem', letterSpacing: '8px', textShadow: `0 0 20px ${color}`, margin: '0 0 10px 0' }}>COMMAND CENTER</h1>
       <p style={{ color: '#aaa', fontSize: '1.2rem', marginBottom: '30px' }}>SELECT TRAINING MODULE</p>
