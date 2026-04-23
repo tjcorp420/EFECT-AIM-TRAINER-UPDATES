@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useStore, TRACK_LIST, GAME_PROFILES } from '../store/useStore';
 import { auth, syncArmoryToCloud } from '../firebase';
-import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
 
 export default function Customizer() {
   const { 
@@ -17,12 +15,6 @@ export default function Customizer() {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const recommendedFov = GAME_PROFILES[gameProfile]?.defaultFov || 103;
-
-  // --- UPDATER STATES ---
-  const [updateStatus, setUpdateStatus] = useState('⟳ CHECK FOR SYSTEM UPDATES');
-  const [isChecking, setIsChecking] = useState(false);
-  const [pendingUpdate, setPendingUpdate] = useState<any>(null);
-  const [isInstalling, setIsInstalling] = useState(false);
 
   // --- CLOUD ARMORY SYNC FUNCTION ---
   const handleCloudSync = async () => {
@@ -45,61 +37,14 @@ export default function Customizer() {
     setTimeout(() => setIsSyncing(false), 2000);
   };
 
-  // --- SILENT BACKGROUND UPDATE CHECK ---
-  useEffect(() => {
-    check().then(update => {
-      if (update) setUpdateStatus('⚠ UPDATE DETECTED - CLICK TO VERIFY');
-    }).catch(() => {}); // Ignore network errors in the background
-  }, []);
-
-  // --- MANUAL UPDATE VERIFICATION ---
-  const handleUpdateCheck = async () => {
-    try {
-      setIsChecking(true);
-      setUpdateStatus('SEARCHING SERVER...');
-      
-      // Simulate checking animation delay for tech effect
-      await new Promise(resolve => setTimeout(resolve, 800)); 
-      
-      const update = await check();
-      if (update) {
-        setPendingUpdate(update);
-      } else {
-        setUpdateStatus('✓ SYSTEM IS UP TO DATE');
-        setTimeout(() => setUpdateStatus('⟳ CHECK FOR SYSTEM UPDATES'), 3000);
-      }
-    } catch (error) {
-      console.error(error);
-      setUpdateStatus('⚠ NETWORK ERROR');
-      setTimeout(() => setUpdateStatus('⟳ CHECK FOR SYSTEM UPDATES'), 3000);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  // --- INSTALL AND RESTART PROCESS ---
-  const handleInstall = async () => {
-    if (!pendingUpdate) return;
-    try {
-      setIsInstalling(true);
-      await pendingUpdate.downloadAndInstall();
-      await relaunch(); 
-    } catch (error) {
-      console.error("Install failed:", error);
-      setIsInstalling(false);
-      setPendingUpdate(null);
-      setUpdateStatus('⚠ INSTALLATION FAILED');
-      setTimeout(() => setUpdateStatus('⟳ CHECK FOR SYSTEM UPDATES'), 3000);
-    }
-  };
-
   return (
     <div style={{ 
       position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', 
       background: 'rgba(5,5,5,0.92)', backdropFilter: 'blur(20px)', zIndex: 50, 
       display: 'flex', flexDirection: 'column', alignItems: 'center', 
-      justifyContent: 'center', fontFamily: 'monospace', color: '#fff', 
-      overflowY: 'auto', padding: '60px 0' 
+      justifyContent: 'flex-start', /* FIX: Allows proper scrolling */
+      fontFamily: 'monospace', color: '#fff', 
+      overflowY: 'auto', overflowX: 'hidden', padding: '60px 0 120px 0' /* FIX: Massive bottom padding */
     }}>
       
       <a 
@@ -118,7 +63,7 @@ export default function Customizer() {
         TikTok: <span style={{ fontWeight: 'bold' }}>@efect2lit</span>
       </a>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%', maxWidth: '1600px', marginBottom: '25px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%', maxWidth: '1600px', marginBottom: '25px', marginTop: '20px' }}>
         <button 
           onClick={goToScenarios} 
           style={{ background: 'none', border: '1px solid #555', color: '#aaa', padding: '12px 25px', cursor: 'pointer', fontFamily: 'monospace', borderRadius: '4px', transition: 'all 0.2s ease-in-out' }}
@@ -274,32 +219,6 @@ export default function Customizer() {
           >
             {isSyncing ? '⟳ SYNCING TO CLOUD...' : '☁ PUSH ARMORY TO CLOUD'}
           </button>
-          
-          {/* --- NEW: SPLIT UPDATER LOGIC --- */}
-          {pendingUpdate ? (
-            <button 
-              onClick={handleInstall} disabled={isInstalling}
-              style={{ 
-                width: '100%', padding: '16px', background: isInstalling ? '#003366' : 'rgba(0, 150, 255, 0.15)', 
-                border: '1px solid #0096ff', color: '#0096ff', cursor: isInstalling ? 'wait' : 'pointer', 
-                borderRadius: '8px', marginBottom: '15px', transition: 'all 0.3s', fontWeight: '900', letterSpacing: '1px',
-                boxShadow: isInstalling ? 'none' : '0 0 25px rgba(0, 150, 255, 0.5)'
-              }}
-              onMouseEnter={(e) => { if(!isInstalling) { e.currentTarget.style.background = '#0096ff'; e.currentTarget.style.color = '#000'; } }}
-              onMouseLeave={(e) => { if(!isInstalling) { e.currentTarget.style.background = 'rgba(0, 150, 255, 0.15)'; e.currentTarget.style.color = '#0096ff'; } }}
-            >
-              {isInstalling ? 'DOWNLOADING & INSTALLING...' : `⤓ INSTALL v${pendingUpdate.version} & RESTART`}
-            </button>
-          ) : (
-            <button 
-              onClick={handleUpdateCheck} disabled={isChecking}
-              style={{ width: '100%', padding: '16px', background: isChecking ? `${color}40` : 'rgba(255,255,255,0.05)', border: '1px solid #333', color: isChecking ? '#fff' : '#aaa', cursor: isChecking ? 'wait' : 'pointer', borderRadius: '8px', marginBottom: '15px', transition: 'all 0.3s', fontWeight: 'bold', letterSpacing: '1px' }}
-              onMouseEnter={(e) => { if(!isChecking) { e.currentTarget.style.borderColor = color; e.currentTarget.style.color = '#fff'; } }}
-              onMouseLeave={(e) => { if(!isChecking) { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa'; } }}
-            >
-              {updateStatus}
-            </button>
-          )}
 
           <button 
             onClick={() => setSettings({ gameState: 'leaderboard' })}
@@ -334,15 +253,23 @@ export default function Customizer() {
         </div>
       </div>
 
+      {/* FIX: Scaled down deploy button, margin reduced */}
       <button 
         onClick={startGame} 
-        style={{ marginTop: '45px', padding: '28px 140px', fontSize: '2.4rem', backgroundColor: `${color}15`, border: `2px solid ${color}`, color: color, cursor: 'pointer', fontFamily: 'monospace', letterSpacing: '10px', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', boxShadow: `0 0 50px ${color}30`, borderRadius: '12px', fontWeight: '900', textTransform: 'uppercase' }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = color; e.currentTarget.style.color = '#000'; e.currentTarget.style.transform = 'translateY(-8px) scale(1.05)'; e.currentTarget.style.boxShadow = `0 20px 60px ${color}60`; }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${color}15`; e.currentTarget.style.color = color; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = `0 0 50px ${color}30`; }}
+        style={{ 
+          marginTop: '30px', padding: '20px 80px', fontSize: '2rem', backgroundColor: `${color}15`, 
+          border: `2px solid ${color}`, color: color, cursor: 'pointer', fontFamily: 'monospace', 
+          letterSpacing: '8px', transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
+          boxShadow: `0 0 40px ${color}30`, borderRadius: '12px', fontWeight: '900', textTransform: 'uppercase' 
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = color; e.currentTarget.style.color = '#000'; e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'; e.currentTarget.style.boxShadow = `0 15px 40px ${color}60`; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${color}15`; e.currentTarget.style.color = color; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = `0 0 40px ${color}30`; }}
       >
         Deploy to Arena
       </button>
 
+    {/* FORCE SCROLL SPACER */}
+      <div style={{ height: '150px', width: '100%', flexShrink: 0 }} />
     </div>
   );
 }
