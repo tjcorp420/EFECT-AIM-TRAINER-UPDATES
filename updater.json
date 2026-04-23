@@ -1,11 +1,11 @@
 ﻿{
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUMFBnQzVxbU9WM1hXMXFWQ2pPMVZrQWxCYk4vbDNoNU15NythQm1Dc1IraHpvYnQxdzhuTTBtc2RZdVJLMnQ5VzFnVThoWE9kYzlsL2NWaUl5QjNveUs3TityTFlGRFFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2OTUzMjQ2CWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4xLjhfeDY0LXNldHVwLmV4ZQp0RjVNa0lxcWJjb0x1OUJVM21Cc3JRYXdHWnZxK3Iyd0hOa2JMSFBGSUtNeEl0aEY5WjhFVUZsbk5uaG1yMHVnbWxEUmwyQU8wM05Eb0RFbWxacjVEQT09Cg==",
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.1.8/efect-aim-trainer_0.1.8_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUMFBnQzVxbU9WM1lOU1VLbStmUjJRVGt2MGNiTHE5ZEVLZVl5aDcwNzJlZlVHOFdXQkg0M0NHU2FtV2xGZTI4cmdRUFl6bG9qMFpBWGszZE96V2lVY25SVm5qMXovOFFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2OTU0NzM3CWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4xLjlfeDY0LXNldHVwLmV4ZQpIQzNjRXRPVlE2ck1rYkVJUXhpQ3NYUnd1Um4wZUZPZ1RpK3NaSi9XNXN6VFBaNmhjR2JkcXJVdnJBOWJkeTJPRU1hWWMzMVB2cU84WEFNNlBKYk1Edz09Cg==",
+                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.1.9/efect-aim-trainer_0.1.9_x64-setup.exe"
                                          }
                   },
-    "pub_date":  "2026-04-23T14:07:26Z",
-    "version":  "0.1.8",
-    "notes":  "Automated EFECT v0.1.8 Deployment"
+    "pub_date":  "2026-04-23T14:32:17Z",
+    "version":  "0.1.9",
+    "notes":  "Automated EFECT v0.1.9 Deployment"
 }
