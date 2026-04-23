@@ -1,11 +1,11 @@
 {
-  "version": "0.1.3",
-  "notes": "Layout fixes and manual update verification.",
+  "version": "0.1.4",
+  "notes": "Added EFECT OVERDRIVE and Live Version Telemetry.",
   "pub_date": "2026-04-23T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "PASTE_THE_CONTENTS_OF_THE_V0.1.3_SIG_FILE_HERE",
-      "url": "PASTE_THE_GITHUB_V0.1.3_RELEASE_DOWNLOAD_LINK_HERE"
+      "signature": "PASTE_YOUR_0.1.4_SIG_STRING_HERE",
+      "url": "PASTE_THE_0.1.4_GITHUB_EXE_LINK_HERE"
     }
   }
 }

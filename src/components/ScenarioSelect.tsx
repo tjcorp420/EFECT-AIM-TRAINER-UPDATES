@@ -4,6 +4,9 @@ import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 
 const SCENARIOS = [
+  // --- NEW UPDATE MODULE ---
+  { id: 'efect_overdrive', name: 'EFECT OVERDRIVE', desc: 'Maximum speed, zero delay tracking & flicking.', type: 'SPECIAL' },
+  // -------------------------
   { id: 'gridshot_standard', name: 'WALL GRIDSHOT', desc: 'Standard 3-target flicking.', type: 'FLICK' },
   { id: 'gridshot_ultimate', name: 'GRIDSHOT ULTIMATE', desc: 'Faster spawns, more targets.', type: 'FLICK' },
   { id: 'gridshot_precision', name: 'GRIDSHOT PRECISION', desc: 'Tiny targets for micro-flicks.', type: 'PRECISION' },
@@ -38,22 +41,19 @@ const SCENARIOS = [
 
 export default function ScenarioSelect() {
   const store = useStore();
-  const { color, setSettings, goToCustomizer, highScores, username } = store;
+  const { color, setSettings, goToCustomizer, username } = store;
   const [copied, setCopied] = useState(false);
 
-  // --- AUTO UPDATER STATES ---
   const [pendingUpdate, setPendingUpdate] = useState<any>(null);
   const [isInstalling, setIsInstalling] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
-  // --- SILENT BACKGROUND UPDATE CHECK ---
   useEffect(() => {
     check().then(update => {
       if (update) setPendingUpdate(update);
     }).catch(() => {}); 
   }, []);
 
-  // --- MANUAL FORCE CHECK ---
   const handleManualCheck = async () => {
     setIsChecking(true);
     try {
@@ -70,7 +70,6 @@ export default function ScenarioSelect() {
     }
   };
 
-  // --- INSTALL AND RESTART ---
   const handleInstall = async () => {
     if (!pendingUpdate) return;
     try {
@@ -111,7 +110,6 @@ export default function ScenarioSelect() {
         >
           {copied ? '✓ COPIED' : '⎘ EXPORT'}
         </button>
-        {/* MANUAL UPDATE BUTTON */}
         <button 
           onClick={handleManualCheck}
           disabled={isChecking || pendingUpdate !== null}
@@ -123,7 +121,6 @@ export default function ScenarioSelect() {
         </button>
       </div>
 
-      {/* --- AUTO-UPDATE ALERT BANNER --- */}
       {pendingUpdate && (
         <div style={{ position: 'absolute', top: '90px', left: '50%', transform: 'translateX(-50%)', zIndex: 200, width: '80%', maxWidth: '800px', animation: 'slideDown 0.5s ease-out' }}>
           <style>{`@keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 90px; opacity: 1; } }`}</style>
@@ -146,7 +143,11 @@ export default function ScenarioSelect() {
         </div>
       )}
 
-      <h1 style={{ color: color, fontSize: '3rem', letterSpacing: '8px', textShadow: `0 0 20px ${color}`, margin: '0 0 10px 0', marginTop: pendingUpdate ? '60px' : '0', transition: 'margin 0.3s' }}>COMMAND CENTER</h1>
+      {/* --- TELEMETRY BADGE --- */}
+      <div style={{ color: color, fontSize: '0.9rem', letterSpacing: '6px', marginBottom: '-5px', marginTop: pendingUpdate ? '60px' : '0', transition: 'margin 0.3s', opacity: 0.7 }}>
+        BUILD v0.1.4
+      </div>
+      <h1 style={{ color: color, fontSize: '3rem', letterSpacing: '8px', textShadow: `0 0 20px ${color}`, margin: '0 0 10px 0' }}>COMMAND CENTER</h1>
       <p style={{ color: '#aaa', fontSize: '1.2rem', marginBottom: '30px' }}>SELECT TRAINING MODULE</p>
 
       <div style={{ 
@@ -181,9 +182,6 @@ export default function ScenarioSelect() {
               <div style={{ fontSize: '10px', color: color, marginBottom: '10px', letterSpacing: '2px', fontWeight: 'bold' }}>[{scen.type}]</div>
               <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem', letterSpacing: '1px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>{scen.name}</h3>
               <p style={{ fontSize: '0.85rem', color: '#bbb', margin: '0 0 20px 0', minHeight: '35px' }}>{scen.desc}</p>
-              <div style={{ fontSize: '0.9rem', color: '#888', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px' }}>
-                HIGH SCORE: <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.1rem' }}>{highScores[scen.id] || 0}</span>
-              </div>
             </div>
           ))}
         </div>
