@@ -4,8 +4,9 @@
   "pub_date": "2024-04-23T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUMFBnQzVxbU9WM1JUbytHejlNYU1oMjZ0ajN4dFBWSXFOZnRRN0VYb1JiWE1XNG5YSGkyTnB1L05qbDlxVEh2S2JkVW9wa3B5K0RCYkYxMzNEbm5zenVIYmI1NERpZndRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2OTgyOTk3CWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4yLjVfeDY0X2VuLVVTLm1zaQpHSkhIckNOdzZraGZDT0RZVmVRRFlRYWJhaGVXdHBtT0dzRExDQWY2OUJxRlNXTjFraFJVWkVqQ0w2ZXdzbXVTQkJDeTZjTEcrblBrVDFiT3c4MGtBUT09Cg==",
-      "url": "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.2.5/efect-aim-trainer_0.2.5_x64-setup.exe" 
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUMFBnQzVxbU9WM1V4VzdaazdHTTg3YVBIZDUxOFM3aUdkZ0N0VW1tbU9sT0VyM1YrR09SaGxNTTEzSDlwbXNQS1o1aEw0NWIrd2MrQU9zak5mK3Q0d1orWjdkRkMrMXdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2OTgyOTk3CWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4yLjVfeDY0LXNldHVwLmV4ZQpHTVN1RU85VkZCNHB5ZWtPRTk2Y1JOQndJYmdCL1lxZUltZ0E3SjF2cDJWWnZ1M2NZdkpDYk44ZnFkMGpib1F3ZTNLZExmWEJrRG1IWkIrbXJHM2dEQT09Cg==",
+      "url": "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.2.5/efect-aim-trainer_0.2.5_x64-setup.exe",
+      "format": "nsis"
     }
   }
 }
