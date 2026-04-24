@@ -1,68 +1,278 @@
+import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import * as THREE from 'three';
+
+type ThemeStyle = {
+  floor: string;
+  platform: string;
+  accent: string;
+  ambient: number;
+  directional: number;
+  point: number;
+  roughness: number;
+  metalness: number;
+};
+
+const ROOM_STYLES: Record<string, ThemeStyle> = {
+  cyber: {
+    floor: '#050707',
+    platform: '#0b1111',
+    accent: '#00f5d4',
+    ambient: 0.45,
+    directional: 1.0,
+    point: 0.8,
+    roughness: 0.22,
+    metalness: 0.65,
+  },
+  minimal: {
+    floor: '#bfc5cb',
+    platform: '#d7dde2',
+    accent: '#8fe8ff',
+    ambient: 0.95,
+    directional: 1.2,
+    point: 0.35,
+    roughness: 0.85,
+    metalness: 0.05,
+  },
+  galaxy: {
+    floor: '#06070c',
+    platform: '#0c1018',
+    accent: '#39ffea',
+    ambient: 0.38,
+    directional: 0.7,
+    point: 0.9,
+    roughness: 0.18,
+    metalness: 0.75,
+  },
+  synthwave: {
+    floor: '#09070f',
+    platform: '#130d1d',
+    accent: '#ff4fd8',
+    ambient: 0.42,
+    directional: 0.9,
+    point: 0.95,
+    roughness: 0.2,
+    metalness: 0.7,
+  },
+  zenith: {
+    floor: '#f2f4f7',
+    platform: '#ffffff',
+    accent: '#9cecff',
+    ambient: 1.0,
+    directional: 1.35,
+    point: 0.25,
+    roughness: 0.55,
+    metalness: 0.1,
+  },
+
+  inferno: {
+    floor: '#17110d',
+    platform: '#231711',
+    accent: '#ff8c42',
+    ambient: 0.55,
+    directional: 1.0,
+    point: 0.8,
+    roughness: 0.45,
+    metalness: 0.25,
+  },
+  tundra: {
+    floor: '#dde4ea',
+    platform: '#f2f5f8',
+    accent: '#8edcff',
+    ambient: 1.0,
+    directional: 1.25,
+    point: 0.3,
+    roughness: 0.72,
+    metalness: 0.08,
+  },
+  factory: {
+    floor: '#262321',
+    platform: '#31302e',
+    accent: '#ffb14a',
+    ambient: 0.5,
+    directional: 0.95,
+    point: 0.7,
+    roughness: 0.68,
+    metalness: 0.22,
+  },
+  temple: {
+    floor: '#22251c',
+    platform: '#2d3425',
+    accent: '#34f0bf',
+    ambient: 0.58,
+    directional: 0.95,
+    point: 0.75,
+    roughness: 0.82,
+    metalness: 0.06,
+  },
+  mirage: {
+    floor: '#100d17',
+    platform: '#181324',
+    accent: '#8d5dff',
+    ambient: 0.46,
+    directional: 0.9,
+    point: 0.85,
+    roughness: 0.28,
+    metalness: 0.58,
+  },
+
+  cosmic_space_360: {
+    floor: '#06070c',
+    platform: '#0c1018',
+    accent: '#39ffea',
+    ambient: 0.38,
+    directional: 0.7,
+    point: 0.9,
+    roughness: 0.18,
+    metalness: 0.75,
+  },
+  skydeck_cloud_lab: {
+    floor: '#edf3f7',
+    platform: '#ffffff',
+    accent: '#8fe8ff',
+    ambient: 1.0,
+    directional: 1.35,
+    point: 0.25,
+    roughness: 0.58,
+    metalness: 0.12,
+  },
+  industrial_warehouse: {
+    floor: '#262321',
+    platform: '#31302e',
+    accent: '#ffb14a',
+    ambient: 0.5,
+    directional: 0.95,
+    point: 0.7,
+    roughness: 0.68,
+    metalness: 0.22,
+  },
+  jungle_temple_ruins: {
+    floor: '#22251c',
+    platform: '#2d3425',
+    accent: '#34f0bf',
+    ambient: 0.58,
+    directional: 0.95,
+    point: 0.75,
+    roughness: 0.82,
+    metalness: 0.06,
+  },
+  neon_rooftop_city: {
+    floor: '#09070f',
+    platform: '#130d1d',
+    accent: '#ff4fd8',
+    ambient: 0.42,
+    directional: 0.9,
+    point: 0.95,
+    roughness: 0.2,
+    metalness: 0.7,
+  },
+  tech_training_arena: {
+    floor: '#0b0d10',
+    platform: '#11161a',
+    accent: '#57ff9f',
+    ambient: 0.48,
+    directional: 1.05,
+    point: 0.85,
+    roughness: 0.25,
+    metalness: 0.55,
+  },
+  training_chamber_360: {
+    floor: '#0a0d10',
+    platform: '#10161b',
+    accent: '#57ff9f',
+    ambient: 0.48,
+    directional: 1.0,
+    point: 0.8,
+    roughness: 0.22,
+    metalness: 0.6,
+  },
+  efect_arena_360: {
+    floor: '#090c0a',
+    platform: '#101410',
+    accent: '#39ff14',
+    ambient: 0.45,
+    directional: 0.95,
+    point: 0.95,
+    roughness: 0.22,
+    metalness: 0.62,
+  },
+
+  default: {
+    floor: '#070909',
+    platform: '#0c1111',
+    accent: '#39ff14',
+    ambient: 0.48,
+    directional: 1.0,
+    point: 0.8,
+    roughness: 0.25,
+    metalness: 0.55,
+  },
+};
 
 export default function Room() {
   const { color, mapTheme } = useStore();
 
-  if (mapTheme === 'minimal') {
-    return (
-      <group>
-        {/* Soft, distraction-free lighting for pro training */}
-        <ambientLight intensity={0.8} />
-        <directionalLight position={[0, 10, 5]} intensity={0.5} />
-        <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[100, 100]} />
-          {/* Flat matte gray, zero reflections */}
-          <meshStandardMaterial color="#888888" roughness={1.0} metalness={0.0} />
-        </mesh>
-        <gridHelper args={[100, 100, '#666666', '#777777']} position={[0, -0.09, 0]} />
-      </group>
-    );
-  }
+  const style = useMemo(() => {
+    return ROOM_STYLES[mapTheme] || ROOM_STYLES.default;
+  }, [mapTheme]);
 
-  if (mapTheme === 'galaxy') {
-    return (
-      <group>
-        <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[100, 100]} />
-          <meshStandardMaterial color="#050010" roughness={0.2} metalness={0.8} />
-        </mesh>
-        <gridHelper args={[200, 40, '#221144', '#110022']} position={[0, -0.09, 0]} />
-      </group>
-    );
-  }
+  const accent = color || style.accent;
 
-  if (mapTheme === 'night') {
-    return (
-      <group>
-        <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[100, 100]} />
-          <meshStandardMaterial color="#050812" roughness={0.9} />
-        </mesh>
-      </group>
-    );
-  }
-
-  // DEFAULT: Cyber Arena (Aimlabs Style Neon Grid)
   return (
     <group>
-      {/* Subtle ambient light matching your custom color */}
-      <ambientLight color={color} intensity={0.2} />
-      
-      {/* Glowing wall cage */}
-      <mesh position={[0, 5, 0]}>
-        <boxGeometry args={[40, 20, 40]} />
-        <meshBasicMaterial color={color} wireframe={true} transparent={true} opacity={0.15} side={THREE.BackSide} />
-      </mesh>
-      
-      {/* Super dark glossy floor */}
-      <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#020202" roughness={0.05} metalness={0.5} />
+      <ambientLight intensity={style.ambient} />
+      <directionalLight position={[6, 8, 4]} intensity={style.directional} />
+      <pointLight position={[0, 4, 0]} intensity={style.point} color={accent} distance={18} />
+      <pointLight position={[0, 2, -8]} intensity={style.point * 0.35} color={accent} distance={14} />
+      <pointLight position={[0, 2, 8]} intensity={style.point * 0.35} color={accent} distance={14} />
+
+      {/* MAIN FLOOR - no old grid */}
+      <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial
+          color={style.floor}
+          roughness={style.roughness}
+          metalness={style.metalness}
+        />
       </mesh>
 
-      {/* Neon Floor Grid matched to user color */}
-      <gridHelper args={[60, 30, color, '#111111']} position={[0, -0.09, 0]} />
+      {/* CENTER PLATFORM */}
+      <mesh position={[0, -0.085, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[2.15, 64]} />
+        <meshStandardMaterial
+          color={style.platform}
+          emissive={accent}
+          emissiveIntensity={0.06}
+          roughness={0.3}
+          metalness={0.45}
+        />
+      </mesh>
+
+      {/* SUBTLE RING */}
+      <mesh position={[0, -0.079, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[2.4, 2.6, 64]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.28} />
+      </mesh>
+
+      {/* SPAWN PADS / ACCENT LIGHTS */}
+      <mesh position={[0, -0.078, -7]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.65, 0.82, 32]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.18} />
+      </mesh>
+
+      <mesh position={[-7, -0.078, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.65, 0.82, 32]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.14} />
+      </mesh>
+
+      <mesh position={[7, -0.078, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.65, 0.82, 32]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.14} />
+      </mesh>
+
+      <mesh position={[0, -0.078, 7]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.65, 0.82, 32]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.14} />
+      </mesh>
     </group>
   );
 }

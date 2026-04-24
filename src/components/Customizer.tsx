@@ -1,275 +1,2094 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useStore, TRACK_LIST, GAME_PROFILES } from '../store/useStore';
 import { auth, syncArmoryToCloud } from '../firebase';
+import EfectSlider from './EfectSlider';
+
+type CrosshairStyle = 'compact' | 'clean' | 'micro' | 'wide' | 'dot' | 'box';
+
+type CrosshairPreset = {
+  id: CrosshairStyle;
+  name: string;
+  tag: string;
+  size: number;
+  thickness: number;
+  gap: number;
+  dot: boolean;
+  crosshairOutline: boolean;
+};
+
+type CrosshairSegment = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+const CROSSHAIR_STYLE_KEY = 'efect_crosshair_style';
+
+const CROSSHAIR_PRESETS: CrosshairPreset[] = [
+  {
+    id: 'compact',
+    name: 'EFECT COMPACT',
+    tag: 'FAST FLICK',
+    size: 9,
+    thickness: 2,
+    gap: 5,
+    dot: true,
+    crosshairOutline: true,
+  },
+  {
+    id: 'clean',
+    name: 'FORTNITE CLEAN',
+    tag: 'T-STYLE',
+    size: 13,
+    thickness: 3,
+    gap: 7,
+    dot: false,
+    crosshairOutline: true,
+  },
+  {
+    id: 'micro',
+    name: 'VALORANT MICRO',
+    tag: 'PRECISION',
+    size: 7,
+    thickness: 2,
+    gap: 4,
+    dot: true,
+    crosshairOutline: false,
+  },
+  {
+    id: 'wide',
+    name: 'WIDE TRACKING',
+    tag: 'SMOOTH AIM',
+    size: 18,
+    thickness: 2,
+    gap: 10,
+    dot: false,
+    crosshairOutline: true,
+  },
+  {
+    id: 'dot',
+    name: 'DOT ONLY',
+    tag: 'HEADSHOT',
+    size: 2,
+    thickness: 2,
+    gap: 0,
+    dot: true,
+    crosshairOutline: true,
+  },
+  {
+    id: 'box',
+    name: 'NEON BOX',
+    tag: 'TARGET LOCK',
+    size: 22,
+    thickness: 3,
+    gap: 5,
+    dot: true,
+    crosshairOutline: true,
+  },
+];
+
+const BACKGROUND_PRESETS = [
+  {
+    id: 'cosmic_space',
+    name: 'COSMIC_SPACE_360',
+    file: 'cosmic_space.png',
+    desc: 'Deep teal nebula for clean dark visibility.',
+    tone: 'DARK / SPACE',
+  },
+  {
+    id: 'skydeck_cloud_lab',
+    name: 'SKYDECK_CLOUD_LAB',
+    file: 'skydeck_cloud_lab.png',
+    desc: 'Bright luxury sky lab with clean white lighting.',
+    tone: 'BRIGHT / CLEAN',
+  },
+  {
+    id: 'industrial_warehouse',
+    name: 'INDUSTRIAL_WAREHOUSE',
+    file: 'industrial_warehouse.png',
+    desc: 'Factory arena with warm tactical lighting.',
+    tone: 'INDUSTRIAL',
+  },
+  {
+    id: 'jungle_temple_ruins',
+    name: 'JUNGLE_TEMPLE_RUINS',
+    file: 'jungle_temple_ruins.png',
+    desc: 'Ancient jungle temple with green energy glow.',
+    tone: 'NATURE / RUINS',
+  },
+  {
+    id: 'neon_rooftop_city',
+    name: 'NEON_ROOFTOP_CITY',
+    file: 'neon_rooftop_city.png',
+    desc: 'Cyberpunk rooftop skyline with EFECT green glow.',
+    tone: 'CYBER CITY',
+  },
+  {
+    id: 'tech_training_arena',
+    name: 'TECH_TRAINING_ARENA',
+    file: 'tech_training_arena.png',
+    desc: 'Clean sci-fi training room with balanced contrast.',
+    tone: 'PRO ARENA',
+  },
+  {
+    id: 'training_chamber',
+    name: 'TRAINING_CHAMBER_360',
+    file: 'training_chamber.png',
+    desc: 'Dark tactical chamber with focused green lighting.',
+    tone: 'DARK / CLEAN',
+  },
+  {
+    id: 'efect_arena',
+    name: 'EFECT_ARENA_360',
+    file: 'efect_arena.png',
+    desc: 'Premium EFECT stadium style combat arena.',
+    tone: 'ELITE / STAGE',
+  },
+  {
+    id: 'luxury_lounge',
+    name: 'LUXURY_LOUNGE_360',
+    file: 'luxury_lounge.png',
+    desc: 'Black marble luxury lounge with green accents.',
+    tone: 'LUXURY',
+  },
+  {
+    id: 'cyber_rooftop',
+    name: 'CYBER_ROOFTOP_360',
+    file: 'cyber_rooftop.png',
+    desc: 'Purple-blue rooftop skyline for aesthetic sessions.',
+    tone: 'NEON / NIGHT',
+  },
+  {
+    id: 'cyber',
+    name: 'CYBER_GRID_LEGACY',
+    file: 'built-in',
+    desc: 'Original cyber grid fallback.',
+    tone: 'BUILT-IN',
+  },
+  {
+    id: 'minimal',
+    name: 'GREYBOX_PRO_LEGACY',
+    file: 'built-in',
+    desc: 'Clean greybox fallback.',
+    tone: 'BUILT-IN',
+  },
+  {
+    id: 'galaxy',
+    name: 'SUPERNOVA_LEGACY',
+    file: 'built-in',
+    desc: 'Original galaxy fallback.',
+    tone: 'BUILT-IN',
+  },
+  {
+    id: 'night',
+    name: 'STEALTH_DARK_LEGACY',
+    file: 'built-in',
+    desc: 'Original dark fallback.',
+    tone: 'BUILT-IN',
+  },
+];
+
+const COLOR_SWATCHES = [
+  '#00ffcc',
+  '#39ff14',
+  '#ff0055',
+  '#00aaff',
+  '#b967ff',
+  '#ffaa00',
+  '#ffffff',
+  '#ff3b8a',
+];
+
+const TARGET_SWATCHES = [
+  '#00ff00',
+  '#39ff14',
+  '#00ffcc',
+  '#ff0055',
+  '#ffaa00',
+  '#b967ff',
+];
+
+const readCrosshairStyle = (): CrosshairStyle => {
+  if (typeof window === 'undefined') return 'compact';
+
+  const saved = window.localStorage.getItem(CROSSHAIR_STYLE_KEY) as CrosshairStyle | null;
+
+  if (
+    saved === 'compact' ||
+    saved === 'clean' ||
+    saved === 'micro' ||
+    saved === 'wide' ||
+    saved === 'dot' ||
+    saved === 'box'
+  ) {
+    return saved;
+  }
+
+  return 'compact';
+};
+
+const writeCrosshairStyle = (style: CrosshairStyle) => {
+  if (typeof window === 'undefined') return;
+
+  window.localStorage.setItem(CROSSHAIR_STYLE_KEY, style);
+  window.dispatchEvent(new CustomEvent('efect-crosshair-style', { detail: style }));
+};
+
+const buildCrosshairSegments = (
+  style: CrosshairStyle,
+  gap: number,
+  size: number,
+  thickness: number
+): CrosshairSegment[] => {
+  const t = Math.max(1, thickness);
+  const g = Math.max(0, gap);
+  const s = Math.max(2, size);
+
+  switch (style) {
+    case 'clean':
+      return [
+        { x: -(g + s / 2), y: 0, w: s, h: t },
+        { x: g + s / 2, y: 0, w: s, h: t },
+        { x: 0, y: g + s / 2, w: t, h: s },
+      ];
+
+    case 'micro': {
+      const ms = Math.max(3, Math.round(s * 0.55));
+      const mg = Math.max(1, Math.round(g * 0.65));
+
+      return [
+        { x: 0, y: -(mg + ms / 2), w: t, h: ms },
+        { x: 0, y: mg + ms / 2, w: t, h: ms },
+        { x: -(mg + ms / 2), y: 0, w: ms, h: t },
+        { x: mg + ms / 2, y: 0, w: ms, h: t },
+      ];
+    }
+
+    case 'wide': {
+      const hs = Math.max(8, Math.round(s * 1.7));
+      const hg = Math.max(6, Math.round(g * 1.25));
+      const vs = Math.max(5, Math.round(s * 0.9));
+
+      return [
+        { x: 0, y: -(hg + vs / 2), w: t, h: vs },
+        { x: 0, y: hg + vs / 2, w: t, h: vs },
+        { x: -(hg + hs / 2), y: 0, w: hs, h: t },
+        { x: hg + hs / 2, y: 0, w: hs, h: t },
+      ];
+    }
+
+    case 'box': {
+      const d = Math.max(7, g + Math.round(s * 0.45));
+      const len = Math.max(6, Math.round(s * 0.8));
+
+      return [
+        { x: -d, y: -(d + len / 2), w: t, h: len },
+        { x: -(d + len / 2), y: -d, w: len, h: t },
+
+        { x: d, y: -(d + len / 2), w: t, h: len },
+        { x: d + len / 2, y: -d, w: len, h: t },
+
+        { x: -d, y: d + len / 2, w: t, h: len },
+        { x: -(d + len / 2), y: d, w: len, h: t },
+
+        { x: d, y: d + len / 2, w: t, h: len },
+        { x: d + len / 2, y: d, w: len, h: t },
+      ];
+    }
+
+    case 'dot':
+      return [];
+
+    case 'compact':
+    default:
+      return [
+        { x: 0, y: -(g + s / 2), w: t, h: s },
+        { x: 0, y: g + s / 2, w: t, h: s },
+        { x: -(g + s / 2), y: 0, w: s, h: t },
+        { x: g + s / 2, y: 0, w: s, h: t },
+      ];
+  }
+};
+
+function CrosshairPreviewArt({
+  styleName,
+  color,
+  gap,
+  size,
+  thickness,
+  dot,
+  crosshairOutline,
+  canvasSize = 72,
+}: {
+  styleName: CrosshairStyle;
+  color: string;
+  gap: number;
+  size: number;
+  thickness: number;
+  dot: boolean;
+  crosshairOutline: boolean;
+  canvasSize?: number;
+}) {
+  const segments = buildCrosshairSegments(styleName, gap, size, thickness);
+  const center = canvasSize / 2;
+
+  const glow = crosshairOutline
+    ? `0 0 0 1px rgba(0,0,0,0.95), 0 0 10px ${color}, 0 0 18px ${color}`
+    : `0 0 10px ${color}, 0 0 18px ${color}`;
+
+  const dotSize =
+    styleName === 'dot'
+      ? Math.max(5, thickness * 2.2)
+      : styleName === 'micro'
+        ? Math.max(2, thickness + 1)
+        : Math.max(3, thickness + 1);
+
+  const showDot = dot || styleName === 'dot';
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: canvasSize,
+        height: canvasSize,
+      }}
+    >
+      {segments.map((seg, index) => (
+        <div
+          key={`${styleName}-${index}`}
+          style={{
+            position: 'absolute',
+            left: center + seg.x - seg.w / 2,
+            top: center + seg.y - seg.h / 2,
+            width: seg.w,
+            height: seg.h,
+            borderRadius: Math.max(1, thickness / 2),
+            background: color,
+            boxShadow: glow,
+          }}
+        />
+      ))}
+
+      {showDot && (
+        <div
+          style={{
+            position: 'absolute',
+            left: center - dotSize / 2,
+            top: center - dotSize / 2,
+            width: dotSize,
+            height: dotSize,
+            borderRadius: '50%',
+            background: color,
+            boxShadow: glow,
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function Customizer() {
-  const { 
-    color, size, thickness, gap, dot, crosshairOutline, skipClickToBegin,
-    targetColor, targetShape, targetSkinMode, hitSound, 
-    scenario, weaponMode, weaponClass, targetSpeed, modelScale, targetAmount, targetDistance,
-    mapTheme, graphicsQuality, drillDuration, 
-    musicTrack, musicVolume,
-    gameProfile, gameSens, fov, username,
-    setSettings, setWeapon, startGame, goToScenarios 
+  const {
+    color,
+    size,
+    thickness,
+    gap,
+    dot,
+    crosshairOutline,
+    skipClickToBegin,
+    targetColor,
+    targetShape,
+    targetSkinMode,
+    hitSound,
+    scenario,
+    weaponMode,
+    weaponClass,
+    targetSpeed,
+    modelScale,
+    targetAmount,
+    targetDistance,
+    mapTheme,
+    graphicsQuality,
+    drillDuration,
+    musicTrack,
+    musicVolume,
+    gameProfile,
+    gameSens,
+    fov,
+    username,
+    setSettings,
+    setWeapon,
+    startGame,
+    goToScenarios,
   } = useStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [crosshairStyle, setCrosshairStyle] = useState<CrosshairStyle>(readCrosshairStyle);
+  const [activeBgCategory, setActiveBgCategory] = useState<'ALL' | 'DARK' | 'BRIGHT' | 'ARENA'>(
+    'ALL'
+  );
+
   const recommendedFov = GAME_PROFILES[gameProfile]?.defaultFov || 103;
 
-  // --- CLOUD ARMORY SYNC FUNCTION ---
+  const activeBackground = useMemo(() => {
+    return BACKGROUND_PRESETS.find((bg) => bg.id === mapTheme) || BACKGROUND_PRESETS[0];
+  }, [mapTheme]);
+
+  const filteredBackgrounds = useMemo(() => {
+    if (activeBgCategory === 'ALL') return BACKGROUND_PRESETS;
+
+    return BACKGROUND_PRESETS.filter((bg) => {
+      if (activeBgCategory === 'DARK') {
+        return (
+          bg.tone.includes('DARK') ||
+          bg.tone.includes('SPACE') ||
+          bg.tone.includes('NIGHT') ||
+          bg.id === 'cyber'
+        );
+      }
+
+      if (activeBgCategory === 'BRIGHT') {
+        return bg.tone.includes('BRIGHT') || bg.tone.includes('CLEAN') || bg.id === 'minimal';
+      }
+
+      return (
+        bg.tone.includes('ARENA') ||
+        bg.tone.includes('STAGE') ||
+        bg.tone.includes('INDUSTRIAL') ||
+        bg.id.includes('arena') ||
+        bg.id.includes('warehouse')
+      );
+    });
+  }, [activeBgCategory]);
+
   const handleCloudSync = async () => {
-    if (!auth.currentUser) return alert("System Error: No Active Agent Profile.");
+    if (!auth.currentUser) {
+      alert('System Error: No Active Agent Profile.');
+      return;
+    }
+
     setIsSyncing(true);
-    
+
     const state = useStore.getState();
+
     const payload = {
-      color: state.color, size: state.size, thickness: state.thickness, gap: state.gap, dot: state.dot,
-      crosshairOutline: state.crosshairOutline, skipClickToBegin: state.skipClickToBegin,
-      targetColor: state.targetColor, targetShape: state.targetShape, targetSkinMode: state.targetSkinMode,
-      hitSound: state.hitSound, weaponMode: state.weaponMode, weaponClass: state.weaponClass,
-      targetSpeed: state.targetSpeed, modelScale: state.modelScale, targetAmount: state.targetAmount,
-      targetDistance: state.targetDistance, mapTheme: state.mapTheme, graphicsQuality: state.graphicsQuality,
-      drillDuration: state.drillDuration, musicTrack: state.musicTrack, musicVolume: state.musicVolume,
-      gameProfile: state.gameProfile, gameSens: state.gameSens, fov: state.fov
+      color: state.color,
+      size: state.size,
+      thickness: state.thickness,
+      gap: state.gap,
+      dot: state.dot,
+      crosshairOutline: state.crosshairOutline,
+      skipClickToBegin: state.skipClickToBegin,
+      targetColor: state.targetColor,
+      targetShape: state.targetShape,
+      targetSkinMode: state.targetSkinMode,
+      hitSound: state.hitSound,
+      weaponMode: state.weaponMode,
+      weaponClass: state.weaponClass,
+      targetSpeed: state.targetSpeed,
+      modelScale: state.modelScale,
+      targetAmount: state.targetAmount,
+      targetDistance: state.targetDistance,
+      mapTheme: state.mapTheme,
+      graphicsQuality: state.graphicsQuality,
+      drillDuration: state.drillDuration,
+      musicTrack: state.musicTrack,
+      musicVolume: state.musicVolume,
+      gameProfile: state.gameProfile,
+      gameSens: state.gameSens,
+      fov: state.fov,
     };
 
     await syncArmoryToCloud(auth.currentUser.uid, payload);
-    setTimeout(() => setIsSyncing(false), 2000);
+
+    setTimeout(() => {
+      setIsSyncing(false);
+    }, 1400);
+  };
+
+  const applyCrosshairPreset = (preset: CrosshairPreset) => {
+    setCrosshairStyle(preset.id);
+    writeCrosshairStyle(preset.id);
+
+    setSettings({
+      size: preset.size,
+      thickness: preset.thickness,
+      gap: preset.gap,
+      dot: preset.dot,
+      crosshairOutline: preset.crosshairOutline,
+    });
+  };
+
+  const applyOptimalFov = () => {
+    setSettings({
+      fov: recommendedFov,
+    });
+  };
+
+  const isCurrentCrosshair = (preset: CrosshairPreset) => {
+    return (
+      crosshairStyle === preset.id &&
+      preset.size === size &&
+      preset.thickness === thickness &&
+      preset.gap === gap &&
+      preset.dot === dot &&
+      preset.crosshairOutline === crosshairOutline
+    );
+  };
+
+  const Panel = ({
+    children,
+    title,
+    index,
+    sub,
+  }: {
+    children: ReactNode;
+    title: string;
+    index: string;
+    sub?: string;
+  }) => (
+    <div
+      style={{
+        position: 'relative',
+        minHeight: 0,
+        background:
+          'linear-gradient(180deg, rgba(14,14,14,0.88), rgba(0,0,0,0.92))',
+        border: `1px solid ${color}66`,
+        borderTop: `3px solid ${color}`,
+        borderRadius: 18,
+        padding: 24,
+        boxShadow: `0 0 36px ${color}18, inset 0 0 42px rgba(255,255,255,0.025)`,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background: `radial-gradient(circle at top left, ${color}12, transparent 42%)`,
+        }}
+      />
+
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          marginBottom: 22,
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
+          paddingBottom: 14,
+        }}
+      >
+        <div
+          style={{
+            color,
+            fontSize: 12,
+            fontWeight: 900,
+            letterSpacing: 5,
+            marginBottom: 8,
+          }}
+        >
+          [ {index} ]
+        </div>
+
+        <div
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 900,
+            letterSpacing: 5,
+            textTransform: 'uppercase',
+          }}
+        >
+          {title}
+        </div>
+
+        {sub && (
+          <div
+            style={{
+              color: 'rgba(255,255,255,0.42)',
+              fontSize: 12,
+              letterSpacing: 2,
+              marginTop: 8,
+              lineHeight: 1.5,
+            }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
+    </div>
+  );
+
+  const FieldLabel = ({ children }: { children: ReactNode }) => (
+    <label
+      style={{
+        display: 'block',
+        marginBottom: 9,
+        color: 'rgba(255,255,255,0.48)',
+        fontSize: 12,
+        letterSpacing: 3,
+        fontWeight: 900,
+        textTransform: 'uppercase',
+      }}
+    >
+      {children}
+    </label>
+  );
+
+  const inputStyle: CSSProperties = {
+    width: '100%',
+    padding: '13px 14px',
+    background: 'rgba(0,0,0,0.72)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.16)',
+    borderRadius: 8,
+    fontFamily: 'inherit',
+    fontWeight: 900,
+    letterSpacing: 1,
+    outline: 'none',
+  };
+
+  const selectStyle: CSSProperties = {
+    ...inputStyle,
+    cursor: 'pointer',
+  };
+
+  const toggleStyle: CSSProperties = {
+    accentColor: color,
+    width: 22,
+    height: 22,
+    cursor: 'pointer',
   };
 
   return (
-    <div style={{ 
-      position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', 
-      background: 'rgba(5,5,5,0.92)', backdropFilter: 'blur(20px)', zIndex: 50, 
-      display: 'flex', flexDirection: 'column', alignItems: 'center', 
-      justifyContent: 'flex-start', /* FIX: Allows proper scrolling */
-      fontFamily: 'monospace', color: '#fff', 
-      overflowY: 'auto', overflowX: 'hidden', padding: '60px 0 120px 0' /* FIX: Massive bottom padding */
-    }}>
-      
-      <a 
-        href="https://www.tiktok.com/@efect2lit" 
-        target="_blank" 
-        rel="noreferrer" 
-        style={{ 
-          position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', 
-          color: '#fff', textDecoration: 'none', fontSize: '1.1rem', background: 'rgba(20,20,20,0.9)', 
-          padding: '10px 30px', borderRadius: '30px', border: `1px solid ${color}`, 
-          boxShadow: `0 0 20px ${color}50`, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 100 
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateX(-50%) scale(1.05)'; e.currentTarget.style.backgroundColor = color; e.currentTarget.style.color = '#000'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateX(-50%) scale(1)'; e.currentTarget.style.backgroundColor = 'rgba(20,20,20,0.8)'; e.currentTarget.style.color = '#fff'; }}
-      >
-        TikTok: <span style={{ fontWeight: 'bold' }}>@efect2lit</span>
-      </a>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        background:
+          'radial-gradient(circle at 50% 0%, rgba(0,255,204,0.12), transparent 34%), linear-gradient(180deg, rgba(5,5,5,0.96), rgba(0,0,0,0.98))',
+        backdropFilter: 'blur(20px)',
+        zIndex: 5000,
+        pointerEvents: 'auto',
+        isolation: 'isolate',
+        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+        color: '#fff',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: '28px 28px 130px',
+      }}
+    >
+      <style>{`
+        @keyframes armoryGridDrift {
+          0% { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-70px, -70px, 0); }
+        }
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%', maxWidth: '1600px', marginBottom: '25px', marginTop: '20px' }}>
-        <button 
-          onClick={goToScenarios} 
-          style={{ background: 'none', border: '1px solid #555', color: '#aaa', padding: '12px 25px', cursor: 'pointer', fontFamily: 'monospace', borderRadius: '4px', transition: 'all 0.2s ease-in-out' }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.color = '#fff'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#555'; e.currentTarget.style.color = '#aaa'; }}
+        @keyframes armoryPulse {
+          0%, 100% {
+            opacity: 0.36;
+            transform: scaleX(0.7);
+          }
+
+          50% {
+            opacity: 1;
+            transform: scaleX(1);
+          }
+        }
+
+        @keyframes armorySweep {
+          0% { transform: translateX(-120%); opacity: 0; }
+          20% { opacity: 0.7; }
+          100% { transform: translateX(120%); opacity: 0; }
+        }
+
+        .efect-armory * {
+          box-sizing: border-box;
+        }
+
+        .efect-armory button,
+        .efect-armory input,
+        .efect-armory select {
+          font-family: inherit;
+        }
+
+        .efect-armory input,
+        .efect-armory select,
+        .efect-armory button,
+        .efect-armory a {
+          -webkit-app-region: no-drag;
+        }
+
+        .efect-armory select {
+          transform: none;
+          backface-visibility: visible;
+        }
+
+        .efect-armory ::-webkit-scrollbar {
+          width: 9px;
+        }
+
+        .efect-armory ::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.9);
+        }
+
+        .efect-armory ::-webkit-scrollbar-thumb {
+          background: ${color};
+          border-radius: 999px;
+          box-shadow: 0 0 16px ${color};
+        }
+
+        .stable-hover {
+          will-change: border-color, box-shadow, background-color, color;
+          transition:
+            border-color 0.16s ease,
+            box-shadow 0.16s ease,
+            background-color 0.16s ease,
+            color 0.16s ease,
+            opacity 0.16s ease;
+        }
+
+        .stable-hover:hover {
+          border-color: ${color} !important;
+          box-shadow: 0 0 24px ${color}33, inset 0 0 20px ${color}08 !important;
+        }
+
+        .armory-btn:hover {
+          border-color: ${color} !important;
+          color: #000 !important;
+          background: ${color} !important;
+          box-shadow: 0 0 28px ${color}66 !important;
+        }
+
+        .armory-ghost:hover {
+          border-color: ${color} !important;
+          color: ${color} !important;
+          box-shadow: 0 0 24px ${color}33 !important;
+        }
+
+        .armory-input:focus,
+        .armory-select:focus {
+          border-color: ${color} !important;
+          box-shadow: 0 0 20px ${color}33 !important;
+        }
+
+        .bg-card:hover .bg-card-img {
+          filter: saturate(1.1) contrast(1.08);
+        }
+
+        .preset-card:hover .preset-tag {
+          color: #000 !important;
+          background: ${color} !important;
+        }
+
+        @media (max-width: 1200px) {
+          .armory-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .armory-header {
+            grid-template-columns: 1fr !important;
+          }
+
+          .armory-title {
+            text-align: left !important;
+          }
+        }
+      `}</style>
+
+      <div
+        className="efect-armory"
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          minHeight: '100%',
+          pointerEvents: 'auto',
+        }}
+      >
+        <div
+          style={{
+            position: 'fixed',
+            inset: '-120px',
+            pointerEvents: 'none',
+            zIndex: 0,
+            backgroundImage:
+              'linear-gradient(rgba(0,255,204,0.075) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,204,0.075) 1px, transparent 1px)',
+            backgroundSize: '54px 54px',
+            opacity: 0.38,
+            animation: 'armoryGridDrift 18s linear infinite',
+          }}
+        />
+
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 0,
+            background:
+              'linear-gradient(rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.2) 50%)',
+            backgroundSize: '100% 4px',
+            mixBlendMode: 'screen',
+            opacity: 0.3,
+          }}
+        />
+
+        <div
+          className="armory-header"
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            gap: 20,
+            alignItems: 'start',
+            maxWidth: 1780,
+            margin: '0 auto 24px',
+          }}
         >
-          &lt; RETURN TO HUB
-        </button>
-        <div style={{ color: color, fontSize: '1.8rem', letterSpacing: '8px', textShadow: `0 0 15px ${color}`, fontWeight: '900', textTransform: 'uppercase' }}>
-          MODULE: {scenario.replace('_', ' ')}
-        </div>
-      </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              className="armory-ghost stable-hover"
+              onClick={goToScenarios}
+              style={{
+                padding: '14px 22px',
+                minWidth: 170,
+                background: 'rgba(0,0,0,0.62)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                color: 'rgba(255,255,255,0.74)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 900,
+                letterSpacing: 3,
+              }}
+            >
+              &lt; BACK_TO_HUB
+            </button>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '35px', width: '95%', maxWidth: '1600px' }}>
-        
-        {/* COLUMN 1 */}
-        <div style={{ background: 'rgba(15,15,15,0.95)', border: `1px solid ${color}`, borderRadius: '16px', padding: '35px', boxShadow: `0 0 40px ${color}15` }}>
-          <h2 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: '12px', marginTop: 0, fontSize: '1.1rem', letterSpacing: '2px' }}>[ PRO SENSITIVITY ]</h2>
-          <div style={{ marginBottom: 25 }}>
-            <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Player Callsign (Leaderboard Name)</label>
-            <input type="text" value={username} onChange={(e) => setSettings({ username: e.target.value.substring(0, 16) })} placeholder="Enter Gamer Tag..." maxLength={16} style={{ width: '100%', padding: '14px', background: 'rgba(0,0,0,0.5)', color: color, border: `1px solid ${color}`, fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', outline: 'none' }} />
-          </div>
-          <div style={{ marginBottom: 25 }}>
-            <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Target Game Engine</label>
-            <select value={gameProfile} onChange={(e) => setSettings({ gameProfile: e.target.value })} style={{ width: '100%', padding: '14px', background: '#000', color: '#fff', border: '1px solid #444', fontFamily: 'monospace', outline: 'none', cursor: 'pointer' }}>
-              {Object.entries(GAME_PROFILES).map(([key, val]) => <option key={key} value={key}>{val.name}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', gap: '20px', marginBottom: 12 }}>
-            <div style={{ flex: 1.5 }}>
-              <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>In-Game Sens</label>
-              <input type="number" step="0.001" value={gameSens} onChange={(e) => setSettings({ gameSens: Number(e.target.value) })} style={{ width: '100%', padding: '14px', background: '#000', color: color, border: `1px solid ${color}`, fontWeight: 'bold', fontFamily: 'monospace', outline: 'none' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>FOV: {fov}</label>
-              <input type="range" min="60" max="130" value={fov} onChange={(e) => setSettings({ fov: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '12px' }} />
-            </div>
-          </div>
-          <div style={{ fontSize: '0.8rem', color: fov === recommendedFov ? color : '#ffaa00', marginBottom: 25, fontStyle: 'italic', padding: '8px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px' }}>
-            {fov === recommendedFov ? '✓ Calibration Synced: 1:1 Engine Match.' : `⚠ Desync Detected: For ${GAME_PROFILES[gameProfile]?.name}, use FOV ${recommendedFov}.`}
-          </div>
-
-          <h2 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: '12px', marginTop: 15, fontSize: '1.1rem', letterSpacing: '2px' }}>[ ARSENAL SETUP ]</h2>
-          <div style={{ display: 'flex', gap: '20px', marginBottom: 25 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Weapon Class</label>
-              <select value={weaponClass} onChange={(e) => setWeapon(e.target.value as any)} style={{ width: '100%', padding: '12px', background: '#000', color: '#fff', border: '1px solid #444', fontFamily: 'monospace' }}>
-                <option value="pistol">Pistol (Tactical)</option><option value="smg">SMG (Automatic)</option><option value="sniper">Sniper (High Impact)</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Weapon Mode</label>
-              <select value={weaponMode} onChange={(e) => setSettings({ weaponMode: e.target.value as any })} style={{ width: '100%', padding: '12px', background: '#000', color: '#fff', border: '1px solid #444', fontFamily: 'monospace' }}>
-                <option value="laser">Hitscan Laser</option><option value="stealth">Stealth (No Tracer)</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '20px', marginBottom: 25 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Drill Length</label>
-              <select value={drillDuration} onChange={(e) => setSettings({ drillDuration: Number(e.target.value) })} style={{ width: '100%', padding: '12px', background: '#000', color: '#fff', border: '1px solid #444', fontFamily: 'monospace' }}>
-                <option value={30}>30 Seconds</option><option value={60}>60 Seconds</option><option value={90}>90 Seconds</option><option value={120}>120 Seconds</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Hit Sound</label>
-              <select value={hitSound} onChange={(e) => setSettings({ hitSound: e.target.value as any })} style={{ width: '100%', padding: '12px', background: '#000', color: '#fff', border: '1px solid #444', fontFamily: 'monospace' }}>
-                <option value="none">🔇 Muted</option><option value="tick">Digital Tick</option><option value="pop">Hollow Pop</option><option value="ding">Combat Ding</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* COLUMN 2 */}
-        <div style={{ background: 'rgba(15,15,15,0.95)', border: `1px solid ${color}`, borderRadius: '16px', padding: '35px', boxShadow: `0 0 40px ${color}15` }}>
-          <h2 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: '12px', marginTop: 0, fontSize: '1.1rem', letterSpacing: '2px' }}>[ TARGET VISUALS ]</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 25, alignItems: 'center' }}>
-            <label style={{ color: '#888', fontSize: '0.9rem' }}>Target Emissive Color</label>
-            <input type="color" value={targetColor} onChange={(e) => setSettings({ targetColor: e.target.value })} style={{ width: 70, height: 35, border: 'none', background: 'transparent', cursor: 'pointer' }} />
-          </div>
-          <div style={{ marginBottom: 25 }}>
-            <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Target Geometry</label>
-            <select value={targetShape} onChange={(e) => setSettings({ targetShape: e.target.value as any })} style={{ width: '100%', padding: '14px', background: '#000', color: '#fff', border: '1px solid #444', fontFamily: 'monospace' }}>
-              <option value="sphere">Sphere (High Accuracy)</option><option value="cube">Cube (Standard)</option><option value="humanoid">Humanoid (Character)</option>
-            </select>
-          </div>
-          {targetShape === 'humanoid' && (
-            <div style={{ marginBottom: 25 }}>
-              <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Humanoid Shader</label>
-              <select value={targetSkinMode} onChange={(e) => setSettings({ targetSkinMode: e.target.value as any })} style={{ width: '100%', padding: '14px', background: '#000', color: color, border: `1px solid ${color}`, fontFamily: 'monospace', fontWeight: 'bold' }}>
-                <option value="custom">Glow (Performance)</option><option value="original">High-Fidelity Textures</option>
-              </select>
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: '25px', marginBottom: 20 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ color: '#888', fontSize: '0.9rem' }}>Scale: {modelScale}x</label>
-              <input type="range" min="0.5" max="3" step="0.1" value={modelScale} onChange={(e) => setSettings({ modelScale: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '12px' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ color: '#888', fontSize: '0.9rem' }}>Speed: {targetSpeed}x</label>
-              <input type="range" min="0.5" max="3" step="0.1" value={targetSpeed} onChange={(e) => setSettings({ targetSpeed: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '12px' }} />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '25px', marginBottom: 35 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ color: '#888', fontSize: '0.9rem' }}>Amount: {targetAmount}</label>
-              <input type="range" min="1" max="25" value={targetAmount} onChange={(e) => setSettings({ targetAmount: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '12px' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ color: '#888', fontSize: '0.9rem' }}>Distance: {Math.abs(targetDistance)}m</label>
-              <input type="range" min="-25" max="-5" step="0.5" value={targetDistance} onChange={(e) => setSettings({ targetDistance: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '12px' }} />
-            </div>
+            <a
+              href="https://www.tiktok.com/@efect2lit"
+              target="_blank"
+              rel="noreferrer"
+              className="armory-ghost stable-hover"
+              style={{
+                padding: '14px 22px',
+                minWidth: 190,
+                background: 'rgba(0,0,0,0.62)',
+                border: `1px solid ${color}55`,
+                color,
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 900,
+                letterSpacing: 2,
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+            >
+              TIKTOK: EFECT2LIT
+            </a>
           </div>
 
-          <h2 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: '12px', marginTop: 5, fontSize: '1.1rem', letterSpacing: '2px' }}>[ RETICLE TUNING ]</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, alignItems: 'center' }}>
-            <label style={{ color: '#888', fontSize: '0.9rem' }}>Crosshair & UI Glow Color</label>
-            <input type="color" value={color} onChange={(e) => setSettings({ color: e.target.value })} style={{ width: 70, height: 35, border: 'none', background: 'transparent', cursor: 'pointer' }} />
-          </div>
-          <div style={{ display: 'flex', gap: '15px', marginBottom: 20 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ color: '#888', fontSize: '0.9rem' }}>Gap: {gap}px</label>
-              <input type="range" min="0" max="20" value={gap} onChange={(e) => setSettings({ gap: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '10px' }} />
+          <div className="armory-title" style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                color,
+                fontSize: 12,
+                letterSpacing: 9,
+                fontWeight: 900,
+                marginBottom: 10,
+                textShadow: `0 0 18px ${color}`,
+              }}
+            >
+              EFECT AIM TRAINER // ARMORY
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ color: '#888', fontSize: '0.9rem' }}>Size: {size}px</label>
-              <input type="range" min="2" max="40" value={size} onChange={(e) => setSettings({ size: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '10px' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ color: '#888', fontSize: '0.9rem' }}>Thick: {thickness}px</label>
-              <input type="range" min="1" max="10" value={thickness} onChange={(e) => setSettings({ thickness: Number(e.target.value) })} style={{ width: '100%', accentColor: color, marginTop: '10px' }} />
-            </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 }}>
-            <span style={{ color: '#888', fontSize: '0.9rem' }}>Center Dot</span>
-            <input type="checkbox" checked={dot} onChange={(e) => setSettings({ dot: e.target.checked })} style={{ accentColor: color, width: 22, height: 22, cursor: 'pointer' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 }}>
-            <span style={{ color: '#888', fontSize: '0.9rem' }}>Outline Rendering</span>
-            <input type="checkbox" checked={crosshairOutline} onChange={(e) => setSettings({ crosshairOutline: e.target.checked })} style={{ accentColor: color, width: 22, height: 22, cursor: 'pointer' }} />
-          </div>
-        </div>
 
-        {/* COLUMN 3 */}
-        <div style={{ background: 'rgba(15,15,15,0.95)', border: `1px solid ${color}`, borderRadius: '16px', padding: '35px', boxShadow: `0 0 40px ${color}15`, display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: '12px', marginTop: 0, fontSize: '1.1rem', letterSpacing: '2px' }}>[ GLOBAL NETWORK ]</h2>
-          <button 
-            onClick={handleCloudSync} disabled={isSyncing}
-            style={{ width: '100%', padding: '16px', background: isSyncing ? `${color}40` : `${color}20`, border: `1px solid ${color}`, color: isSyncing ? '#fff' : color, cursor: isSyncing ? 'wait' : 'pointer', borderRadius: '8px', marginBottom: '15px', transition: 'all 0.3s', fontWeight: 'bold', letterSpacing: '1px', boxShadow: isSyncing ? `0 0 20px ${color}80` : 'none' }}
-            onMouseEnter={(e) => { if(!isSyncing) { e.currentTarget.style.background = color; e.currentTarget.style.color = '#000'; } }}
-            onMouseLeave={(e) => { if(!isSyncing) { e.currentTarget.style.background = `${color}20`; e.currentTarget.style.color = color; } }}
+            <div
+              style={{
+                color: '#fff',
+                fontSize: 48,
+                lineHeight: 0.95,
+                letterSpacing: 18,
+                fontWeight: 900,
+                textShadow: `0 0 26px ${color}80, 0 0 70px ${color}33`,
+              }}
+            >
+              LOADOUT
+              <br />
+              CONTROL
+            </div>
+
+            <div
+              style={{
+                width: 430,
+                maxWidth: '70vw',
+                height: 1,
+                margin: '18px auto 0',
+                background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+                boxShadow: `0 0 18px ${color}`,
+                animation: 'armoryPulse 2.4s ease-in-out infinite',
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: 10,
+              justifySelf: 'end',
+              minWidth: 360,
+            }}
           >
-            {isSyncing ? '⟳ SYNCING TO CLOUD...' : '☁ PUSH ARMORY TO CLOUD'}
+            <div
+              style={{
+                padding: '14px 16px',
+                border: `1px solid ${color}44`,
+                borderLeft: `4px solid ${color}`,
+                background: 'rgba(0,0,0,0.62)',
+                borderRadius: 10,
+              }}
+            >
+              <div style={{ color: '#777', fontSize: 10, letterSpacing: 3 }}>AGENT</div>
+              <div style={{ color, fontWeight: 900, letterSpacing: 1 }}>
+                {username || 'efect2lit'}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '14px 16px',
+                border: `1px solid ${color}44`,
+                borderLeft: '4px solid #ff0055',
+                background: 'rgba(0,0,0,0.62)',
+                borderRadius: 10,
+              }}
+            >
+              <div style={{ color: '#777', fontSize: 10, letterSpacing: 3 }}>MODULE</div>
+              <div style={{ color: '#fff', fontWeight: 900, letterSpacing: 1 }}>
+                {scenario.replace(/_/g, ' ').toUpperCase()}
+              </div>
+            </div>
+
+            <button
+              className="armory-ghost stable-hover"
+              onClick={handleCloudSync}
+              disabled={isSyncing}
+              style={{
+                gridColumn: '1 / span 2',
+                padding: '14px 16px',
+                background: isSyncing ? `${color}25` : 'rgba(0,0,0,0.62)',
+                border: `1px solid ${color}66`,
+                color: isSyncing ? '#fff' : color,
+                borderRadius: 10,
+                cursor: isSyncing ? 'wait' : 'pointer',
+                fontWeight: 900,
+                letterSpacing: 3,
+              }}
+            >
+              {isSyncing ? 'SYNCING_TO_CLOUD...' : 'CLOUD_SYNC_ARMORY'}
+            </button>
+          </div>
+        </div>
+
+        <div
+          className="armory-grid"
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            display: 'grid',
+            gridTemplateColumns:
+              'minmax(330px, 0.95fr) minmax(380px, 1.05fr) minmax(430px, 1.25fr)',
+            gap: 22,
+            maxWidth: 1780,
+            margin: '0 auto',
+            alignItems: 'start',
+          }}
+        >
+          <div style={{ display: 'grid', gap: 22 }}>
+            <Panel
+              index="01"
+              title="Kinetic Replication"
+              sub="Sensitivity, FOV, duration, weapon behavior, and audio feedback."
+            >
+              <div style={{ display: 'grid', gap: 18 }}>
+                <div>
+                  <FieldLabel>Player Callsign</FieldLabel>
+                  <input
+                    className="armory-input"
+                    type="text"
+                    value={username}
+                    onChange={(e) =>
+                      setSettings({
+                        username: e.target.value.substring(0, 16),
+                      })
+                    }
+                    placeholder="Enter Gamer Tag..."
+                    maxLength={16}
+                    style={{
+                      ...inputStyle,
+                      color,
+                      borderColor: `${color}77`,
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>Target Game Engine</FieldLabel>
+                  <select
+                    className="armory-select"
+                    value={gameProfile}
+                    onChange={(e) =>
+                      setSettings({
+                        gameProfile: e.target.value,
+                      })
+                    }
+                    style={selectStyle}
+                  >
+                    {Object.entries(GAME_PROFILES).map(([key, val]) => (
+                      <option key={key} value={key}>
+                        {val.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                  <div>
+                    <FieldLabel>In-Game Sens</FieldLabel>
+                    <input
+                      className="armory-input"
+                      type="number"
+                      step="0.001"
+                      value={gameSens}
+                      onChange={(e) =>
+                        setSettings({
+                          gameSens: Number(e.target.value),
+                        })
+                      }
+                      style={{
+                        ...inputStyle,
+                        color,
+                        borderColor: `${color}77`,
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      padding: 14,
+                      background: 'rgba(0,0,0,0.42)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 12,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <FieldLabel>FOV: {fov}</FieldLabel>
+
+                      <button
+                        type="button"
+                        className="stable-hover"
+                        onClick={applyOptimalFov}
+                        style={{
+                          padding: '8px 10px',
+                          background: fov === recommendedFov ? color : 'rgba(0,0,0,0.55)',
+                          border: `1px solid ${color}88`,
+                          color: fov === recommendedFov ? '#000' : color,
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontWeight: 900,
+                          letterSpacing: 2,
+                          fontSize: 10,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        APPLY_OPTIMAL_FOV
+                      </button>
+                    </div>
+
+                    <EfectSlider
+                      min={60}
+                      max={130}
+                      value={fov}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          fov: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: fov === recommendedFov ? color : '#ffaa00',
+                    padding: '11px 12px',
+                    background: 'rgba(0,0,0,0.45)',
+                    border: `1px solid ${
+                      fov === recommendedFov ? `${color}44` : 'rgba(255,170,0,0.42)'
+                    }`,
+                    borderRadius: 8,
+                    letterSpacing: 1,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {fov === recommendedFov
+                    ? '✓ CALIBRATION_SYNCED: 1:1 ENGINE MATCH'
+                    : `⚠ DESYNC_DETECTED: FOR ${
+                        GAME_PROFILES[gameProfile]?.name
+                      }, USE FOV ${recommendedFov}`}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <FieldLabel>Weapon Class</FieldLabel>
+                    <select
+                      className="armory-select"
+                      value={weaponClass}
+                      onChange={(e) => setWeapon(e.target.value as any)}
+                      style={selectStyle}
+                    >
+                      <option value="pistol">Pistol Tactical</option>
+                      <option value="smg">SMG Automatic</option>
+                      <option value="sniper">Sniper High Impact</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <FieldLabel>Weapon Mode</FieldLabel>
+                    <select
+                      className="armory-select"
+                      value={weaponMode}
+                      onChange={(e) =>
+                        setSettings({
+                          weaponMode: e.target.value as any,
+                        })
+                      }
+                      style={selectStyle}
+                    >
+                      <option value="laser">Hitscan Laser</option>
+                      <option value="stealth">Stealth No Tracer</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <FieldLabel>Drill Length</FieldLabel>
+                    <select
+                      className="armory-select"
+                      value={drillDuration}
+                      onChange={(e) =>
+                        setSettings({
+                          drillDuration: Number(e.target.value),
+                        })
+                      }
+                      style={selectStyle}
+                    >
+                      <option value={30}>30 Seconds</option>
+                      <option value={60}>60 Seconds</option>
+                      <option value={90}>90 Seconds</option>
+                      <option value={120}>120 Seconds</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <FieldLabel>Hit Sound</FieldLabel>
+                    <select
+                      className="armory-select"
+                      value={hitSound}
+                      onChange={(e) =>
+                        setSettings({
+                          hitSound: e.target.value as any,
+                        })
+                      }
+                      style={selectStyle}
+                    >
+                      <option value="none">Muted</option>
+                      <option value="tick">Digital Tick</option>
+                      <option value="pop">Hollow Pop</option>
+                      <option value="ding">Combat Ding</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </Panel>
+
+            <Panel
+              index="02"
+              title="Global Network"
+              sub="Cloud sync, leaderboards, launch preferences, and music bus."
+            >
+              <div style={{ display: 'grid', gap: 14 }}>
+                <button
+                  className="armory-btn stable-hover"
+                  onClick={() =>
+                    setSettings({
+                      gameState: 'leaderboard',
+                    })
+                  }
+                  style={{
+                    padding: '15px 16px',
+                    background: 'rgba(255,255,255,0.045)',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    borderRadius: 10,
+                    fontWeight: 900,
+                    letterSpacing: 2,
+                  }}
+                >
+                  VIEW_GLOBAL_LEADERBOARD
+                </button>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: 16,
+                    background: 'rgba(0,0,0,0.48)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 900, color: '#fff', letterSpacing: 1 }}>
+                      Instant Launch
+                    </div>
+                    <div style={{ color: '#666', fontSize: 12, marginTop: 5 }}>
+                      Bypass click-to-begin overlay
+                    </div>
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={skipClickToBegin}
+                    onChange={(e) =>
+                      setSettings({
+                        skipClickToBegin: e.target.checked,
+                      })
+                    }
+                    style={toggleStyle}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>Graphics Engine</FieldLabel>
+                  <select
+                    className="armory-select"
+                    value={graphicsQuality}
+                    onChange={(e) =>
+                      setSettings({
+                        graphicsQuality: e.target.value as any,
+                      })
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="high">HIGH_FX / Bloom Enabled</option>
+                    <option value="performance">PERFORMANCE / Low Bloom</option>
+                  </select>
+                </div>
+
+                <div>
+                  <FieldLabel>Background Track</FieldLabel>
+                  <select
+                    className="armory-select"
+                    value={musicTrack}
+                    onChange={(e) =>
+                      setSettings({
+                        musicTrack: e.target.value,
+                        isMusicPlaying: e.target.value !== 'none',
+                      })
+                    }
+                    style={selectStyle}
+                  >
+                    {TRACK_LIST.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <FieldLabel>Music Volume: {Math.round(musicVolume * 100)}%</FieldLabel>
+                  <EfectSlider
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={musicVolume}
+                    color={color}
+                    onChange={(nextValue) =>
+                      setSettings({
+                        musicVolume: nextValue,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </Panel>
+          </div>
+
+          <div style={{ display: 'grid', gap: 22 }}>
+            <Panel
+              index="03"
+              title="Biometric Targets"
+              sub="Target color, shape, humanoid skin mode, speed, amount, and distance."
+            >
+              <div style={{ display: 'grid', gap: 18 }}>
+                <div>
+                  <FieldLabel>Target Emissive Color</FieldLabel>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(6, 1fr)',
+                      gap: 10,
+                    }}
+                  >
+                    {TARGET_SWATCHES.map((swatch) => (
+                      <button
+                        key={swatch}
+                        type="button"
+                        className="stable-hover"
+                        onClick={() =>
+                          setSettings({
+                            targetColor: swatch,
+                          })
+                        }
+                        style={{
+                          height: 38,
+                          borderRadius: 10,
+                          background: swatch,
+                          border:
+                            targetColor.toLowerCase() === swatch.toLowerCase()
+                              ? '3px solid #fff'
+                              : '1px solid rgba(255,255,255,0.18)',
+                          boxShadow:
+                            targetColor.toLowerCase() === swatch.toLowerCase()
+                              ? `0 0 22px ${swatch}`
+                              : `0 0 12px ${swatch}44`,
+                          cursor: 'pointer',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel>Target Geometry</FieldLabel>
+                  <select
+                    className="armory-select"
+                    value={targetShape}
+                    onChange={(e) =>
+                      setSettings({
+                        targetShape: e.target.value as any,
+                      })
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="sphere">Sphere / High Accuracy</option>
+                    <option value="cube">Cube / Standard</option>
+                    <option value="humanoid">Humanoid / Character</option>
+                  </select>
+                </div>
+
+                {targetShape === 'humanoid' && (
+                  <div>
+                    <FieldLabel>Humanoid Shader</FieldLabel>
+                    <select
+                      className="armory-select"
+                      value={targetSkinMode}
+                      onChange={(e) =>
+                        setSettings({
+                          targetSkinMode: e.target.value as any,
+                        })
+                      }
+                      style={{
+                        ...selectStyle,
+                        color,
+                        borderColor: `${color}66`,
+                      }}
+                    >
+                      <option value="custom">Glow Performance</option>
+                      <option value="original">High-Fidelity Textures</option>
+                    </select>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <FieldLabel>Scale: {modelScale}x</FieldLabel>
+                    <EfectSlider
+                      min={0.5}
+                      max={3}
+                      step={0.1}
+                      value={modelScale}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          modelScale: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Speed: {targetSpeed}x</FieldLabel>
+                    <EfectSlider
+                      min={0.5}
+                      max={3}
+                      step={0.1}
+                      value={targetSpeed}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          targetSpeed: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Amount: {targetAmount}</FieldLabel>
+                    <EfectSlider
+                      min={1}
+                      max={25}
+                      value={targetAmount}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          targetAmount: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Distance: {Math.abs(targetDistance)}m</FieldLabel>
+                    <EfectSlider
+                      min={-25}
+                      max={-5}
+                      step={0.5}
+                      value={targetDistance}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          targetDistance: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </Panel>
+
+            <Panel
+              index="04"
+              title="Reticle Tuning"
+              sub="Preview your crosshair before deployment. Presets now use different shapes."
+            >
+              <div style={{ display: 'grid', gap: 18 }}>
+                <div>
+                  <FieldLabel>Live Reticle Preview</FieldLabel>
+
+                  <div
+                    style={{
+                      height: 168,
+                      display: 'grid',
+                      placeItems: 'center',
+                      borderRadius: 18,
+                      border: `1px solid ${color}66`,
+                      background:
+                        'radial-gradient(circle at center, rgba(255,255,255,0.06), rgba(0,0,0,0.72)), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)',
+                      backgroundSize: '100% 100%, 24px 24px, 24px 24px',
+                      boxShadow: `inset 0 0 36px ${color}14`,
+                      marginBottom: 2,
+                    }}
+                  >
+                    <CrosshairPreviewArt
+                      styleName={crosshairStyle}
+                      color={color}
+                      gap={gap}
+                      size={size}
+                      thickness={thickness}
+                      dot={dot}
+                      crosshairOutline={crosshairOutline}
+                      canvasSize={132}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel>UI / Crosshair Glow Color</FieldLabel>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(8, 1fr)',
+                      gap: 8,
+                    }}
+                  >
+                    {COLOR_SWATCHES.map((swatch) => (
+                      <button
+                        key={swatch}
+                        type="button"
+                        className="stable-hover"
+                        onClick={() =>
+                          setSettings({
+                            color: swatch,
+                          })
+                        }
+                        style={{
+                          height: 34,
+                          borderRadius: 9,
+                          background: swatch,
+                          border:
+                            color.toLowerCase() === swatch.toLowerCase()
+                              ? '3px solid #fff'
+                              : '1px solid rgba(255,255,255,0.18)',
+                          boxShadow:
+                            color.toLowerCase() === swatch.toLowerCase()
+                              ? `0 0 22px ${swatch}`
+                              : `0 0 10px ${swatch}44`,
+                          cursor: 'pointer',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: 12,
+                  }}
+                >
+                  {CROSSHAIR_PRESETS.map((preset) => {
+                    const active = isCurrentCrosshair(preset);
+
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className="preset-card stable-hover"
+                        onClick={() => applyCrosshairPreset(preset)}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '76px 1fr',
+                          gap: 12,
+                          alignItems: 'center',
+                          minHeight: 96,
+                          padding: 12,
+                          background: active ? `${color}18` : 'rgba(0,0,0,0.48)',
+                          border: `1px solid ${active ? color : 'rgba(255,255,255,0.12)'}`,
+                          borderRadius: 14,
+                          color: '#fff',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 76,
+                            height: 76,
+                            display: 'grid',
+                            placeItems: 'center',
+                            borderRadius: 14,
+                            background:
+                              'radial-gradient(circle at center, rgba(255,255,255,0.08), rgba(0,0,0,0.85))',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                          }}
+                        >
+                          <CrosshairPreviewArt
+                            styleName={preset.id}
+                            color={color}
+                            gap={preset.gap}
+                            size={preset.size}
+                            thickness={preset.thickness}
+                            dot={preset.dot}
+                            crosshairOutline={preset.crosshairOutline}
+                            canvasSize={58}
+                          />
+                        </div>
+
+                        <div>
+                          <div
+                            style={{
+                              fontWeight: 900,
+                              letterSpacing: 2,
+                              fontSize: 12,
+                              marginBottom: 8,
+                            }}
+                          >
+                            {preset.name}
+                          </div>
+
+                          <div
+                            className="preset-tag"
+                            style={{
+                              display: 'inline-block',
+                              color: active ? '#000' : color,
+                              background: active ? color : 'rgba(0,0,0,0.62)',
+                              border: `1px solid ${color}55`,
+                              padding: '4px 7px',
+                              borderRadius: 5,
+                              fontSize: 10,
+                              fontWeight: 900,
+                              letterSpacing: 2,
+                            }}
+                          >
+                            {active ? 'ACTIVE' : preset.tag}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 14,
+                  }}
+                >
+                  <div>
+                    <FieldLabel>Gap: {gap}px</FieldLabel>
+                    <EfectSlider
+                      min={0}
+                      max={20}
+                      value={gap}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          gap: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Size: {size}px</FieldLabel>
+                    <EfectSlider
+                      min={2}
+                      max={40}
+                      value={size}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          size: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Thickness: {thickness}px</FieldLabel>
+                    <EfectSlider
+                      min={1}
+                      max={10}
+                      value={thickness}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          thickness: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 14,
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: 'rgba(255,255,255,0.72)',
+                      fontWeight: 900,
+                      letterSpacing: 2,
+                    }}
+                  >
+                    CENTER_DOT
+                    <input
+                      type="checkbox"
+                      checked={dot}
+                      onChange={(e) =>
+                        setSettings({
+                          dot: e.target.checked,
+                        })
+                      }
+                      style={toggleStyle}
+                    />
+                  </label>
+
+                  <label
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: 14,
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: 'rgba(255,255,255,0.72)',
+                      fontWeight: 900,
+                      letterSpacing: 2,
+                    }}
+                  >
+                    OUTLINE
+                    <input
+                      type="checkbox"
+                      checked={crosshairOutline}
+                      onChange={(e) =>
+                        setSettings({
+                          crosshairOutline: e.target.checked,
+                        })
+                      }
+                      style={toggleStyle}
+                    />
+                  </label>
+                </div>
+              </div>
+            </Panel>
+          </div>
+
+          <div style={{ display: 'grid', gap: 22 }}>
+            <Panel
+              index="05"
+              title="360 Background Library"
+              sub="Choose a unique 360 scene for your room. These values map to public/backgrounds image names."
+            >
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div
+                  style={{
+                    padding: 16,
+                    background: 'rgba(0,0,0,0.52)',
+                    border: `1px solid ${color}55`,
+                    borderLeft: `4px solid ${color}`,
+                    borderRadius: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      color,
+                      fontSize: 12,
+                      fontWeight: 900,
+                      letterSpacing: 4,
+                      marginBottom: 8,
+                    }}
+                  >
+                    ACTIVE_ENVIRONMENT
+                  </div>
+
+                  <div
+                    style={{
+                      color: '#fff',
+                      fontSize: 17,
+                      fontWeight: 900,
+                      letterSpacing: 3,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {activeBackground.name}
+                  </div>
+
+                  <div
+                    style={{
+                      color: 'rgba(255,255,255,0.5)',
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    FILE: /public/backgrounds/{activeBackground.file}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {(['ALL', 'DARK', 'BRIGHT', 'ARENA'] as const).map((filter) => {
+                    const active = activeBgCategory === filter;
+
+                    return (
+                      <button
+                        key={filter}
+                        type="button"
+                        onClick={() => setActiveBgCategory(filter)}
+                        className={
+                          active ? 'armory-btn stable-hover' : 'armory-ghost stable-hover'
+                        }
+                        style={{
+                          padding: '10px 13px',
+                          borderRadius: 8,
+                          border: `1px solid ${active ? color : 'rgba(255,255,255,0.14)'}`,
+                          background: active ? color : 'rgba(0,0,0,0.55)',
+                          color: active ? '#000' : 'rgba(255,255,255,0.75)',
+                          cursor: 'pointer',
+                          fontWeight: 900,
+                          letterSpacing: 2,
+                        }}
+                      >
+                        {filter}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: 12,
+                    maxHeight: 640,
+                    overflowY: 'auto',
+                    paddingRight: 4,
+                  }}
+                >
+                  {filteredBackgrounds.map((bg) => {
+                    const active = mapTheme === bg.id;
+                    const isImage = bg.file !== 'built-in';
+
+                    return (
+                      <button
+                        key={bg.id}
+                        type="button"
+                        className="bg-card stable-hover"
+                        onClick={() =>
+                          setSettings({
+                            mapTheme: bg.id as any,
+                          })
+                        }
+                        style={{
+                          position: 'relative',
+                          minHeight: 154,
+                          overflow: 'hidden',
+                          borderRadius: 14,
+                          border: `1px solid ${active ? color : 'rgba(255,255,255,0.12)'}`,
+                          background: 'rgba(0,0,0,0.62)',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          padding: 0,
+                          boxShadow: active ? `0 0 24px ${color}44` : 'none',
+                        }}
+                      >
+                        {isImage ? (
+                          <div
+                            className="bg-card-img"
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              backgroundImage: `url('/backgrounds/${bg.file}')`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              opacity: 0.42,
+                              transition: 'filter 0.18s ease',
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className="bg-card-img"
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background:
+                                bg.id === 'minimal'
+                                  ? 'linear-gradient(135deg, #888, #111)'
+                                  : bg.id === 'galaxy'
+                                    ? 'radial-gradient(circle, #30105c, #05000a)'
+                                    : bg.id === 'night'
+                                      ? 'linear-gradient(135deg, #08101f, #000)'
+                                      : `radial-gradient(circle, ${color}33, #000)`,
+                              opacity: 0.42,
+                              transition: 'filter 0.18s ease',
+                            }}
+                          />
+                        )}
+
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background:
+                              'linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.82))',
+                          }}
+                        />
+
+                        <div
+                          style={{
+                            position: 'relative',
+                            zIndex: 2,
+                            padding: 14,
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                gap: 8,
+                                alignItems: 'center',
+                                marginBottom: 8,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  color: active ? color : '#fff',
+                                  fontSize: 12,
+                                  fontWeight: 900,
+                                  letterSpacing: 2,
+                                  lineHeight: 1.25,
+                                  textShadow: active ? `0 0 12px ${color}` : 'none',
+                                }}
+                              >
+                                {bg.name}
+                              </div>
+
+                              {active && (
+                                <span
+                                  style={{
+                                    background: color,
+                                    color: '#000',
+                                    fontSize: 9,
+                                    fontWeight: 900,
+                                    letterSpacing: 1,
+                                    padding: '4px 6px',
+                                    borderRadius: 5,
+                                  }}
+                                >
+                                  ACTIVE
+                                </span>
+                              )}
+                            </div>
+
+                            <div
+                              style={{
+                                color: 'rgba(255,255,255,0.65)',
+                                fontSize: 11,
+                                lineHeight: 1.45,
+                              }}
+                            >
+                              {bg.desc}
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              color: active ? color : 'rgba(255,255,255,0.42)',
+                              fontSize: 10,
+                              fontWeight: 900,
+                              letterSpacing: 2,
+                              marginTop: 12,
+                            }}
+                          >
+                            {bg.tone}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </Panel>
+          </div>
+        </div>
+
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 3,
+            maxWidth: 1780,
+            margin: '24px auto 0',
+            display: 'grid',
+            gridTemplateColumns: '1fr minmax(420px, 680px) 1fr',
+            gap: 18,
+            alignItems: 'center',
+          }}
+        >
+          <div
+            style={{
+              height: 1,
+              background: `linear-gradient(90deg, transparent, ${color})`,
+              boxShadow: `0 0 14px ${color}`,
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={startGame}
+            className="stable-hover"
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              padding: '22px 28px',
+              fontSize: 27,
+              backgroundColor: `${color}15`,
+              border: `2px solid ${color}`,
+              color,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              letterSpacing: 10,
+              boxShadow: `0 0 40px ${color}30`,
+              borderRadius: 14,
+              fontWeight: 900,
+              textTransform: 'uppercase',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: `linear-gradient(90deg, transparent, ${color}35, transparent)`,
+                animation: 'armorySweep 2.8s ease-in-out infinite',
+                pointerEvents: 'none',
+              }}
+            />
+            DEPLOY_TO_ARENA
           </button>
 
-          <button 
-            onClick={() => setSettings({ gameState: 'leaderboard' })}
-            style={{ width: '100%', padding: '16px', background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#fff', cursor: 'pointer', borderRadius: '8px', marginBottom: '30px', transition: 'all 0.3s', fontWeight: 'bold', letterSpacing: '1px' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 0 15px ${color}30`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.boxShadow = 'none'; }}
-          >
-            🌎 VIEW GLOBAL LEADERBOARD
-          </button>
-
-          <h2 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: '12px', marginTop: 0, fontSize: '1.1rem', letterSpacing: '2px' }}>[ SYSTEM PREFERENCES ]</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '18px', background: 'rgba(0,0,0,0.5)', borderRadius: '12px', border: '1px solid #222' }}>
-            <div><div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#fff' }}>Instant Launch</div><div style={{ fontSize: '0.8rem', color: '#666' }}>Bypass "Click to Begin"</div></div>
-            <input type="checkbox" checked={skipClickToBegin} onChange={(e) => setSettings({ skipClickToBegin: e.target.checked })} style={{ accentColor: color, width: 24, height: 24, cursor: 'pointer' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '18px', background: 'rgba(0,0,0,0.5)', borderRadius: '12px', border: '1px solid #222' }}>
-            <div><div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#fff' }}>Map Preset</div><div style={{ fontSize: '0.8rem', color: '#666' }}>Environment Style</div></div>
-            <select value={mapTheme} onChange={(e) => setSettings({ mapTheme: e.target.value as any })} style={{ padding: '8px', background: '#000', color: color, border: `1px solid ${color}`, fontFamily: 'monospace', outline: 'none' }}><option value="cyber">Cyber City</option><option value="minimal">Greybox Pro</option><option value="galaxy">Supernova</option><option value="night">Stealth Dark</option></select>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', padding: '18px', background: 'rgba(0,0,0,0.5)', borderRadius: '12px', border: '1px solid #222' }}>
-            <div><div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#fff' }}>Graphics Engine</div><div style={{ fontSize: '0.8rem', color: '#666' }}>Bloom & Processing</div></div>
-            <select value={graphicsQuality} onChange={(e) => setSettings({ graphicsQuality: e.target.value as any })} style={{ padding: '8px', background: '#000', color: color, border: `1px solid ${color}`, fontFamily: 'monospace', outline: 'none' }}><option value="high">High (Bloom)</option><option value="performance">Performance</option></select>
-          </div>
-
-          <h2 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: '12px', marginTop: 0, fontSize: '1.1rem', letterSpacing: '2px' }}>[ AUDIO ENGINE ]</h2>
-          <div style={{ padding: '18px', background: 'rgba(0,0,0,0.5)', borderRadius: '12px', border: '1px solid #222', marginBottom: '10px' }}>
-            <label style={{ display: 'block', marginBottom: 10, color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}>Background Track</label>
-            <select value={musicTrack} onChange={(e) => setSettings({ musicTrack: e.target.value, isMusicPlaying: e.target.value !== 'none' })} style={{ width: '100%', padding: '10px', background: '#000', color: '#fff', border: '1px solid #444', fontFamily: 'monospace', marginBottom: '15px' }}>{TRACK_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-            <label style={{ display: 'block', marginBottom: 10, color: '#888', fontSize: '0.9rem' }}>Music Volume</label>
-            <input type="range" min="0" max="1" step="0.01" value={musicVolume} onChange={(e) => setSettings({ musicVolume: Number(e.target.value) })} style={{ width: '100%', accentColor: color }} />
-          </div>
+          <div
+            style={{
+              height: 1,
+              background: `linear-gradient(90deg, ${color}, transparent)`,
+              boxShadow: `0 0 14px ${color}`,
+            }}
+          />
         </div>
+
+        <div style={{ height: 80 }} />
       </div>
-
-      {/* FIX: Scaled down deploy button, margin reduced */}
-      <button 
-        onClick={startGame} 
-        style={{ 
-          marginTop: '30px', padding: '20px 80px', fontSize: '2rem', backgroundColor: `${color}15`, 
-          border: `2px solid ${color}`, color: color, cursor: 'pointer', fontFamily: 'monospace', 
-          letterSpacing: '8px', transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
-          boxShadow: `0 0 40px ${color}30`, borderRadius: '12px', fontWeight: '900', textTransform: 'uppercase' 
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = color; e.currentTarget.style.color = '#000'; e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'; e.currentTarget.style.boxShadow = `0 15px 40px ${color}60`; }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${color}15`; e.currentTarget.style.color = color; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = `0 0 40px ${color}30`; }}
-      >
-        Deploy to Arena
-      </button>
-
-    {/* FORCE SCROLL SPACER */}
-      <div style={{ height: '150px', width: '100%', flexShrink: 0 }} />
     </div>
   );
 }
