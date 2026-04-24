@@ -1,10 +1,10 @@
 {
-  "version": "0.2.7",
-  "notes": "Official EFECT v27 Patch",
+  "version": "0.2.8",
+  "notes": "Official EFECT v28 Patch",
   "pub_date": "2026-04-24T20:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUMFBnQzVxbU9WM2FyYXhoYXBtUnI2K1ZETllvZ2k0bmZkQkttRnFUV21qSzhWQlBjd0tmNkJ6U0tYUllQK0xsYVNsLzlSMHYzRytLNlJnYUh0QUdnQXNOZ1pCQ0RpcUFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2OTk1NjYxCWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4yLjdfeDY0LXNldHVwLmV4ZQpjamxRRnlMUlhxNmYwd1RkN1lCTVo0djE2NXpHMTAycDdUKzdiNXN1N3pCMDNaaXRBOFVXRVNZaUVJNFJuSGg5VXdpUTRvVEUyTDNTQlk5UlBDRjRCdz09Cg==",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUMFBnQzVxbU9WM1VTMWNTNkw2OUJuZm56MC9xN1pnc3VUTXNHVnpzS2JwK1hpR3hjTHRzNXZQMVpzMlVRTDJscEEvYlJ2RFJjSlNUdlBiMGJjRjl3MURjeFhRRTFramdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2OTk3NDcxCWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4yLjhfeDY0LXNldHVwLmV4ZQp2U3psVnZWRHBpK0YwUXJmZ1RPRnN4eW1Pa1RpUmtoUWdJN1dRdDJ6ODZMWDRkVWo5eU1tcGVqWVdqaWExWnpjT2lYTlJrTWg0bStKWWRWc0ZSRUpDQT09Cg==",
       "url": "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.2.7/efect-aim-trainer_0.2.7_x64-setup.exe",
       "format": "nsis"
     }
