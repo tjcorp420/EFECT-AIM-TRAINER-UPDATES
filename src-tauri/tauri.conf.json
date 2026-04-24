@@ -12,9 +12,18 @@
   "app": {
     "windows": [
       {
-        "title": "efect-aim-trainer",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "EFECT Aim Trainer",
+        "width": 1920,
+        "height": 1080,
+        "minWidth": 1280,
+        "minHeight": 720,
+        "resizable": true,
+        "fullscreen": true,
+        "decorations": false,
+        "center": true,
+        "visible": true,
+        "backgroundColor": "#000000"
       }
     ],
     "security": {
