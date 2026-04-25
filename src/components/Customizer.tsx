@@ -5,6 +5,7 @@ import { auth, syncArmoryToCloud } from '../firebase';
 import EfectSlider from './EfectSlider';
 
 type CrosshairStyle = 'compact' | 'clean' | 'micro' | 'wide' | 'dot' | 'box';
+type WeaponId = 'pistol' | 'smg' | 'sniper' | 'nerf';
 
 type CrosshairPreset = {
   id: CrosshairStyle;
@@ -22,6 +23,23 @@ type CrosshairSegment = {
   y: number;
   w: number;
   h: number;
+};
+
+type WeaponPreset = {
+  id: WeaponId;
+  name: string;
+  shortName: string;
+  role: string;
+  model: string;
+  behavior: string;
+  fireRate: number;
+  recoil: number;
+  control: number;
+  range: number;
+  mobility: number;
+  loadout: string;
+  perk: string;
+  accent: string;
 };
 
 const CROSSHAIR_STYLE_KEY = 'efect_crosshair_style';
@@ -210,6 +228,73 @@ const TARGET_SWATCHES = [
   '#b967ff',
 ];
 
+const WEAPON_PRESETS: Record<WeaponId, WeaponPreset> = {
+  pistol: {
+    id: 'pistol',
+    name: 'PISTOL TACTICAL',
+    shortName: 'PISTOL',
+    role: 'PRECISION SIDEARM',
+    model: 'pistol.glb',
+    behavior: 'Clean single-fire control for flicks and target confirmation.',
+    fireRate: 55,
+    recoil: 28,
+    control: 88,
+    range: 62,
+    mobility: 92,
+    loadout: 'Semi-auto / tactical sightline',
+    perk: 'BEST FOR: clean first-shot accuracy',
+    accent: '#b967ff',
+  },
+  smg: {
+    id: 'smg',
+    name: 'SMG AUTOMATIC',
+    shortName: 'SMG',
+    role: 'TRACKING SPRAYER',
+    model: 'smg.glb',
+    behavior: 'Fast automatic pressure for tracking, reaction, and close target chains.',
+    fireRate: 94,
+    recoil: 52,
+    control: 70,
+    range: 48,
+    mobility: 86,
+    loadout: 'Full-auto / rapid reset',
+    perk: 'BEST FOR: smooth tracking and spray control',
+    accent: '#00ffcc',
+  },
+  sniper: {
+    id: 'sniper',
+    name: 'SNIPER HIGH IMPACT',
+    shortName: 'SNIPER',
+    role: 'LONG RANGE FLICK',
+    model: 'sniper.glb',
+    behavior: 'Heavy high-impact feel for microflick discipline and precision timing.',
+    fireRate: 22,
+    recoil: 76,
+    control: 54,
+    range: 98,
+    mobility: 42,
+    loadout: 'Heavy shot / precision barrel',
+    perk: 'BEST FOR: disciplined one-shot aim',
+    accent: '#ffaa00',
+  },
+  nerf: {
+    id: 'nerf',
+    name: 'NERF TRAINING BLASTER',
+    shortName: 'NERF',
+    role: 'FUN REACTION TRAINER',
+    model: 'nerf.glb',
+    behavior: 'Larger playful profile for fast warmups and visual aim routines.',
+    fireRate: 66,
+    recoil: 34,
+    control: 82,
+    range: 52,
+    mobility: 78,
+    loadout: 'Training blaster / quick reaction',
+    perk: 'BEST FOR: warmups and casual target flow',
+    accent: '#ff8a00',
+  },
+};
+
 const readCrosshairStyle = (): CrosshairStyle => {
   if (typeof window === 'undefined') return 'compact';
 
@@ -389,6 +474,104 @@ function CrosshairPreviewArt({
   );
 }
 
+function WeaponSilhouette({
+  weapon,
+  color,
+}: {
+  weapon: WeaponPreset;
+  color: string;
+}) {
+  const accent = weapon.accent || color;
+
+  if (weapon.id === 'sniper') {
+    return (
+      <div className="weapon-silhouette weapon-silhouette-sniper">
+        <span style={{ background: accent, boxShadow: `0 0 18px ${accent}` }} />
+        <i style={{ background: accent }} />
+        <b style={{ borderColor: accent }} />
+      </div>
+    );
+  }
+
+  if (weapon.id === 'smg') {
+    return (
+      <div className="weapon-silhouette weapon-silhouette-smg">
+        <span style={{ background: accent, boxShadow: `0 0 18px ${accent}` }} />
+        <i style={{ background: accent }} />
+        <b style={{ borderColor: accent }} />
+      </div>
+    );
+  }
+
+  if (weapon.id === 'nerf') {
+    return (
+      <div className="weapon-silhouette weapon-silhouette-nerf">
+        <span style={{ background: accent, boxShadow: `0 0 18px ${accent}` }} />
+        <i style={{ background: accent }} />
+        <b style={{ borderColor: accent }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="weapon-silhouette weapon-silhouette-pistol">
+      <span style={{ background: accent, boxShadow: `0 0 18px ${accent}` }} />
+      <i style={{ background: accent }} />
+      <b style={{ borderColor: accent }} />
+    </div>
+  );
+}
+
+function StatMeter({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 10,
+          color: 'rgba(255,255,255,0.56)',
+          fontSize: 10,
+          letterSpacing: 2,
+          fontWeight: 900,
+          textTransform: 'uppercase',
+        }}
+      >
+        <span>{label}</span>
+        <span style={{ color }}>{value}</span>
+      </div>
+
+      <div
+        style={{
+          height: 7,
+          overflow: 'hidden',
+          borderRadius: 999,
+          background: 'rgba(255,255,255,0.09)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: `${Math.max(0, Math.min(100, value))}%`,
+            borderRadius: 999,
+            background: `linear-gradient(90deg, ${color}, rgba(255,255,255,0.78))`,
+            boxShadow: `0 0 16px ${color}`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Customizer() {
   const {
     color,
@@ -431,6 +614,7 @@ export default function Customizer() {
   );
 
   const recommendedFov = GAME_PROFILES[gameProfile]?.defaultFov || 103;
+  const activeWeapon = WEAPON_PRESETS[(weaponClass as WeaponId) || 'pistol'] || WEAPON_PRESETS.pistol;
 
   const forceDeploy = () => {
     if (deployLockRef.current) return;
@@ -720,6 +904,24 @@ export default function Customizer() {
           100% { transform: translateX(120%); opacity: 0; }
         }
 
+        @keyframes weaponPulse {
+          0%, 100% {
+            opacity: 0.55;
+            transform: translateX(-8%) scaleX(0.8);
+          }
+
+          50% {
+            opacity: 1;
+            transform: translateX(8%) scaleX(1);
+          }
+        }
+
+        @keyframes weaponSweep {
+          0% { transform: translateX(-160%); opacity: 0; }
+          20% { opacity: 0.5; }
+          100% { transform: translateX(160%); opacity: 0; }
+        }
+
         .efect-armory * {
           box-sizing: border-box;
         }
@@ -797,6 +999,155 @@ export default function Customizer() {
         .preset-card:hover .preset-tag {
           color: #000 !important;
           background: ${color} !important;
+        }
+
+        .weapon-card:hover {
+          border-color: ${color} !important;
+          box-shadow: 0 0 26px ${color}40, inset 0 0 28px ${color}0f !important;
+        }
+
+        .weapon-silhouette {
+          position: relative;
+          width: 100%;
+          height: 86px;
+          border-radius: 14px;
+          overflow: hidden;
+          background:
+            radial-gradient(circle at center, rgba(255,255,255,0.08), rgba(0,0,0,0.86)),
+            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+          background-size: 100% 100%, 18px 18px, 18px 18px;
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .weapon-silhouette::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+          animation: weaponSweep 3s ease-in-out infinite;
+          pointer-events: none;
+        }
+
+        .weapon-silhouette span,
+        .weapon-silhouette i,
+        .weapon-silhouette b {
+          position: absolute;
+          display: block;
+        }
+
+        .weapon-silhouette-pistol span {
+          width: 54%;
+          height: 18px;
+          left: 24%;
+          top: 31px;
+          border-radius: 5px;
+        }
+
+        .weapon-silhouette-pistol i {
+          width: 22px;
+          height: 42px;
+          left: 58%;
+          top: 40px;
+          border-radius: 4px 4px 8px 8px;
+          transform: rotate(-12deg);
+          opacity: 0.9;
+        }
+
+        .weapon-silhouette-pistol b {
+          width: 24px;
+          height: 20px;
+          left: 48%;
+          top: 48px;
+          border-width: 2px;
+          border-style: solid;
+          border-radius: 50%;
+          opacity: 0.7;
+        }
+
+        .weapon-silhouette-smg span {
+          width: 64%;
+          height: 16px;
+          left: 18%;
+          top: 31px;
+          border-radius: 6px;
+        }
+
+        .weapon-silhouette-smg i {
+          width: 18px;
+          height: 55px;
+          left: 49%;
+          top: 39px;
+          border-radius: 3px;
+          opacity: 0.9;
+        }
+
+        .weapon-silhouette-smg b {
+          width: 32px;
+          height: 28px;
+          left: 73%;
+          top: 37px;
+          border-width: 2px;
+          border-style: solid;
+          border-radius: 5px;
+          opacity: 0.65;
+        }
+
+        .weapon-silhouette-sniper span {
+          width: 78%;
+          height: 9px;
+          left: 10%;
+          top: 39px;
+          border-radius: 999px;
+        }
+
+        .weapon-silhouette-sniper i {
+          width: 15px;
+          height: 48px;
+          left: 62%;
+          top: 43px;
+          border-radius: 3px;
+          opacity: 0.85;
+        }
+
+        .weapon-silhouette-sniper b {
+          width: 44px;
+          height: 18px;
+          left: 40%;
+          top: 21px;
+          border-width: 2px;
+          border-style: solid;
+          border-radius: 999px;
+          opacity: 0.72;
+        }
+
+        .weapon-silhouette-nerf span {
+          width: 62%;
+          height: 28px;
+          left: 20%;
+          top: 27px;
+          border-radius: 10px;
+        }
+
+        .weapon-silhouette-nerf i {
+          width: 28px;
+          height: 42px;
+          left: 60%;
+          top: 46px;
+          border-radius: 5px 5px 12px 12px;
+          transform: rotate(-14deg);
+          opacity: 0.9;
+        }
+
+        .weapon-silhouette-nerf b {
+          width: 38px;
+          height: 38px;
+          left: 35%;
+          top: 24px;
+          border-width: 3px;
+          border-style: solid;
+          border-radius: 50%;
+          opacity: 0.68;
         }
 
         @media (max-width: 1200px) {
@@ -1234,6 +1585,157 @@ export default function Customizer() {
                       <option value="laser">Hitscan Laser</option>
                       <option value="stealth">Stealth No Tracer</option>
                     </select>
+                  </div>
+                </div>
+
+                <div
+                  className="weapon-card stable-hover"
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    padding: 14,
+                    borderRadius: 16,
+                    border: `1px solid ${activeWeapon.accent}88`,
+                    background:
+                      'linear-gradient(135deg, rgba(255,255,255,0.045), rgba(0,0,0,0.74))',
+                    boxShadow: `0 0 26px ${activeWeapon.accent}20`,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      pointerEvents: 'none',
+                      background: `radial-gradient(circle at 16% 0%, ${activeWeapon.accent}22, transparent 48%)`,
+                    }}
+                  />
+
+                  <div style={{ position: 'relative', zIndex: 2, display: 'grid', gap: 14 }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto',
+                        gap: 12,
+                        alignItems: 'start',
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            color: activeWeapon.accent,
+                            fontSize: 11,
+                            fontWeight: 900,
+                            letterSpacing: 3,
+                            marginBottom: 7,
+                          }}
+                        >
+                          ACTIVE_WEAPON_PROFILE
+                        </div>
+
+                        <div
+                          style={{
+                            color: '#fff',
+                            fontSize: 20,
+                            fontWeight: 900,
+                            letterSpacing: 3,
+                          }}
+                        >
+                          {activeWeapon.name}
+                        </div>
+
+                        <div
+                          style={{
+                            color: 'rgba(255,255,255,0.48)',
+                            fontSize: 12,
+                            letterSpacing: 2,
+                            marginTop: 7,
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          {activeWeapon.role} // {activeWeapon.model}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: '7px 9px',
+                          borderRadius: 8,
+                          border: `1px solid ${activeWeapon.accent}`,
+                          background: `${activeWeapon.accent}18`,
+                          color: activeWeapon.accent,
+                          fontSize: 10,
+                          fontWeight: 900,
+                          letterSpacing: 2,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        GLB_READY
+                      </div>
+                    </div>
+
+                    <WeaponSilhouette weapon={activeWeapon} color={color} />
+
+                    <div
+                      style={{
+                        color: 'rgba(255,255,255,0.68)',
+                        fontSize: 12,
+                        lineHeight: 1.55,
+                        letterSpacing: 1,
+                      }}
+                    >
+                      {activeWeapon.behavior}
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: 10,
+                      }}
+                    >
+                      <StatMeter label="Fire Rate" value={activeWeapon.fireRate} color={activeWeapon.accent} />
+                      <StatMeter label="Control" value={activeWeapon.control} color={activeWeapon.accent} />
+                      <StatMeter label="Range" value={activeWeapon.range} color={activeWeapon.accent} />
+                      <StatMeter label="Mobility" value={activeWeapon.mobility} color={activeWeapon.accent} />
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr',
+                        gap: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '10px 11px',
+                          borderRadius: 10,
+                          background: 'rgba(0,0,0,0.46)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          color: '#fff',
+                          fontSize: 11,
+                          fontWeight: 900,
+                          letterSpacing: 2,
+                        }}
+                      >
+                        LOADOUT: <span style={{ color: activeWeapon.accent }}>{activeWeapon.loadout}</span>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: '10px 11px',
+                          borderRadius: 10,
+                          background: `${activeWeapon.accent}12`,
+                          border: `1px solid ${activeWeapon.accent}55`,
+                          color: activeWeapon.accent,
+                          fontSize: 11,
+                          fontWeight: 900,
+                          letterSpacing: 2,
+                        }}
+                      >
+                        {activeWeapon.perk}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

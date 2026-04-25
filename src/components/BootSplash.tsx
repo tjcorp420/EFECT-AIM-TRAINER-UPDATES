@@ -22,18 +22,18 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 const BOOT_STEPS: BootStep[] = [
-  { threshold: 4, label: 'SECURE_CHANNEL', detail: 'Establishing encrypted runtime tunnel' },
-  { threshold: 10, label: 'CORE_HANDSHAKE', detail: 'Authenticating EFECT boot authority' },
-  { threshold: 18, label: 'VISUAL_MATRIX', detail: 'Spinning up holographic compositor' },
-  { threshold: 27, label: 'INPUT_PIPELINE', detail: 'Calibrating pointer and click response' },
-  { threshold: 36, label: 'TARGET_ENGINE', detail: 'Mounting combat simulation targets' },
-  { threshold: 46, label: 'BALLISTIC_LAYER', detail: 'Linking hit-detection and damage logic' },
-  { threshold: 57, label: 'SESSION_MEMORY', detail: 'Syncing records, stats, and progression' },
+  { threshold: 4, label: 'SECURE_CHANNEL', detail: 'Establishing encrypted EFECT runtime tunnel' },
+  { threshold: 10, label: 'CORE_HANDSHAKE', detail: 'Authenticating aim trainer boot authority' },
+  { threshold: 18, label: 'VISUAL_MATRIX', detail: 'Spinning up holographic HUD compositor' },
+  { threshold: 27, label: 'INPUT_PIPELINE', detail: 'Calibrating pointer lock and click response' },
+  { threshold: 36, label: 'TARGET_ENGINE', detail: 'Mounting combat simulation target layer' },
+  { threshold: 46, label: 'BALLISTIC_LAYER', detail: 'Linking hitscan feedback and damage logic' },
+  { threshold: 57, label: 'SESSION_MEMORY', detail: 'Syncing records, stats, and progression cache' },
   { threshold: 68, label: 'AUDIO_ENGINE', detail: 'Binding tactical audio feedback bus' },
-  { threshold: 79, label: 'ARENA_SYSTEMS', detail: 'Loading scenario architecture and lighting' },
-  { threshold: 89, label: 'UI_COMPOSITOR', detail: 'Rendering interface shell and diagnostics' },
+  { threshold: 79, label: 'ARENA_SYSTEMS', detail: 'Loading scenario architecture and lighting grid' },
+  { threshold: 89, label: 'UI_COMPOSITOR', detail: 'Rendering command center interface shell' },
   { threshold: 96, label: 'FINAL_VALIDATION', detail: 'Performing final integrity sweep' },
-  { threshold: 100, label: 'LAUNCH_READY', detail: 'EFECT boot sequence complete' },
+  { threshold: 100, label: 'LAUNCH_READY', detail: 'EFECT Aim Trainer shell online' },
 ];
 
 const MODULES = [
@@ -49,26 +49,26 @@ const MODULES = [
   'UI_COMPOSITOR',
 ];
 
-const TELEMETRY_LEFT = ['LATENCY', 'FRAME_PIPE', 'AIM_SYNC'];
-const TELEMETRY_RIGHT = ['MEMORY', 'PROFILE', 'THERMAL'];
+const TELEMETRY_LEFT = ['LATENCY_ROUTE', 'FRAME_PIPE', 'AIM_SYNC'];
+const TELEMETRY_RIGHT = ['MEMORY_BUS', 'PROFILE_CACHE', 'THERMAL_LOCK'];
 
 const buildProgressDelta = (progress: number, turbo: boolean) => {
-  const mult = turbo ? 2.2 : 1;
+  const mult = turbo ? 2.15 : 1;
 
-  if (progress < 18) return 1.6 * mult;
-  if (progress < 38) return 1.25 * mult;
-  if (progress < 58) return 1.05 * mult;
-  if (progress < 74) return 0.82 * mult;
-  if (progress < 88) return 0.6 * mult;
-  if (progress < 95) return 0.36 * mult;
+  if (progress < 18) return 1.55 * mult;
+  if (progress < 38) return 1.22 * mult;
+  if (progress < 58) return 1.02 * mult;
+  if (progress < 74) return 0.78 * mult;
+  if (progress < 88) return 0.55 * mult;
+  if (progress < 95) return 0.34 * mult;
   if (progress < 99) return 0.22 * mult;
 
-  return 0.72 * mult;
+  return 0.75 * mult;
 };
 
 export default function BootSplash({
   onComplete,
-  color = '#39ff14',
+  color = '#00ffcc',
   duration = 5200,
 }: BootSplashProps) {
   const [progress, setProgress] = useState(0);
@@ -90,12 +90,12 @@ export default function BootSplash({
 
   const stars = useMemo(
     () =>
-      Array.from({ length: 80 }, (_, i) => ({
+      Array.from({ length: 96 }, (_, i) => ({
         id: i,
         left: `${(i * 11.37) % 100}%`,
         top: `${(i * 7.91) % 100}%`,
         size: 1 + (i % 3),
-        opacity: 0.18 + ((i * 17) % 45) / 100,
+        opacity: 0.16 + ((i * 17) % 48) / 100,
         delay: `${(i * 0.07) % 2.4}s`,
       })),
     []
@@ -103,13 +103,13 @@ export default function BootSplash({
 
   const dataStreams = useMemo(
     () =>
-      Array.from({ length: 24 }, (_, i) => ({
+      Array.from({ length: 30 }, (_, i) => ({
         id: i,
         left: `${(i * 4.12) % 100}%`,
-        height: 120 + ((i * 19) % 160),
-        duration: `${2.2 + ((i * 0.23) % 2.8)}s`,
+        height: 120 + ((i * 19) % 180),
+        duration: `${2.1 + ((i * 0.23) % 2.9)}s`,
         delay: `${(i * 0.11) % 1.9}s`,
-        opacity: 0.08 + ((i * 9) % 22) / 100,
+        opacity: 0.08 + ((i * 9) % 24) / 100,
       })),
     []
   );
@@ -127,7 +127,7 @@ export default function BootSplash({
   const telemetryLeft = useMemo(() => {
     return [
       { name: TELEMETRY_LEFT[0], value: `${Math.max(1, Math.round(10 - progress / 12))}MS` },
-      { name: TELEMETRY_LEFT[1], value: `${Math.round(165 + progress * 0.95)} FPS` },
+      { name: TELEMETRY_LEFT[1], value: `${Math.round(168 + progress * 0.88)} FPS` },
       { name: TELEMETRY_LEFT[2], value: `${Math.round(progress)}%` },
     ];
   }, [progress]);
@@ -142,7 +142,8 @@ export default function BootSplash({
 
   const terminalLines = useMemo(() => {
     const reached = BOOT_STEPS.filter((step) => progress >= step.threshold);
-    const lines = reached.map((step, idx) => {
+
+    const lines = reached.map((step) => {
       const pct = clamp(step.threshold, 0, 100);
       const prefix = pct >= 100 ? 'DONE' : 'OK';
       return `[${String(pct).padStart(3, '0')}%] ${step.label.toLowerCase()} :: ${prefix}`;
@@ -153,7 +154,7 @@ export default function BootSplash({
         `[${String(Math.round(progress)).padStart(3, '0')}%] ${activeStep.label.toLowerCase()} :: ${activeStep.detail.toLowerCase()}`
       );
     } else {
-      lines.push('[100%] launch_ready :: efect shell online');
+      lines.push('[100%] launch_ready :: efect aim trainer shell online');
     }
 
     return lines.slice(-8).reverse();
@@ -184,11 +185,11 @@ export default function BootSplash({
 
     const fadeTimer = window.setTimeout(() => {
       setVisible(false);
-    }, 320);
+    }, 360);
 
     const completeTimer = window.setTimeout(() => {
       onComplete?.();
-    }, 860);
+    }, 920);
 
     closeTimersRef.current.push(fadeTimer, completeTimer);
 
@@ -237,6 +238,7 @@ export default function BootSplash({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('click', handleClick);
       window.removeEventListener('keydown', handleKey);
+
       closeTimersRef.current.forEach((id) => window.clearTimeout(id));
       closeTimersRef.current = [];
     };
@@ -251,7 +253,7 @@ export default function BootSplash({
         zIndex: 99999,
         background:
           'radial-gradient(circle at center, rgba(8,12,20,0.96) 0%, rgba(3,5,10,1) 40%, rgba(0,0,0,1) 100%)',
-        fontFamily: 'monospace',
+        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
         color: '#ffffff',
         opacity: visible ? 1 : 0,
         transition: 'opacity 520ms ease',
@@ -310,10 +312,18 @@ export default function BootSplash({
 
           @keyframes bs-text-glow {
             0%, 100% {
-              text-shadow: 0 0 18px ${color}28, 0 0 55px ${color}0f;
+              text-shadow:
+                0 0 18px ${color}38,
+                0 0 55px ${color}1f,
+                0 0 110px ${color}12;
+              letter-spacing: 14px;
             }
             50% {
-              text-shadow: 0 0 26px ${color}66, 0 0 85px ${color}1f;
+              text-shadow:
+                0 0 26px #ffffffaa,
+                0 0 85px ${color}66,
+                0 0 150px ${color}33;
+              letter-spacing: 18px;
             }
           }
 
@@ -344,10 +354,15 @@ export default function BootSplash({
             0%, 100% { opacity: 0.2; }
             50% { opacity: 1; }
           }
+
+          @keyframes bs-logo-sweep {
+            0% { transform: translateX(-130%); opacity: 0; }
+            25% { opacity: 0.9; }
+            100% { transform: translateX(130%); opacity: 0; }
+          }
         `}
       </style>
 
-      {/* Mouse glow */}
       <div
         style={{
           position: 'absolute',
@@ -358,7 +373,6 @@ export default function BootSplash({
         }}
       />
 
-      {/* Star field */}
       {stars.map((star) => (
         <div
           key={star.id}
@@ -371,15 +385,14 @@ export default function BootSplash({
             borderRadius: '50%',
             background: '#dffcff',
             opacity: star.opacity,
-            boxShadow: `0 0 8px rgba(255,255,255,0.35)`,
-            animation: `bs-star-blink 2.8s ease-in-out infinite`,
+            boxShadow: '0 0 8px rgba(255,255,255,0.35)',
+            animation: 'bs-star-blink 2.8s ease-in-out infinite',
             animationDelay: star.delay,
             pointerEvents: 'none',
           }}
         />
       ))}
 
-      {/* Data streams */}
       {dataStreams.map((stream) => (
         <div
           key={stream.id}
@@ -399,7 +412,6 @@ export default function BootSplash({
         />
       ))}
 
-      {/* Grid */}
       <div
         style={{
           position: 'absolute',
@@ -415,7 +427,6 @@ export default function BootSplash({
         }}
       />
 
-      {/* Scan lines */}
       <div
         style={{
           position: 'absolute',
@@ -430,6 +441,7 @@ export default function BootSplash({
           pointerEvents: 'none',
         }}
       />
+
       <div
         style={{
           position: 'absolute',
@@ -445,7 +457,6 @@ export default function BootSplash({
         }}
       />
 
-      {/* Noise overlay */}
       <div
         style={{
           position: 'absolute',
@@ -458,7 +469,6 @@ export default function BootSplash({
         }}
       />
 
-      {/* Ripples */}
       {ripples.map((ripple) => (
         <div
           key={ripple.id}
@@ -478,7 +488,6 @@ export default function BootSplash({
         />
       ))}
 
-      {/* Top info */}
       <div
         style={{
           position: 'absolute',
@@ -495,10 +504,11 @@ export default function BootSplash({
         }}
       >
         <div>EFECT // AIM TRAINER // QUANTUM_BOOT_SEQUENCE</div>
-        <div style={{ color, fontWeight: 900 }}>{Math.round(progress)}%</div>
+        <div style={{ color, fontWeight: 900, textShadow: `0 0 12px ${color}` }}>
+          {Math.round(progress)}%
+        </div>
       </div>
 
-      {/* Left telemetry */}
       <div
         style={{
           position: 'absolute',
@@ -532,6 +542,7 @@ export default function BootSplash({
             >
               {item.name}
             </div>
+
             <div
               style={{
                 color: '#f6fbff',
@@ -546,7 +557,6 @@ export default function BootSplash({
         ))}
       </div>
 
-      {/* Right telemetry */}
       <div
         style={{
           position: 'absolute',
@@ -581,6 +591,7 @@ export default function BootSplash({
             >
               {item.name}
             </div>
+
             <div
               style={{
                 color: '#f6fbff',
@@ -595,7 +606,6 @@ export default function BootSplash({
         ))}
       </div>
 
-      {/* Main core panel */}
       <div
         style={{
           position: 'absolute',
@@ -615,7 +625,6 @@ export default function BootSplash({
           zIndex: 6,
         }}
       >
-        {/* Holographic sheen */}
         <div
           style={{
             position: 'absolute',
@@ -626,7 +635,6 @@ export default function BootSplash({
           }}
         />
 
-        {/* Orbital rings */}
         <div
           style={{
             position: 'absolute',
@@ -642,6 +650,7 @@ export default function BootSplash({
             pointerEvents: 'none',
           }}
         />
+
         <div
           style={{
             position: 'absolute',
@@ -657,7 +666,6 @@ export default function BootSplash({
           }}
         />
 
-        {/* Corners */}
         {[
           { top: 16, left: 16 },
           { top: 16, right: 16 },
@@ -700,6 +708,7 @@ export default function BootSplash({
                 letterSpacing: 8,
                 fontWeight: 900,
                 marginBottom: 10,
+                textShadow: `0 0 14px ${color}`,
               }}
             >
               HOLOGRAPHIC_BOOT_PROTOCOL
@@ -707,15 +716,35 @@ export default function BootSplash({
 
             <div
               style={{
-                fontSize: '4.35rem',
-                fontWeight: 900,
-                letterSpacing: '18px',
-                color: '#f2f7fb',
-                marginBottom: 12,
-                animation: 'bs-text-glow 2.2s ease-in-out infinite',
+                position: 'relative',
+                display: 'inline-block',
+                overflow: 'hidden',
+                padding: '0 18px',
               }}
             >
-              EFECT
+              <div
+                style={{
+                  fontSize: '4.35rem',
+                  fontWeight: 900,
+                  letterSpacing: '14px',
+                  color: '#f2f7fb',
+                  marginBottom: 12,
+                  animation: 'bs-text-glow 2.2s ease-in-out infinite',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                EFECT
+              </div>
+
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(90deg, transparent, ${color}35, #ffffff88, ${color}35, transparent)`,
+                  animation: 'bs-logo-sweep 2.9s ease-in-out infinite',
+                  mixBlendMode: 'screen',
+                }}
+              />
             </div>
 
             <div
@@ -731,7 +760,6 @@ export default function BootSplash({
             </div>
           </div>
 
-          {/* Progress */}
           <div style={{ marginBottom: 16 }}>
             <div
               style={{
@@ -744,14 +772,16 @@ export default function BootSplash({
             >
               <div
                 style={{
-                  color: color,
+                  color,
                   fontWeight: 900,
                   letterSpacing: 4,
                   fontSize: '0.82rem',
+                  textShadow: `0 0 12px ${color}`,
                 }}
               >
                 {activeStep.label}
               </div>
+
               <div
                 style={{
                   color: '#ffffff',
@@ -782,6 +812,7 @@ export default function BootSplash({
                     'linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
                 }}
               />
+
               <div
                 style={{
                   width: `${progress}%`,
@@ -820,6 +851,7 @@ export default function BootSplash({
                   fontSize: '0.68rem',
                   fontWeight: 800,
                   whiteSpace: 'nowrap',
+                  textShadow: turbo ? `0 0 12px ${color}` : 'none',
                 }}
               >
                 {turbo ? 'TURBO_SYNC_ENABLED' : 'STANDARD_BOOT_RATE'}
@@ -827,7 +859,6 @@ export default function BootSplash({
             </div>
           </div>
 
-          {/* Modules */}
           <div
             style={{
               display: 'grid',
@@ -922,7 +953,6 @@ export default function BootSplash({
             ))}
           </div>
 
-          {/* Terminal */}
           <div
             style={{
               borderRadius: 18,
@@ -934,7 +964,7 @@ export default function BootSplash({
           >
             <div
               style={{
-                color: color,
+                color,
                 fontSize: '0.72rem',
                 letterSpacing: 4,
                 fontWeight: 900,
@@ -967,7 +997,6 @@ export default function BootSplash({
         </div>
       </div>
 
-      {/* Bottom hint */}
       <div
         style={{
           position: 'absolute',
@@ -988,12 +1017,14 @@ export default function BootSplash({
         >
           CLICK ANYWHERE OR PRESS SPACE TO TURBO SYNC
         </div>
+
         <div
           style={{
-            color: color,
+            color,
             fontSize: '0.64rem',
             letterSpacing: 4,
             opacity: 0.85,
+            textShadow: `0 0 12px ${color}`,
           }}
         >
           SYSTEM AUTO-LAUNCHES AT 100%
