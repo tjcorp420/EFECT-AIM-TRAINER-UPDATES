@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useRef, useMemo } from 'react';
+import { Suspense, useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PointerLockControls } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -345,6 +345,7 @@ export default function App() {
   } = useStore();
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const deployGraceRef = useRef(0);
 
   const [booted, setBooted] = useState(false);
   const [maxStreak, setMaxStreak] = useState(0);
@@ -376,8 +377,21 @@ export default function App() {
 
   const maxHPS = Math.max(...chartData, 1);
 
+  const handlePointerUnlock = useCallback(() => {
+    const msSinceDeploy = performance.now() - deployGraceRef.current;
+
+    if (msSinceDeploy < 1200) {
+      return;
+    }
+
+    if (timeLeft > 0 && gameState === 'playing') {
+      goToCustomizer();
+    }
+  }, [timeLeft, gameState, goToCustomizer]);
+
   useEffect(() => {
     if (gameState === 'playing') {
+      deployGraceRef.current = performance.now();
       setMaxStreak(0);
       setActiveStreak(null);
     }
@@ -1126,11 +1140,7 @@ export default function App() {
           <PointerLockControls
             makeDefault
             pointerSpeed={truePointerSpeed}
-            onUnlock={() => {
-              if (timeLeft > 0) {
-                goToCustomizer();
-              }
-            }}
+            onUnlock={handlePointerUnlock}
           />
 
           <Suspense fallback={null}>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useStore, TRACK_LIST, GAME_PROFILES } from '../store/useStore';
 import { auth, syncArmoryToCloud } from '../firebase';
@@ -420,10 +420,10 @@ export default function Customizer() {
     username,
     setSettings,
     setWeapon,
-    startGame,
     goToScenarios,
   } = useStore();
 
+  const deployLockRef = useRef(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [crosshairStyle, setCrosshairStyle] = useState<CrosshairStyle>(readCrosshairStyle);
   const [activeBgCategory, setActiveBgCategory] = useState<'ALL' | 'DARK' | 'BRIGHT' | 'ARENA'>(
@@ -431,6 +431,17 @@ export default function Customizer() {
   );
 
   const recommendedFov = GAME_PROFILES[gameProfile]?.defaultFov || 103;
+
+  const forceDeploy = () => {
+    if (deployLockRef.current) return;
+
+    deployLockRef.current = true;
+    useStore.getState().startGame();
+
+    window.setTimeout(() => {
+      deployLockRef.current = false;
+    }, 250);
+  };
 
   const activeBackground = useMemo(() => {
     return BACKGROUND_PRESETS.find((bg) => bg.id === mapTheme) || BACKGROUND_PRESETS[0];
@@ -994,6 +1005,43 @@ export default function Customizer() {
             >
               {isSyncing ? 'SYNCING_TO_CLOUD...' : 'CLOUD_SYNC_ARMORY'}
             </button>
+
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                forceDeploy();
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                forceDeploy();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                forceDeploy();
+              }}
+              className="stable-hover"
+              style={{
+                gridColumn: '1 / span 2',
+                position: 'relative',
+                zIndex: 99999,
+                pointerEvents: 'auto',
+                padding: '16px 18px',
+                background: color,
+                border: `1px solid ${color}`,
+                color: '#000',
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontWeight: 900,
+                letterSpacing: 4,
+                boxShadow: `0 0 30px ${color}66`,
+              }}
+            >
+              DEPLOY_TO_ARENA
+            </button>
           </div>
         </div>
 
@@ -1167,6 +1215,7 @@ export default function Customizer() {
                       <option value="pistol">Pistol Tactical</option>
                       <option value="smg">SMG Automatic</option>
                       <option value="sniper">Sniper High Impact</option>
+                      <option value="nerf">Nerf Training Blaster</option>
                     </select>
                   </div>
 
@@ -2047,20 +2096,36 @@ export default function Customizer() {
 
           <button
             type="button"
-            onClick={startGame}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              forceDeploy();
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              forceDeploy();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              forceDeploy();
+            }}
             className="stable-hover"
             style={{
               position: 'relative',
+              zIndex: 99999,
+              pointerEvents: 'auto',
               overflow: 'hidden',
               padding: '22px 28px',
               fontSize: 27,
-              backgroundColor: `${color}15`,
+              backgroundColor: color,
               border: `2px solid ${color}`,
-              color,
+              color: '#000',
               cursor: 'pointer',
               fontFamily: 'inherit',
               letterSpacing: 10,
-              boxShadow: `0 0 40px ${color}30`,
+              boxShadow: `0 0 40px ${color}70`,
               borderRadius: 14,
               fontWeight: 900,
               textTransform: 'uppercase',
@@ -2070,12 +2135,22 @@ export default function Customizer() {
               style={{
                 position: 'absolute',
                 inset: 0,
-                background: `linear-gradient(90deg, transparent, ${color}35, transparent)`,
+                background:
+                  'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)',
                 animation: 'armorySweep 2.8s ease-in-out infinite',
                 pointerEvents: 'none',
               }}
             />
-            DEPLOY_TO_ARENA
+
+            <span
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                pointerEvents: 'none',
+              }}
+            >
+              DEPLOY_TO_ARENA
+            </span>
           </button>
 
           <div

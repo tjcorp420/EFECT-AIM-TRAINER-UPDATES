@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 
 // --- PRO SENSITIVITY CONSTANTS ---
-export const GAME_PROFILES: Record<string, { name: string, multiplier: number, defaultFov: number }> = {
+export const GAME_PROFILES: Record<
+  string,
+  { name: string; multiplier: number; defaultFov: number }
+> = {
   valorant: { name: 'Valorant', multiplier: 1.0, defaultFov: 103 },
   cs2: { name: 'CS2 / Apex', multiplier: 3.1818, defaultFov: 106 },
-  fortnite: { name: 'Fortnite (Percent)', multiplier: 12.5, defaultFov: 103 }, 
-  overwatch: { name: 'Overwatch 2', multiplier: 10.6, defaultFov: 103 }
+  fortnite: { name: 'Fortnite (Percent)', multiplier: 12.5, defaultFov: 103 },
+  overwatch: { name: 'Overwatch 2', multiplier: 10.6, defaultFov: 103 },
 };
 
 export const TRACK_LIST = [
@@ -49,159 +52,356 @@ export const TRACK_LIST = [
   { id: 'type', name: 'Type' },
   { id: 'lowd', name: 'Lowd' },
   { id: 'rah', name: 'Rah' },
-  { id: 'bass', name: 'Bass' }
+  { id: 'bass', name: 'Bass' },
 ];
 
+export type WeaponClass = 'pistol' | 'smg' | 'sniper' | 'nerf';
+
+export type WeaponMode = 'stealth' | 'laser';
+
+export type TargetShape = 'sphere' | 'cube' | 'humanoid';
+
+export type TargetSkinMode = 'custom' | 'original';
+
+export type HitSound = 'tick' | 'pop' | 'ding' | 'none';
+
+export type GraphicsQuality = 'high' | 'performance';
+
+export type MapTheme =
+  | 'cyber'
+  | 'minimal'
+  | 'galaxy'
+  | 'night'
+  | 'cosmic_space'
+  | 'skydeck_cloud_lab'
+  | 'industrial_warehouse'
+  | 'jungle_temple_ruins'
+  | 'neon_rooftop_city'
+  | 'tech_training_arena'
+  | 'training_chamber'
+  | 'efect_arena'
+  | 'luxury_lounge'
+  | 'cyber_rooftop'
+  | 'cosmic_space_360'
+  | 'training_chamber_360'
+  | 'efect_arena_360'
+  | 'synthwave'
+  | 'zenith'
+  | 'factory'
+  | 'temple'
+  | 'mirage';
+
+export type AppScreen =
+  | 'login'
+  | 'scenarioSelect'
+  | 'customizer'
+  | 'playing'
+  | 'gameover'
+  | 'leaderboard';
+
 export const playHitSound = (type: string) => {
-  if (type === 'none') return; 
+  if (type === 'none') return;
+
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     const ctx = new AudioContext();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    
+
     if (type === 'tick') {
-      osc.type = 'square'; osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
     } else if (type === 'pop') {
-      osc.type = 'sine'; osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
     } else if (type === 'ding') {
-      osc.type = 'sine'; osc.frequency.setValueAtTime(1200, ctx.currentTime);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1200, ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
     }
-    
-    osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.3);
-  } catch (e) {}
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {
+    // Audio is optional. Safe to ignore.
+  }
 };
 
 const loadHighScores = () => {
-  const saved = localStorage.getItem('efect_highscores');
-  return saved ? JSON.parse(saved) : {};
+  try {
+    const saved = localStorage.getItem('efect_highscores');
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
 };
 
 const loadProfile = () => {
-  const saved = localStorage.getItem('efect_profile');
-  return saved ? JSON.parse(saved) : {};
+  try {
+    const saved = localStorage.getItem('efect_profile');
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
 };
+
 const p = loadProfile();
 
+const normalizeWeaponClass = (value: unknown): WeaponClass => {
+  if (value === 'smg' || value === 'sniper' || value === 'nerf') {
+    return value;
+  }
+
+  return 'pistol';
+};
+
+const normalizeMapTheme = (value: unknown): MapTheme => {
+  if (typeof value !== 'string') return 'cyber';
+
+  return value as MapTheme;
+};
+
 interface GameState {
-  username: string; 
-  color: string; size: number; thickness: number; gap: number; dot: boolean;
-  crosshairOutline: boolean; skipClickToBegin: boolean; 
-  targetColor: string; targetShape: 'sphere' | 'cube' | 'humanoid'; 
-  targetSkinMode: 'custom' | 'original'; 
-  hitSound: 'tick' | 'pop' | 'ding' | 'none'; 
-  scenario: string; 
-  weaponMode: 'stealth' | 'laser'; weaponClass: 'pistol' | 'smg' | 'sniper';
-  mapTheme: 'cyber' | 'minimal' | 'galaxy' | 'night'; graphicsQuality: 'high' | 'performance';
-  drillDuration: number; musicTrack: string; musicVolume: number;
-  isMusicPlaying: boolean; isFiring: boolean; targetSpeed: number; modelScale: number;
-  targetAmount: number; targetDistance: number; 
-  score: number; shots: number; timeLeft: number;
+  username: string;
+
+  color: string;
+  size: number;
+  thickness: number;
+  gap: number;
+  dot: boolean;
+  crosshairOutline: boolean;
+  skipClickToBegin: boolean;
+
+  targetColor: string;
+  targetShape: TargetShape;
+  targetSkinMode: TargetSkinMode;
+  hitSound: HitSound;
+
+  scenario: string;
+
+  weaponMode: WeaponMode;
+  weaponClass: WeaponClass;
+
+  mapTheme: MapTheme;
+  graphicsQuality: GraphicsQuality;
+
+  drillDuration: number;
+  musicTrack: string;
+  musicVolume: number;
+  isMusicPlaying: boolean;
+
+  isFiring: boolean;
+
+  targetSpeed: number;
+  modelScale: number;
+  targetAmount: number;
+  targetDistance: number;
+
+  score: number;
+  shots: number;
+  timeLeft: number;
   combo: number;
+
   gameProfile: string;
   gameSens: number;
   fov: number;
-  gameState: 'login' | 'scenarioSelect' | 'customizer' | 'playing' | 'gameover' | 'leaderboard'; 
+
+  gameState: AppScreen;
+
   hitTrigger: number;
-  hitmarkerTrigger: number; 
-  hitLog: number[]; // <-- PHASE 3: ANALYTICS LOG
+  hitmarkerTrigger: number;
+  hitLog: number[];
+
   highScores: Record<string, number>;
+
   setSettings: (settings: Partial<GameState>) => void;
-  setWeapon: (wClass: 'pistol' | 'smg' | 'sniper') => void; 
+  setWeapon: (wClass: WeaponClass) => void;
   setIsFiring: (val: boolean) => void;
-  goToScenarios: () => void; goToCustomizer: () => void;
-  startGame: () => void; endGame: () => void; tickTimer: () => void;
-  fireShot: () => boolean; 
-  registerHit: (points?: number) => void; 
+
+  goToScenarios: () => void;
+  goToCustomizer: () => void;
+
+  startGame: () => void;
+  endGame: () => void;
+  tickTimer: () => void;
+
+  fireShot: () => boolean;
+  registerHit: (points?: number) => void;
   resetCombo: () => void;
 }
 
 export const useStore = create<GameState>((set) => ({
-  username: p.username || `Player_${Math.floor(Math.random() * 9999)}`, 
-  color: p.color || '#00ff00', size: p.size ?? 8, thickness: p.thickness ?? 2, gap: p.gap ?? 5, dot: p.dot ?? true,
-  crosshairOutline: p.crosshairOutline ?? true, skipClickToBegin: p.skipClickToBegin ?? false, 
-  targetColor: p.targetColor || '#00ff00', targetShape: p.targetShape || 'sphere', 
+  username: p.username || `Player_${Math.floor(Math.random() * 9999)}`,
+
+  color: p.color || '#00ff00',
+  size: p.size ?? 8,
+  thickness: p.thickness ?? 2,
+  gap: p.gap ?? 5,
+  dot: p.dot ?? true,
+  crosshairOutline: p.crosshairOutline ?? true,
+  skipClickToBegin: p.skipClickToBegin ?? false,
+
+  targetColor: p.targetColor || '#00ff00',
+  targetShape: p.targetShape || 'sphere',
   targetSkinMode: p.targetSkinMode || 'custom',
   hitSound: p.hitSound || 'tick',
-  weaponMode: p.weaponMode || 'laser', weaponClass: p.weaponClass || 'pistol',
-  mapTheme: p.mapTheme || 'cyber', graphicsQuality: p.graphicsQuality || 'high',
-  drillDuration: p.drillDuration || 60, targetSpeed: p.targetSpeed || 1,
-  modelScale: p.modelScale ?? 1.0, 
-  targetAmount: p.targetAmount ?? 10, targetDistance: p.targetDistance ?? -8.5,
-  musicTrack: p.musicTrack || 'none', 
+
+  weaponMode: p.weaponMode || 'laser',
+  weaponClass: normalizeWeaponClass(p.weaponClass),
+
+  mapTheme: normalizeMapTheme(p.mapTheme || 'cyber'),
+  graphicsQuality: p.graphicsQuality || 'high',
+
+  drillDuration: p.drillDuration || 60,
+  targetSpeed: p.targetSpeed || 1,
+  modelScale: p.modelScale ?? 1.0,
+  targetAmount: p.targetAmount ?? 10,
+  targetDistance: p.targetDistance ?? -8.5,
+
+  musicTrack: p.musicTrack || 'none',
   musicVolume: p.musicVolume ?? 0.2,
-  isMusicPlaying: false, 
-  scenario: 'gridshot_standard', isFiring: false,
-  score: 0, shots: 0, timeLeft: 60, combo: 0, 
-  gameState: 'login', // <-- BOOTS TO SECURE GATEWAY
+  isMusicPlaying: false,
+
+  scenario: 'gridshot_standard',
+  isFiring: false,
+
+  score: 0,
+  shots: 0,
+  timeLeft: 60,
+  combo: 0,
+
+  gameState: 'login',
+
   hitTrigger: 0,
-  hitmarkerTrigger: 0, 
-  hitLog: [], // <-- PHASE 3: INIT STATE
+  hitmarkerTrigger: 0,
+  hitLog: [],
+
   highScores: loadHighScores(),
+
   gameProfile: p.gameProfile || 'valorant',
   gameSens: p.gameSens ?? 0.35,
   fov: p.fov ?? 103,
 
-  setSettings: (newSettings) => set((state) => {
-    const nextState = { ...state, ...newSettings };
-    localStorage.setItem('efect_profile', JSON.stringify(nextState));
-    return nextState;
-  }),
-  
-  setWeapon: (wClass) => set((state) => {
-    state.setSettings({ weaponClass: wClass });
-    return { weaponClass: wClass };
-  }),
-  
-  setIsFiring: (val) => set({ isFiring: val }),
-  goToScenarios: () => set({ gameState: 'scenarioSelect' }),
-  goToCustomizer: () => set({ gameState: 'customizer' }),
-  
-  startGame: () => set((state) => {
-    const initialShots = state.skipClickToBegin ? 1 : 0; 
-    return { 
-      gameState: 'playing', score: 0, shots: initialShots, combo: 0, 
-      hitTrigger: 0, hitmarkerTrigger: 0, hitLog: [], // <-- RESET ON NEW GAME
-      timeLeft: state.drillDuration 
-    };
-  }),
-  
-  endGame: () => set((state) => {
-    const currentHigh = state.highScores[state.scenario] || 0;
-    const isNewHigh = state.score > currentHigh;
-    const newHighScores = { ...state.highScores, [state.scenario]: isNewHigh ? state.score : currentHigh };
-    
-    if (isNewHigh) {
-      localStorage.setItem('efect_highscores', JSON.stringify(newHighScores));
-    }
-    
-    if (state.score > 0) {
-      import('../firebase').then(({ submitScore }) => {
-        const accuracy = state.shots > 0 ? Math.round((state.score / state.shots) * 100) : 0;
-        submitScore(state.scenario, state.username, state.score, accuracy);
-      }).catch((err) => console.warn("Firebase not loaded: ", err));
-    }
-    
-    return { gameState: 'gameover', highScores: newHighScores };
-  }),
-  
-  tickTimer: () => set((state) => ({ timeLeft: Math.max(0, state.timeLeft - 1) })),
-  fireShot: () => { set((state) => ({ shots: state.shots + 1 })); return true; },
-  registerHit: (points = 1) => set((state) => { 
-    playHitSound(state.hitSound); 
-    const timeElapsed = state.drillDuration - state.timeLeft; 
-    return { 
-      score: state.score + points, 
-      hitTrigger: state.hitTrigger + 1, 
-      combo: state.combo + 1,
-      hitmarkerTrigger: Date.now(),
-      hitLog: [...state.hitLog, timeElapsed] 
-    }; 
-  }),
-  resetCombo: () => set({ combo: 0 }),
+  setSettings: (newSettings) =>
+    set((state) => {
+      const nextState = { ...state, ...newSettings };
+
+      localStorage.setItem('efect_profile', JSON.stringify(nextState));
+
+      return nextState;
+    }),
+
+  setWeapon: (wClass) =>
+    set((state) => {
+      state.setSettings({
+        weaponClass: wClass,
+      });
+
+      return {
+        weaponClass: wClass,
+      };
+    }),
+
+  setIsFiring: (val) =>
+    set({
+      isFiring: val,
+    }),
+
+  goToScenarios: () =>
+    set({
+      gameState: 'scenarioSelect',
+    }),
+
+  goToCustomizer: () =>
+    set({
+      gameState: 'customizer',
+    }),
+
+  startGame: () =>
+    set((state) => {
+      const initialShots = state.skipClickToBegin ? 1 : 0;
+
+      return {
+        gameState: 'playing',
+        score: 0,
+        shots: initialShots,
+        combo: 0,
+        hitTrigger: 0,
+        hitmarkerTrigger: 0,
+        hitLog: [],
+        timeLeft: state.drillDuration,
+      };
+    }),
+
+  endGame: () =>
+    set((state) => {
+      const currentHigh = state.highScores[state.scenario] || 0;
+      const isNewHigh = state.score > currentHigh;
+      const newHighScores = {
+        ...state.highScores,
+        [state.scenario]: isNewHigh ? state.score : currentHigh,
+      };
+
+      if (isNewHigh) {
+        localStorage.setItem('efect_highscores', JSON.stringify(newHighScores));
+      }
+
+      if (state.score > 0) {
+        import('../firebase')
+          .then(({ submitScore }) => {
+            const accuracy =
+              state.shots > 0 ? Math.round((state.hitTrigger / state.shots) * 100) : 0;
+
+            submitScore(state.scenario, state.username, state.score, accuracy);
+          })
+          .catch((err) => console.warn('Firebase not loaded: ', err));
+      }
+
+      return {
+        gameState: 'gameover',
+        highScores: newHighScores,
+      };
+    }),
+
+  tickTimer: () =>
+    set((state) => ({
+      timeLeft: Math.max(0, state.timeLeft - 1),
+    })),
+
+  fireShot: () => {
+    set((state) => ({
+      shots: state.shots + 1,
+    }));
+
+    return true;
+  },
+
+  registerHit: (points = 1) =>
+    set((state) => {
+      playHitSound(state.hitSound);
+
+      const timeElapsed = state.drillDuration - state.timeLeft;
+
+      return {
+        score: state.score + points,
+        hitTrigger: state.hitTrigger + 1,
+        combo: state.combo + 1,
+        hitmarkerTrigger: Date.now(),
+        hitLog: [...state.hitLog, timeElapsed],
+      };
+    }),
+
+  resetCombo: () =>
+    set({
+      combo: 0,
+    }),
 }));
