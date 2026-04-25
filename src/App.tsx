@@ -98,7 +98,6 @@ const getRankInfo = (score: number, accuracy: number) => {
 
 function HitMarkerUI() {
   const [show, setShow] = useState(false);
-  const { color } = useStore();
 
   useEffect(() => {
     let timer: number;
@@ -121,43 +120,7 @@ function HitMarkerUI() {
 
   if (!show) return null;
 
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none',
-        zIndex: 100,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          width: '24px',
-          height: '2px',
-          background: color,
-          transform: 'rotate(45deg)',
-          opacity: 0.8,
-        }}
-      />
-
-      <div
-        style={{
-          position: 'absolute',
-          width: '24px',
-          height: '2px',
-          background: color,
-          transform: 'rotate(-45deg)',
-          opacity: 0.8,
-        }}
-      />
-    </div>
-  );
+  return <div className="efect-hitmarker" />;
 }
 
 function AudioListener() {
@@ -316,6 +279,14 @@ function PlayerMovement() {
   return null;
 }
 
+const getWeaponTitle = (weaponClass: string) => {
+  if (weaponClass === 'smg') return 'SMG AUTOMATIC';
+  if (weaponClass === 'sniper') return 'SNIPER HIGH IMPACT';
+  if (weaponClass === 'nerf') return 'NERF TRAINING BLASTER';
+
+  return 'PISTOL TACTICAL';
+};
+
 export default function App() {
   const {
     score,
@@ -342,6 +313,7 @@ export default function App() {
     gameProfile,
     fov,
     hitLog,
+    weaponClass,
   } = useStore();
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
@@ -358,6 +330,11 @@ export default function App() {
   const finalRank = getRankInfo(score, accuracy);
 
   const hasStartedFiring = shots > 0;
+
+  const elapsedTime = Math.max(0, drillDuration - timeLeft);
+  const liveHitsPerSecond = elapsedTime > 0 ? hitTrigger / elapsedTime : 0;
+  const weaponTitle = getWeaponTitle(weaponClass);
+  const scenarioTitle = scenario.replace(/_/g, ' ').toUpperCase();
 
   const profile = GAME_PROFILES[gameProfile] || GAME_PROFILES.valorant;
   const truePointerSpeed = (gameSens / profile.multiplier) * 1.1;
@@ -516,27 +493,11 @@ export default function App() {
       {gameState === 'playing' && hasStartedFiring && <HitMarkerUI />}
 
       {gameState === 'playing' && !hasStartedFiring && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '25%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 50,
-            textAlign: 'center',
-            pointerEvents: 'none',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '2rem',
-              color: '#fff',
-              fontWeight: '900',
-              letterSpacing: '4px',
-              textShadow: `0 0 15px ${color}`,
-            }}
-          >
-            CLICK TO BEGIN
+        <div className="efect-ready-overlay">
+          <div className="efect-ready-kicker">EFECT TRAINING MODULE ONLINE</div>
+          <div className="efect-ready-title">CLICK TO BEGIN</div>
+          <div className="efect-ready-sub">
+            LOCK CURSOR // START TIMER // ENGAGE TARGETS
           </div>
         </div>
       )}
@@ -682,447 +643,290 @@ export default function App() {
       {gameState === 'leaderboard' && <Leaderboard />}
 
       {gameState === 'playing' && (
-        <div
-          className="hud-container"
-          style={{
-            position: 'absolute',
-            inset: '20px',
-            pointerEvents: 'none',
-            zIndex: 10,
-            display: 'flex',
-            justifyContent: 'space-between',
-            color,
-            fontFamily: 'monospace',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              fontSize: '36px',
-              fontWeight: 'bold',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-            }}
-          >
-            {timeLeft}s
+        <div className="efect-game-hud">
+          <div className="efect-hud-topbar">
+            <div className="efect-hud-pill">
+              <div className="efect-hud-label">TIME REMAINING</div>
+              <div className="efect-hud-value">{timeLeft}s</div>
+            </div>
+
+            <div className="efect-hud-pill efect-hud-score">
+              <div className="efect-hud-label">LIVE SCORE</div>
+              <div className="efect-hud-value">{score}</div>
+            </div>
+
+            <div className="efect-hud-pill">
+              <div className="efect-hud-label">STREAK CHAIN</div>
+              <div className="efect-hud-value">x{combo}</div>
+            </div>
           </div>
 
-          <div
-            style={{
-              position: 'absolute',
-              right: '0',
-              textAlign: 'right',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '32px',
-                fontWeight: '900',
-              }}
-            >
-              SCORE: {score}
+          <div className="efect-hud-side-left">
+            <div className="efect-hud-mini">
+              <div className="efect-hud-mini-title">ACTIVE MODULE</div>
+              <div className="efect-hud-mini-value">{scenarioTitle}</div>
             </div>
 
-            <div
-              style={{
-                fontSize: '18px',
-                opacity: 0.8,
-              }}
-            >
-              STREAK: {combo}
+            <div className="efect-hud-mini">
+              <div className="efect-hud-mini-title">WEAPON PROFILE</div>
+              <div className="efect-hud-mini-value">{weaponTitle}</div>
             </div>
+          </div>
+
+          <div className="efect-hud-side-right">
+            <div className="efect-hud-mini">
+              <div className="efect-hud-mini-title">ACCURACY</div>
+              <div className="efect-hud-mini-value">{accuracy}%</div>
+            </div>
+
+            <div className="efect-hud-mini">
+              <div className="efect-hud-mini-title">HITS PER SECOND</div>
+              <div className="efect-hud-mini-value">{liveHitsPerSecond.toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div className="efect-hud-watermark">EFECT AIM TRAINER</div>
+
+          <div className="efect-hud-esc">
+            <span>ESC</span> RETURN TO ARMORY
           </div>
         </div>
       )}
 
       {gameState === 'gameover' && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(5,5,5,0.85)',
-            backdropFilter: 'blur(10px)',
-            zIndex: 100,
-            color: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'monospace',
-          }}
-        >
-          <h1
-            style={{
-              color,
-              fontSize: '3rem',
-              letterSpacing: '10px',
-              marginBottom: '10px',
-              textShadow: `0 0 20px ${color}`,
-            }}
-          >
-            SESSION REVIEW
-          </h1>
+        <div className="efect-session-shell">
+          <div className="efect-session-card">
+            <div className="efect-session-title">SESSION REVIEW</div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '15px',
-              marginBottom: '30px',
-              background: 'rgba(20,20,20,0.6)',
-              padding: '10px 30px',
-              borderRadius: '50px',
-              border: `1px solid ${finalRank.color}`,
-            }}
-          >
-            <span style={{ fontSize: '2.5rem' }}>{finalRank.icon}</span>
-
-            <div>
-              <div
-                style={{
-                  color: '#aaa',
-                  fontSize: '0.8rem',
-                  letterSpacing: '2px',
-                }}
-              >
-                PERFORMANCE RATING
-              </div>
-
-              <div
-                style={{
-                  color: finalRank.color,
-                  fontSize: '1.8rem',
-                  fontWeight: '900',
-                  letterSpacing: '4px',
-                  textShadow: `0 0 10px ${finalRank.color}80`,
-                }}
-              >
-                {finalRank.title}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1.5fr',
-              gap: '30px',
-              width: '95%',
-              maxWidth: '1400px',
-              marginBottom: '40px',
-            }}
-          >
             <div
-              className="glow-ui"
               style={{
-                padding: '40px 20px',
-                borderRadius: '16px',
-                background: 'rgba(20,20,20,0.6)',
-                border: `1px solid ${color}`,
-                textAlign: 'center',
                 display: 'flex',
-                flexDirection: 'column',
+                alignItems: 'center',
                 justifyContent: 'center',
-              }}
-            >
-              <div
-                style={{
-                  color: '#aaa',
-                  fontSize: '1.2rem',
-                  letterSpacing: '2px',
-                }}
-              >
-                FINAL SCORE
-              </div>
-
-              <div
-                style={{
-                  fontSize: '5.5rem',
-                  color,
-                  fontWeight: '900',
-                  lineHeight: '1.1',
-                  textShadow: `0 0 20px ${color}`,
-                }}
-              >
-                {score}
-              </div>
-
-              <div
-                style={{
-                  color: '#666',
-                  fontSize: '1.2rem',
-                  marginTop: '10px',
-                }}
-              >
-                BEST: {highScores[scenario] || 0}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
                 gap: '15px',
+                margin: '20px auto 26px',
+                width: 'fit-content',
+                background: 'rgba(20,20,20,0.6)',
+                padding: '10px 30px',
+                borderRadius: '50px',
+                border: `1px solid ${finalRank.color}`,
               }}
             >
-              <div
-                className="performance-card"
-                style={{
-                  background: 'rgba(20,20,20,0.6)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #333',
-                }}
-              >
-                <span
+              <span style={{ fontSize: '2.5rem' }}>{finalRank.icon}</span>
+
+              <div>
+                <div
                   style={{
                     color: '#aaa',
-                    display: 'block',
-                    marginBottom: '5px',
+                    fontSize: '0.8rem',
+                    letterSpacing: '2px',
                   }}
                 >
-                  ACCURACY
-                </span>
+                  PERFORMANCE RATING
+                </div>
 
-                <span
+                <div
                   style={{
-                    fontSize: '2.5rem',
-                    color,
-                    fontWeight: 'bold',
+                    color: finalRank.color,
+                    fontSize: '1.8rem',
+                    fontWeight: '900',
+                    letterSpacing: '4px',
+                    textShadow: `0 0 10px ${finalRank.color}80`,
                   }}
                 >
-                  {accuracy}%
-                </span>
+                  {finalRank.title}
+                </div>
+              </div>
+            </div>
+
+            <div className="efect-session-grid">
+              <div
+                className="efect-session-stat"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                }}
+              >
+                <div className="efect-session-stat-label">FINAL SCORE</div>
+                <div className="efect-session-stat-value">{score}</div>
+                <div
+                  style={{
+                    color: '#666',
+                    fontSize: '1.2rem',
+                    marginTop: '10px',
+                  }}
+                >
+                  BEST: {highScores[scenario] || 0}
+                </div>
               </div>
 
               <div
-                className="performance-card"
                 style={{
-                  background: 'rgba(20,20,20,0.6)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #333',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '15px',
                 }}
               >
-                <span
-                  style={{
-                    color: '#aaa',
-                    display: 'block',
-                    marginBottom: '5px',
-                  }}
-                >
-                  MAX STREAK
-                </span>
+                <div className="efect-session-stat">
+                  <div className="efect-session-stat-label">ACCURACY</div>
+                  <div className="efect-session-stat-value">{accuracy}%</div>
+                </div>
 
-                <span
-                  style={{
-                    fontSize: '2.5rem',
-                    color,
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {maxStreak}
-                </span>
+                <div className="efect-session-stat">
+                  <div className="efect-session-stat-label">MAX STREAK</div>
+                  <div className="efect-session-stat-value">{maxStreak}</div>
+                </div>
+
+                <div className="efect-session-stat">
+                  <div className="efect-session-stat-label">AVG REACTION</div>
+                  <div className="efect-session-stat-value">{avgReaction}ms</div>
+                </div>
+
+                <div className="efect-session-stat">
+                  <div className="efect-session-stat-label">HITS / SEC</div>
+                  <div className="efect-session-stat-value">
+                    {(hitTrigger / drillDuration).toFixed(2)}
+                  </div>
+                </div>
               </div>
 
               <div
-                className="performance-card"
+                className="efect-session-stat"
                 style={{
-                  background: 'rgba(20,20,20,0.6)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #333',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
-                <span
+                <div
                   style={{
+                    fontSize: '1rem',
                     color: '#aaa',
-                    display: 'block',
-                    marginBottom: '5px',
+                    marginBottom: '15px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  AVG REACTION
-                </span>
+                  <span>PERFORMANCE HEATMAP (HPS)</span>
+                  <span style={{ color }}>Peak: {maxHPS.toFixed(1)}</span>
+                </div>
 
-                <span
+                <div
                   style={{
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
+                    flex: 1,
+                    minHeight: 180,
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    gap: '6px',
+                    borderBottom: '1px solid #444',
+                    paddingBottom: '10px',
                   }}
                 >
-                  {avgReaction}ms
-                </span>
-              </div>
+                  {chartData.map((val, idx) => {
+                    const heightPct = (val / maxHPS) * 100;
 
-              <div
-                className="performance-card"
-                style={{
-                  background: 'rgba(20,20,20,0.6)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #333',
-                }}
-              >
-                <span
-                  style={{
-                    color: '#aaa',
-                    display: 'block',
-                    marginBottom: '5px',
-                  }}
-                >
-                  HITS / SEC
-                </span>
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          flex: 1,
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'flex-end',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '100%',
+                            height: `${heightPct}%`,
+                            background: color,
+                            opacity: val > 0 ? 0.8 : 0.1,
+                            boxShadow: val === maxHPS ? `0 0 10px ${color}` : 'none',
+                            borderRadius: '2px 2px 0 0',
+                            transition: 'height 0.4s ease-out',
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
 
-                <span
+                <div
                   style={{
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    color: '#666',
+                    fontSize: '0.8rem',
+                    marginTop: '10px',
                   }}
                 >
-                  {(hitTrigger / drillDuration).toFixed(2)}
-                </span>
+                  <span>0s</span>
+                  <span>{drillDuration / 2}s</span>
+                  <span>{drillDuration}s</span>
+                </div>
               </div>
             </div>
 
             <div
               style={{
-                background: 'rgba(20,20,20,0.6)',
-                border: '1px solid #333',
-                borderRadius: '12px',
-                padding: '20px',
                 display: 'flex',
-                flexDirection: 'column',
+                gap: '20px',
+                marginTop: 24,
               }}
             >
-              <div
-                style={{
-                  fontSize: '1rem',
-                  color: '#aaa',
-                  marginBottom: '15px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span>PERFORMANCE HEATMAP (HPS)</span>
-                <span style={{ color }}>Peak: {maxHPS.toFixed(1)}</span>
-              </div>
-
-              <div
+              <button
+                onClick={startGame}
+                className="glow-ui"
                 style={{
                   flex: 1,
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  gap: '6px',
-                  borderBottom: '1px solid #444',
-                  paddingBottom: '10px',
+                  padding: '20px',
+                  background: color,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#000',
+                  fontWeight: '900',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
                 }}
               >
-                {chartData.map((val, idx) => {
-                  const heightPct = (val / maxHPS) * 100;
+                REDEPLOY
+              </button>
 
-                  return (
-                    <div
-                      key={idx}
-                      style={{
-                        flex: 1,
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '100%',
-                          height: `${heightPct}%`,
-                          background: color,
-                          opacity: val > 0 ? 0.8 : 0.1,
-                          boxShadow: val === maxHPS ? `0 0 10px ${color}` : 'none',
-                          borderRadius: '2px 2px 0 0',
-                          transition: 'height 0.4s ease-out',
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div
+              <button
+                onClick={goToCustomizer}
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  color: '#666',
-                  fontSize: '0.8rem',
-                  marginTop: '10px',
+                  flex: 1,
+                  padding: '20px',
+                  background: 'rgba(30,30,30,0.8)',
+                  border: '1px solid #555',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
                 }}
               >
-                <span>0s</span>
-                <span>{drillDuration / 2}s</span>
-                <span>{drillDuration}s</span>
-              </div>
+                ARMORY
+              </button>
+
+              <button
+                onClick={goToScenarios}
+                style={{
+                  flex: 1,
+                  padding: '20px',
+                  background: 'transparent',
+                  color: '#fff',
+                  border: '1px solid #444',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
+                }}
+              >
+                HUB
+              </button>
             </div>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '20px',
-              width: '95%',
-              maxWidth: '1400px',
-            }}
-          >
-            <button
-              onClick={startGame}
-              className="glow-ui"
-              style={{
-                flex: 1,
-                padding: '20px',
-                background: color,
-                border: 'none',
-                borderRadius: '8px',
-                color: '#000',
-                fontWeight: '900',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-              }}
-            >
-              REDEPLOY
-            </button>
-
-            <button
-              onClick={goToCustomizer}
-              style={{
-                flex: 1,
-                padding: '20px',
-                background: 'rgba(30,30,30,0.8)',
-                border: '1px solid #555',
-                borderRadius: '8px',
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-              }}
-            >
-              ARMORY
-            </button>
-
-            <button
-              onClick={goToScenarios}
-              style={{
-                flex: 1,
-                padding: '20px',
-                background: 'transparent',
-                color: '#fff',
-                border: '1px solid #444',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-              }}
-            >
-              HUB
-            </button>
           </div>
         </div>
       )}
