@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useStore, TRACK_LIST, GAME_PROFILES } from '../store/useStore';
 import { auth, syncArmoryToCloud } from '../firebase';
@@ -47,7 +47,7 @@ const CROSSHAIR_STYLE_KEY = 'efect_crosshair_style';
 const CROSSHAIR_PRESETS: CrosshairPreset[] = [
   {
     id: 'compact',
-    name: 'EFECT COMPACT',
+    name: 'EMX COMPACT',
     tag: 'FAST FLICK',
     size: 9,
     thickness: 2,
@@ -140,7 +140,7 @@ const BACKGROUND_PRESETS = [
     id: 'neon_rooftop_city',
     name: 'NEON_ROOFTOP_CITY',
     file: 'neon_rooftop_city.png',
-    desc: 'Cyberpunk rooftop skyline with EFECT green glow.',
+    desc: 'Cyberpunk rooftop skyline with EMX green glow.',
     tone: 'CYBER CITY',
   },
   {
@@ -159,9 +159,9 @@ const BACKGROUND_PRESETS = [
   },
   {
     id: 'efect_arena',
-    name: 'EFECT_ARENA_360',
+    name: 'EMX_ARENA_360',
     file: 'efect_arena.png',
-    desc: 'Premium EFECT stadium style combat arena.',
+    desc: 'Premium EMX stadium style combat arena.',
     tone: 'ELITE / STAGE',
   },
   {
@@ -177,34 +177,6 @@ const BACKGROUND_PRESETS = [
     file: 'cyber_rooftop.png',
     desc: 'Purple-blue rooftop skyline for aesthetic sessions.',
     tone: 'NEON / NIGHT',
-  },
-  {
-    id: 'cyber',
-    name: 'CYBER_GRID_LEGACY',
-    file: 'built-in',
-    desc: 'Original cyber grid fallback.',
-    tone: 'BUILT-IN',
-  },
-  {
-    id: 'minimal',
-    name: 'GREYBOX_PRO_LEGACY',
-    file: 'built-in',
-    desc: 'Clean greybox fallback.',
-    tone: 'BUILT-IN',
-  },
-  {
-    id: 'galaxy',
-    name: 'SUPERNOVA_LEGACY',
-    file: 'built-in',
-    desc: 'Original galaxy fallback.',
-    tone: 'BUILT-IN',
-  },
-  {
-    id: 'night',
-    name: 'STEALTH_DARK_LEGACY',
-    file: 'built-in',
-    desc: 'Original dark fallback.',
-    tone: 'BUILT-IN',
   },
 ];
 
@@ -537,7 +509,7 @@ function StatMeter({
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          gap: 10,
+          gap: 12,
           color: 'rgba(255,255,255,0.56)',
           fontSize: 10,
           letterSpacing: 2,
@@ -614,9 +586,30 @@ export default function Customizer() {
   );
 
   const recommendedFov = GAME_PROFILES[gameProfile]?.defaultFov || 103;
-  const activeWeapon = WEAPON_PRESETS[(weaponClass as WeaponId) || 'pistol'] || WEAPON_PRESETS.pistol;
+const activeWeapon = WEAPON_PRESETS[(weaponClass as WeaponId) || 'pistol'] || WEAPON_PRESETS.pistol;
 
-  const forceDeploy = () => {
+const getDisplayName = (value: string) => {
+  return value.replace(/efect/gi, 'emx').replace(/_/g, ' ').toUpperCase();
+};
+
+const normalizeEmxName = (value: string) => {
+  return value
+    .replace(/efect/gi, 'emx')
+    .replace(/exm/gi, 'emx')
+    .substring(0, 16);
+};
+
+const displayUsername = username ? normalizeEmxName(username) : 'EMX_AGENT';
+
+useEffect(() => {
+  if (username && /(efect|exm)/i.test(username)) {
+    setSettings({
+      username: normalizeEmxName(username),
+    });
+  }
+}, [username, setSettings]);
+
+const forceDeploy = () => {
     if (deployLockRef.current) return;
 
     deployLockRef.current = true;
@@ -631,7 +624,7 @@ export default function Customizer() {
     return BACKGROUND_PRESETS.find((bg) => bg.id === mapTheme) || BACKGROUND_PRESETS[0];
   }, [mapTheme]);
 
-    const filteredBackgrounds = useMemo(() => {
+        const filteredBackgrounds = useMemo(() => {
     if (activeBgCategory === 'ALL') return BACKGROUND_PRESETS;
 
     return BACKGROUND_PRESETS.filter((bg) => {
@@ -639,13 +632,12 @@ export default function Customizer() {
         return (
           bg.tone.includes('DARK') ||
           bg.tone.includes('SPACE') ||
-          bg.tone.includes('NIGHT') ||
-          bg.id === 'cyber'
+          bg.tone.includes('NIGHT')
         );
       }
 
       if (activeBgCategory === 'BRIGHT') {
-        return bg.tone.includes('BRIGHT') || bg.tone.includes('CLEAN') || bg.id === 'minimal';
+        return bg.tone.includes('BRIGHT') || bg.tone.includes('CLEAN');
       }
 
       return (
@@ -783,7 +775,7 @@ export default function Customizer() {
         border: `1px solid ${color}66`,
         borderTop: `3px solid ${color}`,
         borderRadius: 18,
-        padding: 24,
+        padding: 20,
         boxShadow: `0 0 36px ${color}18, inset 0 0 42px rgba(255,255,255,0.025)`,
         overflow: 'hidden',
       }}
@@ -801,9 +793,9 @@ export default function Customizer() {
         style={{
           position: 'relative',
           zIndex: 2,
-          marginBottom: 22,
+          marginBottom: 16,
           borderBottom: '1px solid rgba(255,255,255,0.12)',
-          paddingBottom: 14,
+          paddingBottom: 12,
         }}
       >
         <div
@@ -907,7 +899,7 @@ export default function Customizer() {
         color: '#fff',
         overflowY: 'auto',
         overflowX: 'hidden',
-        padding: '28px 28px 130px',
+        padding: '22px 24px 92px',
       }}
     >
       <style>{`
@@ -1241,11 +1233,11 @@ export default function Customizer() {
             gridTemplateColumns: '1fr auto 1fr',
             gap: 20,
             alignItems: 'start',
-            maxWidth: 1780,
-            margin: '0 auto 24px',
+            maxWidth: 1860,
+margin: '0 auto 20px',
           }}
         >
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               className="armory-ghost stable-hover"
               onClick={goToScenarios}
@@ -1283,7 +1275,7 @@ export default function Customizer() {
                 textAlign: 'center',
               }}
             >
-              TIKTOK: EFECT2LIT
+              EMX SOCIALS📲
             </a>
           </div>
 
@@ -1298,15 +1290,15 @@ export default function Customizer() {
                 textShadow: `0 0 18px ${color}`,
               }}
             >
-              EFECT AIM TRAINER // ARMORY
+              EMX AIM TRAINER // ARMORY🔫
             </div>
 
             <div
               style={{
                 color: '#fff',
-                fontSize: 48,
-                lineHeight: 0.95,
-                letterSpacing: 18,
+                fontSize: 42,
+lineHeight: 0.96,
+letterSpacing: 14,
                 fontWeight: 900,
                 textShadow: `0 0 26px ${color}80, 0 0 70px ${color}33`,
               }}
@@ -1349,7 +1341,7 @@ export default function Customizer() {
             >
               <div style={{ color: '#777', fontSize: 10, letterSpacing: 3 }}>AGENT</div>
               <div style={{ color, fontWeight: 900, letterSpacing: 1 }}>
-                {username || 'efect2lit'}
+                {displayUsername}
               </div>
             </div>
 
@@ -1364,7 +1356,7 @@ export default function Customizer() {
             >
               <div style={{ color: '#777', fontSize: 10, letterSpacing: 3 }}>MODULE</div>
               <div style={{ color: '#fff', fontWeight: 900, letterSpacing: 1 }}>
-                {scenario.replace(/_/g, ' ').toUpperCase()}
+                {getDisplayName(scenario)}
               </div>
             </div>
 
@@ -1433,9 +1425,9 @@ export default function Customizer() {
             zIndex: 2,
             display: 'grid',
             gridTemplateColumns:
-              'minmax(330px, 0.95fr) minmax(380px, 1.05fr) minmax(430px, 1.25fr)',
-            gap: 22,
-            maxWidth: 1780,
+  'minmax(320px, 0.9fr) minmax(370px, 1fr) minmax(460px, 1.22fr)',
+gap: 18,
+maxWidth: 1860,
             margin: '0 auto',
             alignItems: 'start',
           }}
@@ -2464,15 +2456,15 @@ export default function Customizer() {
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                    gap: 12,
-                    maxHeight: 640,
+                    gap: 10,
+                    maxHeight: 560,
                     overflowY: 'auto',
                     paddingRight: 4,
                   }}
                 >
                   {filteredBackgrounds.map((bg) => {
                     const active = mapTheme === bg.id;
-                    const isImage = bg.file !== 'built-in';
+                    
 
                     return (
                       <button
@@ -2496,9 +2488,9 @@ export default function Customizer() {
   }}
   style={{
     position: 'relative',
-    minHeight: 154,
+    minHeight: 132,
     overflow: 'hidden',
-    borderRadius: 14,
+    borderRadius: 13,
     border: `1px solid ${active ? color : 'rgba(255,255,255,0.12)'}`,
     background: 'rgba(0,0,0,0.62)',
     color: '#fff',
@@ -2512,40 +2504,19 @@ export default function Customizer() {
     WebkitUserSelect: 'none',
   }}
 >
-                        {isImage ? (
-                          <div
-                            className="bg-card-img"
-                            style={{
-                              pointerEvents: 'none',
-                              position: 'absolute',
-                              inset: 0,
-                              backgroundImage: `url('/backgrounds/${bg.file}')`,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center',
-                              opacity: 0.42,
-                              transition: 'filter 0.18s ease',
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className="bg-card-img"
-                            style={{
-                              pointerEvents: 'none',
-                              position: 'absolute',
-                              inset: 0,
-                              background:
-                                bg.id === 'minimal'
-                                  ? 'linear-gradient(135deg, #888, #111)'
-                                  : bg.id === 'galaxy'
-                                    ? 'radial-gradient(circle, #30105c, #05000a)'
-                                    : bg.id === 'night'
-                                      ? 'linear-gradient(135deg, #08101f, #000)'
-                                      : `radial-gradient(circle, ${color}33, #000)`,
-                              opacity: 0.42,
-                              transition: 'filter 0.18s ease',
-                            }}
-                          />
-                        )}
+                        <div
+  className="bg-card-img"
+  style={{
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    backgroundImage: `url('/backgrounds/${bg.file}')`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    opacity: 0.46,
+    transition: 'filter 0.18s ease',
+  }}
+/>
 
                         <div
                           style={{

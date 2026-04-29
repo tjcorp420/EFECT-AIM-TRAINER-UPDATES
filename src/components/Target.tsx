@@ -17,6 +17,21 @@ const easeOutCubic = (value: number) => {
   return 1 - Math.pow(1 - t, 3);
 };
 
+const HEADSHOT_BONUS = 150;
+const HEADSHOT_TEXT_COLOR = '#ffd400';
+const HEADSHOT_BONUS_COLOR = '#ff4df0';
+
+const isHumanoidHeadshot = (worldPoint: THREE.Vector3, hitObject: THREE.Object3D) => {
+  const localPoint = hitObject.worldToLocal(worldPoint.clone());
+
+  return (
+    localPoint.y >= 0.72 &&
+    localPoint.y <= 1.24 &&
+    Math.abs(localPoint.x) <= 0.24 &&
+    Math.abs(localPoint.z) <= 0.28
+  );
+};
+
 function FortniteSkin({ color, skinMode }: { color: string; skinMode: string }) {
   const { scene } = useGLTF('/fortnite_skin.glb') as any;
   const cloned = useMemo(() => SkeletonUtils.clone(scene as any), [scene, skinMode]);
@@ -29,14 +44,30 @@ function FortniteSkin({ color, skinMode }: { color: string; skinMode: string }) 
         o.receiveShadow = true;
 
         if (skinMode === 'custom') {
-          o.material = new THREE.MeshStandardMaterial({
-            color,
-            emissive: color,
-            emissiveIntensity: 1.5,
-            roughness: 0.45,
-            metalness: 0.12,
-          });
-        }
+  o.material = new THREE.MeshStandardMaterial({
+    color,
+    emissive: color,
+    emissiveIntensity: 1.15,
+    roughness: 0.42,
+    metalness: 0.08,
+    toneMapped: false,
+  });
+} else if (o.material) {
+  const originalMaterial = Array.isArray(o.material) ? o.material[0] : o.material;
+  const clonedMaterial = originalMaterial.clone();
+
+  if ('emissive' in clonedMaterial) {
+    clonedMaterial.emissive = new THREE.Color('#000000');
+    clonedMaterial.emissiveIntensity = 0;
+  }
+
+  clonedMaterial.roughness = Math.min(0.9, clonedMaterial.roughness ?? 0.7);
+  clonedMaterial.metalness = Math.min(0.18, clonedMaterial.metalness ?? 0.05);
+  clonedMaterial.toneMapped = true;
+  clonedMaterial.needsUpdate = true;
+
+  o.material = clonedMaterial;
+}
       }
     });
   }, [cloned, color, skinMode]);
@@ -412,59 +443,86 @@ export default function Target() {
     }
   }, [gameState]);
 
-  const onHit = () => {
-    if (!isAlive.current || useStore.getState().shots === 0) return;
+  const onHit = ({ headshot = false }: { headshot?: boolean } = {}) => {
+  if (!isAlive.current || useStore.getState().shots === 0) return;
 
-    isAlive.current = false;
-    triggerDetachedBurst();
+  isAlive.current = false;
+  triggerDetachedBurst();
 
-    let points = 100;
+  let basePoints = 100;
 
-    if (!isTrackingMode) {
-      points = Math.max(100, Math.floor(1000 - age.current * 800));
-    } else {
-      points = 10;
+  if (!isTrackingMode) {
+    basePoints = Math.max(100, Math.floor(1000 - age.current * 800));
+  } else {
+    basePoints = 10;
+  }
+
+  const bonusPoints = headshot && !isTrackingMode ? HEADSHOT_BONUS : 0;
+  const totalPoints = basePoints + bonusPoints;
+
+  registerHit(totalPoints);
+  window.dispatchEvent(new CustomEvent('hit-marker'));
+
+  const storeState = useStore.getState();
+  const textX = window.innerWidth / 2 + (Math.random() * 40 - 20);
+  const textY = window.innerHeight / 2 + (Math.random() * 40 - 20);
+
+  if (!isTrackingMode || storeState.combo % 10 === 0) {
+    const displayTxt = isTrackingMode ? 'TRACKING' : `+${totalPoints}`;
+
+    window.dispatchEvent(
+      new CustomEvent('floating-text', {
+        detail: {
+          text: displayTxt,
+          x: textX,
+          y: textY,
+          color: storeState.color,
+        },
+      })
+    );
+  }
+
+  if (headshot && !isTrackingMode) {
+    window.dispatchEvent(
+      new CustomEvent('floating-text', {
+        detail: {
+          text: 'HEADSHOT!',
+          x: textX,
+          y: textY - 38,
+          color: HEADSHOT_TEXT_COLOR,
+        },
+      })
+    );
+
+    window.dispatchEvent(
+      new CustomEvent('floating-text', {
+        detail: {
+          text: `BONUS +${HEADSHOT_BONUS}`,
+          x: textX + 18,
+          y: textY + 28,
+          color: HEADSHOT_BONUS_COLOR,
+        },
+      })
+    );
+  }
+
+  if (!isTrackingMode && !isPopcorn && !isBounce) {
+    respawn();
+  } else {
+    isExploding.current = true;
+    explosionAge.current = 0;
+    explosionMat.current.opacity = 0.9;
+
+    if (modelGroup.current) {
+      modelGroup.current.visible = false;
     }
 
-    registerHit(points);
-    window.dispatchEvent(new CustomEvent('hit-marker'));
-
-    const storeState = useStore.getState();
-    const textX = window.innerWidth / 2 + (Math.random() * 40 - 20);
-    const textY = window.innerHeight / 2 + (Math.random() * 40 - 20);
-
-    if (!isTrackingMode || storeState.combo % 10 === 0) {
-      const displayTxt = isTrackingMode ? 'TRACKING' : `+${points}`;
-
-      window.dispatchEvent(
-        new CustomEvent('floating-text', {
-          detail: {
-            text: displayTxt,
-            x: textX,
-            y: textY,
-            color: storeState.color,
-          },
-        })
-      );
+    if (explosionGroup.current) {
+      explosionGroup.current.visible = true;
+      explosionGroup.current.scale.setScalar(activeScale * 0.55);
     }
-
-    if (!isTrackingMode && !isPopcorn && !isBounce) {
-      respawn();
-    } else {
-      isExploding.current = true;
-      explosionAge.current = 0;
-      explosionMat.current.opacity = 0.9;
-
-      if (modelGroup.current) {
-        modelGroup.current.visible = false;
-      }
-
-      if (explosionGroup.current) {
-        explosionGroup.current.visible = true;
-        explosionGroup.current.scale.setScalar(activeScale * 0.55);
-      }
-    }
-  };
+  }
+};
 
   const updateDetachedBurst = (dt: number) => {
     if (!detachedBurstGroup.current || !detachedBurstGroup.current.visible) return;
@@ -767,59 +825,68 @@ export default function Target() {
           )}
 
           <mesh
-            position={targetShape === 'humanoid' ? [0, 0.5, 0] : [0, 0, 0]}
-            onClick={(e: any) => {
-              e.stopPropagation();
+  position={targetShape === 'humanoid' ? [0, 0.18, 0] : [0, 0, 0]}
+  onClick={(e: any) => {
+  e.stopPropagation();
 
-              if (!isTrackingMode) {
-                onHit();
-              }
-            }}
-            onPointerOver={(e: any) => {
-              e.stopPropagation();
-              isHovered.current = true;
-            }}
-            onPointerOut={() => {
-              isHovered.current = false;
-            }}
-          >
-            {targetShape === 'humanoid' ? (
-              <capsuleGeometry args={[0.8, 2.2, 4, 16]} />
-            ) : targetShape === 'cube' ? (
-              <boxGeometry args={[2.2, 2.2, 2.2]} />
-            ) : (
-              <sphereGeometry args={[1.3]} />
-            )}
+  if (!isTrackingMode) {
+    const isHeadshot =
+      targetShape === 'humanoid'
+        ? isHumanoidHeadshot(e.point, e.eventObject)
+        : false;
 
-            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          </mesh>
+    onHit({ headshot: isHeadshot });
+  }
+}}
+  onPointerOver={(e: any) => {
+    e.stopPropagation();
+    isHovered.current = true;
+  }}
+  onPointerOut={() => {
+    isHovered.current = false;
+  }}
+>
+  {targetShape === 'humanoid' ? (
+    <capsuleGeometry args={[0.38, 1.72, 4, 12]} />
+  ) : targetShape === 'cube' ? (
+    <boxGeometry args={[1.75, 1.75, 1.75]} />
+  ) : (
+    <sphereGeometry args={[1.05]} />
+  )}
 
-          <group raycast={NO_RAYCAST}>
-            {targetShape === 'humanoid' ? (
-              <Suspense fallback={null}>
-                <FortniteSkin color={targetColor} skinMode={targetSkinMode} />
-              </Suspense>
-            ) : targetShape === 'sphere' ? (
+  <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+</mesh>
+
+          
+
+<group raycast={NO_RAYCAST}>
+  {targetShape === 'humanoid' ? (
+    <Suspense fallback={null}>
+      <FortniteSkin color={targetColor} skinMode={targetSkinMode} />
+    </Suspense>
+  ) : targetShape === 'sphere' ? (
               <mesh raycast={NO_RAYCAST}>
                 <sphereGeometry args={[1, 32, 32]} />
                 <meshStandardMaterial
-                  color={targetColor}
-                  emissive={targetColor}
-                  emissiveIntensity={1.8}
-                  roughness={0.38}
-                  metalness={0.15}
-                />
+  color={targetColor}
+  emissive={targetColor}
+  emissiveIntensity={2.6}
+  roughness={0.32}
+  metalness={0.12}
+  toneMapped={false}
+/>
               </mesh>
             ) : (
               <mesh raycast={NO_RAYCAST}>
                 <boxGeometry args={[1.5, 1.5, 1.5]} />
                 <meshStandardMaterial
-                  color={targetColor}
-                  emissive={targetColor}
-                  emissiveIntensity={1.8}
-                  roughness={0.34}
-                  metalness={0.18}
-                />
+  color={targetColor}
+  emissive={targetColor}
+  emissiveIntensity={2.45}
+  roughness={0.3}
+  metalness={0.14}
+  toneMapped={false}
+/>
               </mesh>
             )}
           </group>

@@ -3,60 +3,88 @@ import { useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store/useStore';
 
-const BACKGROUNDS: Record<string, string> = {
-  // New customizer background IDs
-  cosmic_space: '/backgrounds/cosmic_space.png',
-  skydeck_cloud_lab: '/backgrounds/skydeck_cloud_lab.png',
-  industrial_warehouse: '/backgrounds/industrial_warehouse.png',
-  jungle_temple_ruins: '/backgrounds/jungle_temple_ruins.png',
-  neon_rooftop_city: '/backgrounds/neon_rooftop_city.png',
-  tech_training_arena: '/backgrounds/tech_training_arena.png',
-  training_chamber: '/backgrounds/training_chamber.png',
-  efect_arena: '/backgrounds/efect_arena.png',
-  luxury_lounge: '/backgrounds/luxury_lounge.png',
-  cyber_rooftop: '/backgrounds/cyber_rooftop.png',
-
-  // Legacy IDs
-  cyber: '/backgrounds/efect_arena.png',
-  minimal: '/backgrounds/training_chamber.png',
-  galaxy: '/backgrounds/cosmic_space.png',
-  night: '/backgrounds/training_chamber.png',
-  synthwave: '/backgrounds/cyber_rooftop.png',
-  zenith: '/backgrounds/luxury_lounge.png',
-
-  // Older/extra fallback names
-  inferno: '/backgrounds/efect_arena.png',
-  tundra: '/backgrounds/training_chamber.png',
-  factory: '/backgrounds/industrial_warehouse.png',
-  temple: '/backgrounds/jungle_temple_ruins.png',
-  mirage: '/backgrounds/neon_rooftop_city.png',
+type BackdropSettings = {
+  path: string;
+  exposure: number;
+  overlayOpacity: number;
+  environmentIntensity: number;
+  blur: number;
 };
 
-const EXPOSURE_BY_THEME: Record<string, number> = {
-  cosmic_space: 0.9,
-  skydeck_cloud_lab: 0.78,
-  industrial_warehouse: 0.82,
-  jungle_temple_ruins: 0.84,
-  neon_rooftop_city: 0.82,
-  tech_training_arena: 0.86,
-  training_chamber: 0.84,
-  efect_arena: 0.86,
-  luxury_lounge: 0.8,
-  cyber_rooftop: 0.8,
-
-  cyber: 0.86,
-  minimal: 0.84,
-  galaxy: 0.9,
-  night: 0.84,
-  synthwave: 0.8,
-  zenith: 0.8,
-
-  inferno: 0.86,
-  tundra: 0.84,
-  factory: 0.82,
-  temple: 0.84,
-  mirage: 0.82,
+const BACKGROUNDS: Record<string, BackdropSettings> = {
+  cosmic_space: {
+    path: '/backgrounds/cosmic_space.png',
+    exposure: 1.08,
+    overlayOpacity: 0.12,
+    environmentIntensity: 0.86,
+    blur: 0.02,
+  },
+  skydeck_cloud_lab: {
+    path: '/backgrounds/skydeck_cloud_lab.png',
+    exposure: 0.82,
+    overlayOpacity: 0.24,
+    environmentIntensity: 0.68,
+    blur: 0.03,
+  },
+  industrial_warehouse: {
+    path: '/backgrounds/industrial_warehouse.png',
+    exposure: 0.92,
+    overlayOpacity: 0.2,
+    environmentIntensity: 0.72,
+    blur: 0.02,
+  },
+  jungle_temple_ruins: {
+    path: '/backgrounds/jungle_temple_ruins.png',
+    exposure: 0.95,
+    overlayOpacity: 0.18,
+    environmentIntensity: 0.78,
+    blur: 0.02,
+  },
+  neon_rooftop_city: {
+    path: '/backgrounds/neon_rooftop_city.png',
+    exposure: 0.9,
+    overlayOpacity: 0.2,
+    environmentIntensity: 0.74,
+    blur: 0.02,
+  },
+  tech_training_arena: {
+    path: '/backgrounds/tech_training_arena.png',
+    exposure: 0.9,
+    overlayOpacity: 0.18,
+    environmentIntensity: 0.78,
+    blur: 0.018,
+  },
+  training_chamber: {
+    path: '/backgrounds/training_chamber.png',
+    exposure: 0.98,
+    overlayOpacity: 0.16,
+    environmentIntensity: 0.8,
+    blur: 0.02,
+  },
+  efect_arena: {
+    path: '/backgrounds/efect_arena.png',
+    exposure: 0.94,
+    overlayOpacity: 0.18,
+    environmentIntensity: 0.78,
+    blur: 0.02,
+  },
+  luxury_lounge: {
+    path: '/backgrounds/luxury_lounge.png',
+    exposure: 0.84,
+    overlayOpacity: 0.26,
+    environmentIntensity: 0.66,
+    blur: 0.025,
+  },
+  cyber_rooftop: {
+    path: '/backgrounds/cyber_rooftop.png',
+    exposure: 0.9,
+    overlayOpacity: 0.22,
+    environmentIntensity: 0.72,
+    blur: 0.02,
+  },
 };
+
+const FALLBACK_THEME = 'luxury_lounge';
 
 export default function RoomBackdrop() {
   const { scene, gl } = useThree();
@@ -64,18 +92,16 @@ export default function RoomBackdrop() {
   const mapTheme = useStore((s) => s.mapTheme);
   const graphicsQuality = useStore((s) => s.graphicsQuality);
 
-  const bgPath = BACKGROUNDS[mapTheme] || BACKGROUNDS.cyber;
-
-  const texture = useLoader(THREE.TextureLoader, bgPath);
-
-  const exposure = useMemo(() => {
-    return EXPOSURE_BY_THEME[mapTheme] ?? 0.84;
+  const settings = useMemo(() => {
+    return BACKGROUNDS[mapTheme] || BACKGROUNDS[FALLBACK_THEME];
   }, [mapTheme]);
+
+  const texture = useLoader(THREE.TextureLoader, settings.path);
 
   useEffect(() => {
     texture.mapping = THREE.EquirectangularReflectionMapping;
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = graphicsQuality === 'high' ? 16 : 4;
+    texture.anisotropy = graphicsQuality === 'high' ? 16 : 6;
     texture.generateMipmaps = true;
     texture.minFilter = THREE.LinearMipmapLinearFilter;
     texture.magFilter = THREE.LinearFilter;
@@ -84,25 +110,41 @@ export default function RoomBackdrop() {
     scene.background = texture;
     scene.environment = texture;
 
+    if ('backgroundBlurriness' in scene) {
+      scene.backgroundBlurriness = settings.blur;
+    }
+
+    if ('environmentIntensity' in scene) {
+      scene.environmentIntensity = settings.environmentIntensity;
+    }
+
     gl.outputColorSpace = THREE.SRGBColorSpace;
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = graphicsQuality === 'high' ? 1.08 : 0.98;
+    gl.toneMappingExposure =
+      graphicsQuality === 'high' ? settings.exposure : settings.exposure * 0.92;
 
     return () => {
       scene.background = null;
       scene.environment = null;
+
+      if ('backgroundBlurriness' in scene) {
+        scene.backgroundBlurriness = 0;
+      }
+
+      if ('environmentIntensity' in scene) {
+        scene.environmentIntensity = 1;
+      }
     };
-  }, [scene, gl, texture, graphicsQuality]);
+  }, [scene, gl, texture, settings, graphicsQuality]);
 
   return (
     <>
-      {/* Subtle darkening dome. Lower opacity = brighter 360 scene. */}
       <mesh scale={[-120, 120, 120]} renderOrder={-999}>
         <sphereGeometry args={[1, 64, 32]} />
         <meshBasicMaterial
           color="#000000"
           transparent
-          opacity={Math.max(0, Math.min(0.55, 1 - exposure))}
+          opacity={settings.overlayOpacity}
           side={THREE.BackSide}
           depthWrite={false}
           depthTest={false}

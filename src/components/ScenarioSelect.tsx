@@ -3,8 +3,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 
+const EMX_LOGO_SRC = '/emx-logo.png';
+
 const SCENARIOS = [
-  { id: 'efect_overdrive', name: 'EFECT OVERDRIVE', desc: 'Maximum speed, zero delay tracking & flicking.', type: 'SPECIAL' },
+  { id: 'efect_overdrive', name: 'EMX OVERDRIVE', desc: 'Maximum speed, zero delay tracking & flicking.', type: 'SPECIAL' },
   { id: 'gridshot_standard', name: 'WALL GRIDSHOT', desc: 'Standard 3-target flicking.', type: 'FLICK' },
   { id: 'gridshot_ultimate', name: 'GRIDSHOT ULTIMATE', desc: 'Faster spawns, more targets.', type: 'FLICK' },
   { id: 'gridshot_precision', name: 'GRIDSHOT PRECISION', desc: 'Tiny targets for micro-flicks.', type: 'PRECISION' },
@@ -114,7 +116,7 @@ export default function ScenarioSelect() {
   };
 
   const exportConfig = () => {
-    const configString = `EFECT_CFG[SENS:${store.gameSens}|FOV:${store.fov}|RETICLE:${store.size},${store.thickness},${store.gap}|CLR:${store.color}]`;
+    const configString = `EMX_CFG[SENS:${store.gameSens}|FOV:${store.fov}|RETICLE:${store.size},${store.thickness},${store.gap}|CLR:${store.color}]`;
 
     navigator.clipboard.writeText(configString);
     setCopied(true);
@@ -143,10 +145,14 @@ export default function ScenarioSelect() {
     });
   }, [activeFilter, search]);
 
-  const totalModules = SCENARIOS.length;
-  const visibleModules = filteredScenarios.length;
+const totalModules = SCENARIOS.length;
+const visibleModules = filteredScenarios.length;
 
-  return (
+const DEFAULT_DISPLAY_NAME = 'EMX TWEAKS';
+
+const displayUsername = username?.trim() || DEFAULT_DISPLAY_NAME;
+
+return (
     <div
       style={{
         position: 'absolute',
@@ -158,7 +164,7 @@ export default function ScenarioSelect() {
         color: '#fff',
         fontFamily: 'Consolas, Monaco, "Courier New", monospace',
         background:
-          'radial-gradient(circle at 50% 0%, rgba(0,255,204,0.14), transparent 32%), radial-gradient(circle at 12% 82%, rgba(0,255,120,0.08), transparent 28%), linear-gradient(180deg, #050707 0%, #000 100%)',
+          'radial-gradient(circle at 50% 0%, rgba(0,255,204,0.16), transparent 32%), radial-gradient(circle at 14% 84%, rgba(57,255,20,0.10), transparent 28%), radial-gradient(circle at 86% 78%, rgba(185,103,255,0.12), transparent 30%), linear-gradient(180deg, #050707 0%, #000 100%)',
       }}
     >
       <style>{`
@@ -195,48 +201,184 @@ export default function ScenarioSelect() {
           }
         }
 
-        .efect-command-screen * {
+        @keyframes emxLogoFloat {
+          0%, 100% {
+            transform: translateY(0) scale(1);
+            filter: drop-shadow(0 0 16px ${color}) drop-shadow(0 0 28px rgba(185,103,255,0.75));
+          }
+          50% {
+            transform: translateY(-5px) scale(1.035);
+            filter: drop-shadow(0 0 24px ${color}) drop-shadow(0 0 42px rgba(255,0,255,0.85));
+          }
+        }
+
+        @keyframes emxGlassSpin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes emxGlassPulse {
+          0%, 100% {
+            opacity: 0.64;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.045);
+          }
+        }
+
+        @keyframes emxLogoScan {
+          0% {
+            transform: translateY(-135%);
+            opacity: 0;
+          }
+          12% {
+            opacity: 0.8;
+          }
+          50% {
+            opacity: 0.95;
+          }
+          100% {
+            transform: translateY(135%);
+            opacity: 0;
+          }
+        }
+
+        .emx-command-screen * {
           box-sizing: border-box;
         }
 
-        .efect-command-screen button,
-        .efect-command-screen input {
+        .emx-command-screen button,
+        .emx-command-screen input {
           font-family: inherit;
         }
 
-        .efect-command-screen ::-webkit-scrollbar {
+        .emx-command-screen ::-webkit-scrollbar {
           width: 9px;
         }
 
-        .efect-command-screen ::-webkit-scrollbar-track {
+        .emx-command-screen ::-webkit-scrollbar-track {
           background: rgba(0,0,0,0.85);
         }
 
-        .efect-command-screen ::-webkit-scrollbar-thumb {
+        .emx-command-screen ::-webkit-scrollbar-thumb {
           background: ${color};
           border-radius: 999px;
           box-shadow: 0 0 16px ${color};
         }
 
-        .efect-module-card:hover .module-glow {
+        .emx-logo-glass-frame {
+          position: relative;
+          width: 190px;
+          height: 132px;
+          margin: 0 auto 10px;
+          display: grid;
+          place-items: center;
+          border-radius: 30px;
+          border: 1px solid rgba(255,255,255,0.18);
+          background:
+            linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.025)),
+            radial-gradient(circle at 25% 20%, ${color}44, transparent 38%),
+            radial-gradient(circle at 84% 78%, rgba(185,103,255,0.34), transparent 42%),
+            rgba(0,0,0,0.46);
+          box-shadow:
+            0 0 32px ${color}44,
+            0 0 54px rgba(185,103,255,0.22),
+            inset 0 0 34px rgba(255,255,255,0.055);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          overflow: hidden;
+        }
+
+        .emx-logo-glass-frame::before {
+          content: "";
+          position: absolute;
+          width: 210px;
+          height: 210px;
+          background:
+            conic-gradient(
+              from 0deg,
+              transparent,
+              ${color},
+              #b967ff,
+              #ff0055,
+              transparent,
+              ${color}
+            );
+          opacity: 0.42;
+          animation: emxGlassSpin 5.8s linear infinite;
+        }
+
+        .emx-logo-glass-frame::after {
+          content: "";
+          position: absolute;
+          inset: 2px;
+          border-radius: 28px;
+          background:
+            linear-gradient(135deg, rgba(2,6,6,0.82), rgba(0,0,0,0.62)),
+            radial-gradient(circle at 50% 10%, rgba(255,255,255,0.14), transparent 42%);
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .emx-logo-ring {
+          position: absolute;
+          z-index: 2;
+          width: 154px;
+          height: 82px;
+          border-radius: 50%;
+          border: 1px solid ${color}88;
+          box-shadow:
+            0 0 20px ${color}55,
+            inset 0 0 18px rgba(185,103,255,0.25);
+          transform: rotate(-12deg);
+          animation: emxGlassPulse 2.6s ease-in-out infinite;
+        }
+
+        .emx-logo-scan {
+          position: absolute;
+          z-index: 4;
+          left: 18px;
+          right: 18px;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, #fff, ${color}, transparent);
+          box-shadow: 0 0 18px ${color};
+          animation: emxLogoScan 2.2s linear infinite;
+          pointer-events: none;
+        }
+
+        .emx-main-logo {
+          position: relative;
+          z-index: 3;
+          width: 150px;
+          max-height: 96px;
+          object-fit: contain;
+          animation: emxLogoFloat 2.8s ease-in-out infinite;
+        }
+
+        .emx-module-card:hover .module-glow {
           opacity: 1;
           transform: translateX(0);
         }
 
-        .efect-module-card:hover .module-index {
+        .emx-module-card:hover .module-index {
           color: #000 !important;
           background: ${color};
           box-shadow: 0 0 20px ${color};
         }
 
-        .efect-filter-btn:hover {
+        .emx-filter-btn:hover {
           border-color: ${color} !important;
           color: ${color} !important;
           box-shadow: 0 0 20px ${color}33 !important;
           transform: translateY(-2px);
         }
 
-        .efect-top-btn:hover {
+        .emx-top-btn:hover {
           border-color: ${color} !important;
           color: #000 !important;
           background: ${color} !important;
@@ -246,7 +388,7 @@ export default function ScenarioSelect() {
       `}</style>
 
       <div
-        className="efect-command-screen"
+        className="emx-command-screen"
         style={{
           position: 'relative',
           width: '100%',
@@ -315,12 +457,12 @@ export default function ScenarioSelect() {
               >
                 USER_ID:{' '}
                 <span style={{ color, textShadow: `0 0 12px ${color}` }}>
-                  {username || 'efect2lit'}
+                  {displayUsername}
                 </span>
               </div>
 
               <button
-                className="efect-top-btn"
+                className="emx-top-btn"
                 onClick={exportConfig}
                 style={{
                   padding: '12px 18px',
@@ -338,7 +480,7 @@ export default function ScenarioSelect() {
               </button>
 
               <button
-                className="efect-top-btn"
+                className="emx-top-btn"
                 onClick={handleManualCheck}
                 disabled={isChecking || pendingUpdate !== null}
                 style={{
@@ -357,7 +499,20 @@ export default function ScenarioSelect() {
               </button>
             </div>
 
-            <div style={{ textAlign: 'center', paddingTop: 10 }}>
+            <div style={{ textAlign: 'center', paddingTop: 0 }}>
+              <div className="emx-logo-glass-frame">
+                <div className="emx-logo-ring" />
+                <div className="emx-logo-scan" />
+                <img
+                  src={EMX_LOGO_SRC}
+                  alt="EMX"
+                  className="emx-main-logo"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+
               <div
                 style={{
                   color,
@@ -368,15 +523,15 @@ export default function ScenarioSelect() {
                   marginBottom: 8,
                 }}
               >
-                EFECT TRAINING SUITE
+                EMX TRAINING SUITE
               </div>
 
               <div
                 style={{
                   color: '#fff',
-                  fontSize: 56,
+                  fontSize: 48,
                   lineHeight: 0.95,
-                  letterSpacing: 16,
+                  letterSpacing: 15,
                   fontWeight: 900,
                   textShadow: `0 0 22px ${color}88, 0 0 55px ${color}44`,
                 }}
@@ -427,7 +582,7 @@ export default function ScenarioSelect() {
               />
 
               <a
-                href="https://efectmacrosxtweaks.netlify.app/"
+                href="https://efect-macros-x-tweaks.vercel.app/"
                 target="_blank"
                 rel="noreferrer"
                 style={{
@@ -444,7 +599,7 @@ export default function ScenarioSelect() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                EFECT MACROS & TWEAKS
+                EMX TWEAKS
               </a>
             </div>
           </div>
@@ -526,7 +681,7 @@ export default function ScenarioSelect() {
               }}
             >
               <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>ACTIVE_AGENT</div>
-              <div style={{ color, fontSize: 18, fontWeight: 900 }}>{username || 'efect2lit'}</div>
+              <div style={{ color, fontSize: 18, fontWeight: 900 }}>{displayUsername}</div>
             </div>
 
             <div
@@ -540,7 +695,7 @@ export default function ScenarioSelect() {
               }}
             >
               <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>BUILD_CHANNEL</div>
-              <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>SAFE_UI_REBUILD</div>
+              <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>EMX_SAFE_REBUILD</div>
             </div>
           </div>
 
@@ -558,7 +713,7 @@ export default function ScenarioSelect() {
               return (
                 <button
                   key={filter}
-                  className="efect-filter-btn"
+                  className="emx-filter-btn"
                   onClick={() => setActiveFilter(filter)}
                   style={{
                     padding: '12px 18px',
@@ -612,7 +767,7 @@ export default function ScenarioSelect() {
                 return (
                   <div
                     key={scen.id}
-                    className="efect-module-card"
+                    className="emx-module-card"
                     onClick={() => {
                       setSettings({ scenario: scen.id });
                       goToCustomizer();
@@ -793,8 +948,8 @@ export default function ScenarioSelect() {
             }}
           >
             <span>LATENCY_ROUTE: LOCAL_LOW</span>
-            <span>ENGINE: EFECT_SUITE_HUB_SAFE</span>
-            <span>© 2026 EFECT BRANDING ELITE</span>
+            <span>ENGINE: EMX_SUITE_HUB_SAFE</span>
+            <span>© 2026 EMX BRANDING ELITE</span>
           </div>
         </div>
       </div>

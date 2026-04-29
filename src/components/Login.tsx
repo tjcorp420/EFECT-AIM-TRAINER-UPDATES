@@ -10,6 +10,21 @@ import {
 const REMEMBER_KEY = 'efect_login_remember_v1';
 const EMX_LOGO_SRC = '/emx-logo.png';
 
+const DEFAULT_DISPLAY_NAME = 'EMX TWEAKS';
+const OLD_DEFAULT_NAMES = ['efect2lit', 'emx2lit', 'exm2lit', 'emx_agent', 'emx agent'];
+
+const cleanDisplayName = (value: string) => {
+  const trimmed = value.trim();
+
+  if (!trimmed) return '';
+
+  if (OLD_DEFAULT_NAMES.includes(trimmed.toLowerCase())) {
+    return '';
+  }
+
+  return trimmed.substring(0, 16);
+};
+
 type RememberPayload = {
   remember: boolean;
   email: string;
@@ -33,7 +48,7 @@ const readRememberedLogin = (): RememberPayload => {
     return {
       remember: Boolean(parsed.remember),
       email: typeof parsed.email === 'string' ? parsed.email : '',
-      username: typeof parsed.username === 'string' ? parsed.username : '',
+      username: typeof parsed.username === 'string' ? cleanDisplayName(parsed.username) : '',
     };
   } catch {
     return {
@@ -99,19 +114,32 @@ export default function Login() {
   };
 
   const handleAuth = async (e: FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (isProcessing) return;
+  if (isProcessing) return;
 
-    setErrorMsg('');
-    setIsProcessing(true);
+  setErrorMsg('');
+  setIsProcessing(true);
 
-    try {
+  try {
+    const cleanUsername = cleanDisplayName(username);
+
+    if (isRegistering && cleanUsername.length < 3) {
+      throw new Error('Callsign must be at least 3 characters.');
+    }
+
+    if (isRegistering) {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      await updateProfile(userCredential.user, {
+        displayName: cleanUsername,
+      });
+
       if (rememberMe) {
         saveRememberedLogin({
           remember: true,
           email,
-          username,
+          username: cleanUsername,
         });
       } else {
         saveRememberedLogin({
@@ -121,56 +149,65 @@ export default function Login() {
         });
       }
 
-      if (isRegistering) {
-        const cleanUsername = username.trim();
+      setSettings({
+        username: cleanUsername,
+        gameState: 'scenarioSelect',
+      });
 
-        if (cleanUsername.length < 3) {
-          throw new Error('Callsign must be at least 3 characters.');
-        }
-
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-        await updateProfile(userCredential.user, {
-          displayName: cleanUsername,
-        });
-
-        setSettings({
-          username: cleanUsername,
-          gameState: 'scenarioSelect',
-        });
-
-        return;
-      }
-
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const displayName = userCredential.user.displayName || username || 'Unknown_Agent';
-
-      const cloudSettings = await fetchCloudArmory(userCredential.user.uid);
-
-      if (cloudSettings) {
-        console.log('Cloud Armory Loaded Successfully.');
-
-        setSettings({
-          ...cloudSettings,
-          username: displayName,
-          gameState: 'scenarioSelect',
-        });
-      } else {
-        setSettings({
-          username: displayName,
-          gameState: 'scenarioSelect',
-        });
-      }
-    } catch (error: any) {
-      const cleanError = cleanFirebaseError(error?.message || 'AUTHENTICATION FAILED');
-      setErrorMsg(cleanError);
-      setIsProcessing(false);
+      return;
     }
-  };
 
-  const canSubmit = isRegistering
-    ? email.trim().length > 0 && password.trim().length >= 6 && username.trim().length >= 3
-    : email.trim().length > 0 && password.trim().length >= 6;
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+    const chosenDisplayName =
+      cleanUsername || userCredential.user.displayName || DEFAULT_DISPLAY_NAME;
+
+    if (cleanUsername && userCredential.user.displayName !== cleanUsername) {
+      await updateProfile(userCredential.user, {
+        displayName: cleanUsername,
+      });
+    }
+
+    if (rememberMe) {
+      saveRememberedLogin({
+        remember: true,
+        email,
+        username: chosenDisplayName,
+      });
+    } else {
+      saveRememberedLogin({
+        remember: false,
+        email: '',
+        username: '',
+      });
+    }
+
+    const cloudSettings = await fetchCloudArmory(userCredential.user.uid);
+
+    if (cloudSettings) {
+      console.log('Cloud Armory Loaded Successfully.');
+
+      setSettings({
+        ...cloudSettings,
+        username: chosenDisplayName,
+        gameState: 'scenarioSelect',
+      });
+    } else {
+      setSettings({
+        username: chosenDisplayName,
+        gameState: 'scenarioSelect',
+      });
+    }
+  } catch (error: any) {
+    const cleanError = cleanFirebaseError(error?.message || 'AUTHENTICATION FAILED');
+    setErrorMsg(cleanError);
+    setIsProcessing(false);
+  }
+};
+
+const canSubmit = isRegistering
+  ? email.trim().length > 0 && password.trim().length >= 6 && cleanDisplayName(username).length >= 3
+  : email.trim().length > 0 && password.trim().length >= 6;
 
   return (
     <div
@@ -985,38 +1022,61 @@ export default function Login() {
             )}
 
             <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {isRegistering && (
-                <div style={{ position: 'relative' }}>
-                  <label style={{ display: 'block', marginBottom: 9, color: 'rgba(255,255,255,0.58)', fontSize: '0.7rem', letterSpacing: 3, fontWeight: 900 }}>
-                    CALLSIGN TAG
-                  </label>
+              <div style={{ position: 'relative' }}>
+  <label
+    style={{
+      display: 'block',
+      marginBottom: 9,
+      color: 'rgba(255,255,255,0.58)',
+      fontSize: '0.7rem',
+      letterSpacing: 3,
+      fontWeight: 900,
+    }}
+  >
+    {isRegistering ? 'CREATE DISPLAY NAME' : 'DISPLAY NAME'}
+  </label>
 
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    maxLength={16}
-                    placeholder="Enter Gamertag..."
-                    required
-                    className="emx-auth-input"
-                    style={{
-                      width: '100%',
-                      padding: 16,
-                      background: 'rgba(0,0,0,0.48)',
-                      color,
-                      border: '1px solid rgba(255,255,255,0.14)',
-                      borderRadius: 10,
-                      outline: 'none',
-                      fontFamily: 'inherit',
-                      fontSize: '1.04rem',
-                      transition: 'all 0.24s',
-                      fontWeight: 900,
-                      letterSpacing: 1,
-                      boxShadow: 'inset 0 0 20px rgba(0,0,0,0.62)',
-                    }}
-                  />
-                </div>
-              )}
+  <input
+    type="text"
+    value={username}
+    onChange={(e) => setUsername(e.target.value)}
+    maxLength={16}
+    placeholder={isRegistering ? 'Enter Gamertag...' : 'Optional Display Name...'}
+    required={isRegistering}
+    className="emx-auth-input"
+    autoComplete="nickname"
+    style={{
+      width: '100%',
+      padding: 16,
+      background: 'rgba(0,0,0,0.48)',
+      color,
+      border: '1px solid rgba(255,255,255,0.14)',
+      borderRadius: 10,
+      outline: 'none',
+      fontFamily: 'inherit',
+      fontSize: '1.04rem',
+      transition: 'all 0.24s',
+      fontWeight: 900,
+      letterSpacing: 1,
+      boxShadow: 'inset 0 0 20px rgba(0,0,0,0.62)',
+    }}
+  />
+
+  <div
+    style={{
+      marginTop: 8,
+      color: 'rgba(255,255,255,0.34)',
+      fontSize: '0.68rem',
+      letterSpacing: 2,
+      lineHeight: 1.45,
+      textTransform: 'uppercase',
+    }}
+  >
+    {isRegistering
+      ? 'This name will show on your EMX profile.'
+      : 'Optional. Leave blank to use your saved profile name.'}
+  </div>
+</div>
 
               <div style={{ position: 'relative' }}>
                 <label style={{ display: 'block', marginBottom: 9, color: 'rgba(255,255,255,0.58)', fontSize: '0.7rem', letterSpacing: 3, fontWeight: 900 }}>

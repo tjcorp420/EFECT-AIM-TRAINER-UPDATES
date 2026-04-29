@@ -35,51 +35,89 @@ const hexToRgbString = (hex: string) => {
   return `${r}, ${g}, ${b}`;
 };
 
+const getScenarioTitle = (scenario: string) => {
+  return scenario.replace(/efect/gi, 'emx').replace(/_/g, ' ').toUpperCase();
+};
+
 const getTauriWindow = async () => {
-  const tauriWindow = (await import('@tauri-apps/api/window')) as any;
-
-  if (typeof tauriWindow.getCurrentWindow === 'function') {
-    return tauriWindow.getCurrentWindow();
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window');
+    return getCurrentWindow();
+  } catch (error) {
+    console.warn('Tauri window API is not available in browser preview.', error);
+    return null;
   }
-
-  return tauriWindow.appWindow;
 };
 
 const minimizeAppWindow = async () => {
-  try {
-    const win = await getTauriWindow();
-    await win?.minimize?.();
-  } catch (error) {
-    console.warn('Window minimize is only available inside Tauri.', error);
+  const win = await getTauriWindow();
+
+  if (!win) {
+    console.warn('Minimize only works inside the Tauri app window.');
+    return;
   }
+
+  await win.minimize();
 };
 
 const closeAppWindow = async () => {
-  try {
-    const win = await getTauriWindow();
-    await win?.close?.();
-  } catch (error) {
+  const win = await getTauriWindow();
+
+  if (!win) {
     window.close();
+    return;
   }
+
+  await win.close();
 };
 
 function FloatingTextUI() {
   const [texts, setTexts] = useState<
-    { id: number; text: string; x: number; y: number; color: string }[]
+    {
+      id: number;
+      text: string;
+      x: number;
+      y: number;
+      color: string;
+      kind: 'normal' | 'headshot' | 'bonus' | 'tracking';
+    }[]
   >([]);
 
   useEffect(() => {
-    const handleText = (e: any) => {
+    const getKind = (text: string): 'normal' | 'headshot' | 'bonus' | 'tracking' => {
+      const normalized = text.toLowerCase();
+
+      if (normalized.includes('headshot')) return 'headshot';
+      if (normalized.includes('bonus')) return 'bonus';
+      if (normalized.includes('tracking')) return 'tracking';
+
+      return 'normal';
+    };
+
+    const handleText = (e: Event) => {
+      const event = e as CustomEvent<{
+        text?: string;
+        x?: number;
+        y?: number;
+        color?: string;
+      }>;
+
+      const text = String(event.detail?.text || '+0');
+
       const newText = {
         id: Date.now() + Math.random(),
-        ...e.detail,
+        text,
+        x: typeof event.detail?.x === 'number' ? event.detail.x : window.innerWidth / 2,
+        y: typeof event.detail?.y === 'number' ? event.detail.y : window.innerHeight / 2,
+        color: event.detail?.color || '#39ff14',
+        kind: getKind(text),
       };
 
-      setTexts((prev) => [...prev, newText]);
+      setTexts((prev) => [...prev.slice(-16), newText]);
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         setTexts((prev) => prev.filter((t) => t.id !== newText.id));
-      }, 600);
+      }, 950);
     };
 
     window.addEventListener('floating-text', handleText);
@@ -92,50 +130,130 @@ function FloatingTextUI() {
   return (
     <>
       <style>{`
-        @keyframes floatDmg {
+        @keyframes emxFloatNormal {
           0% {
+            opacity: 0;
+            transform: translate(-50%, -35%) scale(0.72);
+            filter: blur(5px);
+          }
+
+          16% {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1.5);
+            transform: translate(-50%, -58%) scale(1.14);
+            filter: blur(0);
           }
 
           100% {
             opacity: 0;
-            transform: translate(-50%, -150%) scale(1);
+            transform: translate(-50%, -130%) scale(0.92);
+            filter: blur(2px);
           }
+        }
+
+        @keyframes emxFloatHeadshot {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -35%) scale(0.62) rotate(-2deg);
+            filter: blur(7px);
+          }
+
+          16% {
+            opacity: 1;
+            transform: translate(-50%, -72%) scale(1.25) rotate(1deg);
+            filter: blur(0);
+          }
+
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -160%) scale(0.86) rotate(-1deg);
+            filter: blur(2px);
+          }
+        }
+
+        @keyframes emxFloatBonus {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -25%) scale(0.72);
+            filter: blur(5px);
+          }
+
+          18% {
+            opacity: 1;
+            transform: translate(-50%, -54%) scale(1.1);
+            filter: blur(0);
+          }
+
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -110%) scale(0.9);
+            filter: blur(2px);
+          }
+        }
+
+        @keyframes emxHeadshotShake {
+          0% { margin-left: 0; }
+          25% { margin-left: -4px; }
+          75% { margin-left: 4px; }
+          100% { margin-left: 0; }
         }
       `}</style>
 
-      {texts.map((t) => (
-        <div
-          key={t.id}
-          style={{
-            position: 'absolute',
-            top: t.y,
-            left: t.x,
-            color: '#fff',
-            textShadow: `0 0 8px ${t.color}`,
-            fontWeight: 900,
-            fontSize: '1.5rem',
-            zIndex: 200,
-            fontFamily: 'monospace',
-            pointerEvents: 'none',
-            animation: 'floatDmg 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-          }}
-        >
-          {t.text}
-        </div>
-      ))}
+      {texts.map((t) => {
+        const isHeadshot = t.kind === 'headshot';
+        const isBonus = t.kind === 'bonus';
+        const isTracking = t.kind === 'tracking';
+
+        const popupColor = isHeadshot
+          ? '#ffd400'
+          : isBonus
+            ? '#ff4df0'
+            : isTracking
+              ? '#00ffcc'
+              : t.color;
+
+        return (
+          <div
+            key={t.id}
+            style={{
+              position: 'fixed',
+              top: t.y,
+              left: t.x,
+              color: popupColor,
+              textShadow: isHeadshot
+                ? '0 0 12px #ffd400, 0 0 34px #ffd400, 0 0 62px rgba(255, 77, 240, 0.65)'
+                : isBonus
+                  ? '0 0 12px #ff4df0, 0 0 32px rgba(255, 77, 240, 0.75)'
+                  : `0 0 12px ${popupColor}, 0 0 28px ${popupColor}`,
+              fontWeight: 900,
+              fontSize: isHeadshot ? '3rem' : isBonus ? '1.7rem' : '2rem',
+              letterSpacing: isHeadshot ? '6px' : '3px',
+              zIndex: 2147483000,
+              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+              pointerEvents: 'none',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              animation: isHeadshot
+                ? 'emxFloatHeadshot 0.95s cubic-bezier(0.16, 0.95, 0.24, 1) forwards, emxHeadshotShake 0.08s linear 3'
+                : isBonus
+                  ? 'emxFloatBonus 0.92s cubic-bezier(0.16, 0.95, 0.24, 1) forwards'
+                  : 'emxFloatNormal 0.9s cubic-bezier(0.16, 0.95, 0.24, 1) forwards',
+            }}
+          >
+            {t.text}
+          </div>
+        );
+      })}
     </>
   );
 }
 
-const getRankInfo = (score: number, accuracy: number) => {
-  const rating = score * (accuracy / 100);
+const getRankInfo = (score: number, accuracy: number, headshots: number, bestCombo: number) => {
+  const rating = score * (accuracy / 100) + headshots * 500 + bestCombo * 100;
 
-  if (rating >= 120000) return { title: 'GRANDMASTER', color: '#ff0055', icon: '💎' };
-  if (rating >= 90000) return { title: 'MASTER', color: '#b966ff', icon: '🔮' };
-  if (rating >= 70000) return { title: 'DIAMOND', color: '#00ffff', icon: '💠' };
-  if (rating >= 50000) return { title: 'PLATINUM', color: '#00ffaa', icon: '❇️' };
+  if (rating >= 145000) return { title: 'GRANDMASTER', color: '#ff0055', icon: '💎' };
+  if (rating >= 105000) return { title: 'MASTER', color: '#b966ff', icon: '🔮' };
+  if (rating >= 76000) return { title: 'DIAMOND', color: '#00ffff', icon: '💠' };
+  if (rating >= 52000) return { title: 'PLATINUM', color: '#00ffaa', icon: '❇️' };
   if (rating >= 30000) return { title: 'GOLD', color: '#ffaa00', icon: '🏆' };
   if (rating >= 15000) return { title: 'SILVER', color: '#aaaaaa', icon: '🥈' };
 
@@ -145,18 +263,65 @@ const getRankInfo = (score: number, accuracy: number) => {
 const getPerformanceGrade = (
   score: number,
   accuracy: number,
-  maxStreak: number,
-  hitsPerSecond: number
+  bestCombo: number,
+  hitsPerSecond: number,
+  headshots: number
 ) => {
-  const gradeScore = score * 0.018 + accuracy * 2.7 + maxStreak * 6 + hitsPerSecond * 90;
+  const gradeScore =
+    score * 0.018 + accuracy * 2.7 + bestCombo * 6 + hitsPerSecond * 90 + headshots * 18;
 
-  if (gradeScore >= 720) return { letter: 'S+', title: 'ELITE PERFORMANCE', color: '#ff00ff' };
-  if (gradeScore >= 600) return { letter: 'S', title: 'PRO LEVEL CONTROL', color: '#b967ff' };
-  if (gradeScore >= 460) return { letter: 'A', title: 'HIGH PERFORMANCE', color: '#39ff14' };
-  if (gradeScore >= 330) return { letter: 'B', title: 'SOLID TRAINING RUN', color: '#00ffcc' };
+  if (gradeScore >= 780) return { letter: 'S+', title: 'ELITE PERFORMANCE', color: '#ff00ff' };
+  if (gradeScore >= 640) return { letter: 'S', title: 'PRO LEVEL CONTROL', color: '#b967ff' };
+  if (gradeScore >= 480) return { letter: 'A', title: 'HIGH PERFORMANCE', color: '#39ff14' };
+  if (gradeScore >= 340) return { letter: 'B', title: 'SOLID TRAINING RUN', color: '#00ffcc' };
   if (gradeScore >= 220) return { letter: 'C', title: 'BUILDING CONSISTENCY', color: '#ffaa00' };
 
   return { letter: 'D', title: 'WARMUP COMPLETE', color: '#ff0055' };
+};
+
+const getWeaponTitle = (weaponClass: string) => {
+  if (weaponClass === 'smg') return 'SMG AUTOMATIC';
+  if (weaponClass === 'sniper') return 'SNIPER HIGH IMPACT';
+  if (weaponClass === 'nerf') return 'NERF TRAINING BLASTER';
+
+  return 'PISTOL TACTICAL';
+};
+
+const getLastHitLabel = (type: string | null) => {
+  if (type === 'headshot') return 'HEADSHOT';
+  if (type === 'tracking') return 'TRACKING';
+  if (type === 'perfect') return 'PERFECT';
+  if (type === 'body') return 'BODY HIT';
+  if (type === 'normal') return 'TARGET HIT';
+
+  return 'STANDBY';
+};
+
+const getCoachNote = ({
+  accuracy,
+  misses,
+  headshots,
+  hits,
+  bestCombo,
+  liveHitsPerSecond,
+}: {
+  accuracy: number;
+  misses: number;
+  headshots: number;
+  hits: number;
+  bestCombo: number;
+  liveHitsPerSecond: number;
+}) => {
+  if (hits === 0) return 'Click targets to generate a full EMX performance readout.';
+  if (accuracy < 55) return 'Slow down and clean first-shot accuracy before pushing speed.';
+  if (headshots >= Math.max(3, Math.floor(hits * 0.35))) {
+    return 'Strong headshot conversion. Keep your crosshair high and increase target speed next.';
+  }
+  if (misses > hits) return 'You are over-firing. Reset your rhythm and confirm each shot.';
+  if (bestCombo >= 25) return 'Great chain control. Move into tracking or precision modules next.';
+  if (liveHitsPerSecond >= 1.5) return 'Fast pacing. Main upgrade path is accuracy retention.';
+
+  return 'Solid run. Build cleaner pacing, then raise target speed or lower target size.';
 };
 
 function HitMarkerUI() {
@@ -342,26 +507,33 @@ function PlayerMovement() {
   return null;
 }
 
-const getWeaponTitle = (weaponClass: string) => {
-  if (weaponClass === 'smg') return 'SMG AUTOMATIC';
-  if (weaponClass === 'sniper') return 'SNIPER HIGH IMPACT';
-  if (weaponClass === 'nerf') return 'NERF TRAINING BLASTER';
-
-  return 'PISTOL TACTICAL';
-};
-
 function WindowChrome() {
   return (
-    <div className="emx-window-chrome">
+    <div
+      className="emx-window-chrome"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+      }}
+    >
       <button
         type="button"
         className="emx-window-btn emx-window-minimize"
         title="Minimize"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
+        onPointerDown={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          minimizeAppWindow();
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          await minimizeAppWindow();
         }}
       >
         —
@@ -371,11 +543,18 @@ function WindowChrome() {
         type="button"
         className="emx-window-btn emx-window-close"
         title="Exit"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
+        onPointerDown={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          closeAppWindow();
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          await closeAppWindow();
         }}
       >
         ×
@@ -388,8 +567,18 @@ export default function App() {
   const {
     score,
     shots,
+    misses,
     combo,
+    bestCombo,
     hitTrigger,
+    headshots,
+    bodyHits,
+    trackingHits,
+    perfectHits,
+    totalBonusPoints,
+    lastHitType,
+    lastHitPoints,
+    lastHitBonus,
     timeLeft,
     gameState,
     startGame,
@@ -410,6 +599,7 @@ export default function App() {
     gameProfile,
     fov,
     hitLog,
+    hitDetails,
     weaponClass,
   } = useStore();
 
@@ -417,32 +607,49 @@ export default function App() {
   const deployGraceRef = useRef(0);
 
   const [booted, setBooted] = useState(false);
-  const [maxStreak, setMaxStreak] = useState(0);
-  const [activeStreak, setActiveStreak] = useState<{ msg: string; val: number } | null>(
-    null
-  );
+  const [activeStreak, setActiveStreak] = useState<{ msg: string; val: number } | null>(null);
 
-  const accuracy = shots > 0 ? Math.round((hitTrigger / shots) * 100) : 0;
-  const avgReaction = hitTrigger > 0 ? Math.round((drillDuration * 1000) / hitTrigger) : 0;
-  const finalRank = getRankInfo(score, accuracy);
+  const hits = hitTrigger;
+  const accuracy = shots > 0 ? Math.round((hits / shots) * 100) : 0;
+  const avgReaction = hits > 0 ? Math.round((drillDuration * 1000) / hits) : 0;
   const previousBest = highScores[scenario] || 0;
-  const finalHitsPerSecond = drillDuration > 0 ? hitTrigger / drillDuration : 0;
+  const finalHitsPerSecond = drillDuration > 0 ? hits / drillDuration : 0;
   const isNewRecord = score > 0 && score >= previousBest;
-  const performanceGrade = getPerformanceGrade(score, accuracy, maxStreak, finalHitsPerSecond);
+  const finalRank = getRankInfo(score, accuracy, headshots, bestCombo);
+  const performanceGrade = getPerformanceGrade(
+    score,
+    accuracy,
+    bestCombo,
+    finalHitsPerSecond,
+    headshots
+  );
 
   const hasStartedFiring = shots > 0;
 
   const elapsedTime = Math.max(0, drillDuration - timeLeft);
-  const liveHitsPerSecond = elapsedTime > 0 ? hitTrigger / elapsedTime : 0;
+  const liveHitsPerSecond = elapsedTime > 0 ? hits / elapsedTime : 0;
   const weaponTitle = getWeaponTitle(weaponClass);
-  const scenarioTitle = scenario.replace(/_/g, ' ').toUpperCase();
+  const scenarioTitle = getScenarioTitle(scenario);
+  const lastHitLabel = getLastHitLabel(lastHitType);
 
   const profile = GAME_PROFILES[gameProfile] || GAME_PROFILES.valorant;
   const truePointerSpeed = (gameSens / profile.multiplier) * 1.1;
 
+  const headshotRate = hits > 0 ? Math.round((headshots / hits) * 100) : 0;
+  const bodyHitRate = hits > 0 ? Math.round((bodyHits / hits) * 100) : 0;
+
+  const coachNote = getCoachNote({
+    accuracy,
+    misses,
+    headshots,
+    hits,
+    bestCombo,
+    liveHitsPerSecond,
+  });
+
   const chartData = useMemo(() => {
     const buckets = 10;
-    const bucketSize = drillDuration / buckets;
+    const bucketSize = Math.max(1, drillDuration) / buckets;
     const data = Array(buckets).fill(0);
 
     hitLog.forEach((time) => {
@@ -450,10 +657,45 @@ export default function App() {
       data[bucketIndex]++;
     });
 
-    return data.map((hits) => hits / bucketSize);
+    return data.map((bucketHits) => bucketHits / bucketSize);
   }, [hitLog, drillDuration]);
 
   const maxHPS = Math.max(...chartData, 1);
+
+  const hitTypeBreakdown = useMemo(() => {
+    const safeHits = Math.max(1, hits);
+
+    return [
+      {
+        label: 'HEADSHOT',
+        value: headshots,
+        percent: Math.round((headshots / safeHits) * 100),
+        color: '#ffd400',
+      },
+      {
+        label: 'BODY',
+        value: bodyHits,
+        percent: Math.round((bodyHits / safeHits) * 100),
+        color: '#39ff14',
+      },
+      {
+        label: 'TRACKING',
+        value: trackingHits,
+        percent: Math.round((trackingHits / safeHits) * 100),
+        color: '#00ffcc',
+      },
+      {
+        label: 'PERFECT',
+        value: perfectHits,
+        percent: Math.round((perfectHits / safeHits) * 100),
+        color: '#ff4df0',
+      },
+    ];
+  }, [hits, headshots, bodyHits, trackingHits, perfectHits]);
+
+  const recentHits = useMemo(() => {
+    return [...hitDetails].slice(-6).reverse();
+  }, [hitDetails]);
 
   const handlePointerUnlock = useCallback(() => {
     const msSinceDeploy = performance.now() - deployGraceRef.current;
@@ -470,7 +712,6 @@ export default function App() {
   useEffect(() => {
     if (gameState === 'playing') {
       deployGraceRef.current = performance.now();
-      setMaxStreak(0);
       setActiveStreak(null);
     }
 
@@ -485,13 +726,9 @@ export default function App() {
   }, [gameState]);
 
   useEffect(() => {
-    if (combo > maxStreak) {
-      setMaxStreak(combo);
-    }
-
     if (combo > 0 && combo % 10 === 0) {
       setActiveStreak({
-        msg: 'PERFORMANCE STREAK',
+        msg: combo >= 30 ? 'ELITE HIT CHAIN' : 'PERFORMANCE STREAK',
         val: combo,
       });
 
@@ -501,7 +738,7 @@ export default function App() {
 
       return () => clearTimeout(timer);
     }
-  }, [combo, maxStreak]);
+  }, [combo]);
 
   useEffect(() => {
     let timer: number;
@@ -756,7 +993,7 @@ export default function App() {
 
             <div className="efect-hud-pill efect-hud-score">
               <div className="efect-hud-label">LIVE SCORE</div>
-              <div className="efect-hud-value">{score}</div>
+              <div className="efect-hud-value">{score.toLocaleString()}</div>
             </div>
 
             <div className="efect-hud-pill">
@@ -775,17 +1012,41 @@ export default function App() {
               <div className="efect-hud-mini-title">WEAPON PROFILE</div>
               <div className="efect-hud-mini-value">{weaponTitle}</div>
             </div>
+
+            <div className="efect-hud-mini">
+              <div className="efect-hud-mini-title">LAST HIT</div>
+              <div className="efect-hud-mini-value">
+                {lastHitLabel} {lastHitPoints > 0 ? `+${lastHitPoints}` : ''}
+              </div>
+            </div>
           </div>
 
           <div className="efect-hud-side-right">
             <div className="efect-hud-mini">
               <div className="efect-hud-mini-title">ACCURACY</div>
-              <div className="efect-hud-mini-value">{accuracy}%</div>
+              <div className="efect-hud-mini-value">
+                {accuracy}% // {misses} MISS
+              </div>
             </div>
 
             <div className="efect-hud-mini">
               <div className="efect-hud-mini-title">HITS PER SECOND</div>
               <div className="efect-hud-mini-value">{liveHitsPerSecond.toFixed(2)}</div>
+            </div>
+
+            <div className="efect-hud-mini">
+              <div className="efect-hud-mini-title">HEADSHOTS</div>
+              <div className="efect-hud-mini-value">
+                {headshots} // {headshotRate}%
+              </div>
+            </div>
+
+            <div className="efect-hud-mini">
+              <div className="efect-hud-mini-title">BONUS POINTS</div>
+              <div className="efect-hud-mini-value">
+                +{totalBonusPoints}
+                {lastHitBonus > 0 ? ` // LAST +${lastHitBonus}` : ''}
+              </div>
             </div>
           </div>
 
@@ -819,7 +1080,9 @@ export default function App() {
               <div className="emx-session-title">PERFORMANCE REPORT</div>
 
               {isNewRecord && (
-                <div className="emx-record-banner">NEW PERSONAL BEST // {score} POINTS</div>
+                <div className="emx-record-banner">
+                  NEW PERSONAL BEST // {score.toLocaleString()} POINTS
+                </div>
               )}
             </div>
 
@@ -844,20 +1107,34 @@ export default function App() {
 
               <div className="emx-report-stat emx-report-score">
                 <div className="emx-report-label">FINAL SCORE</div>
-                <div className="emx-report-value">{score}</div>
-                <div className="emx-report-sub">BEST: {previousBest}</div>
+                <div className="emx-report-value">{score.toLocaleString()}</div>
+                <div className="emx-report-sub">BEST: {previousBest.toLocaleString()}</div>
               </div>
 
               <div className="emx-report-stat">
                 <div className="emx-report-label">ACCURACY</div>
                 <div className="emx-report-value">{accuracy}%</div>
-                <div className="emx-report-sub">SHOTS: {shots}</div>
+                <div className="emx-report-sub">
+                  {hits} HITS // {misses} MISSES
+                </div>
               </div>
 
               <div className="emx-report-stat">
-                <div className="emx-report-label">MAX STREAK</div>
-                <div className="emx-report-value">{maxStreak}</div>
+                <div className="emx-report-label">BEST COMBO</div>
+                <div className="emx-report-value">{bestCombo}</div>
                 <div className="emx-report-sub">CHAIN CONTROL</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">HEADSHOTS</div>
+                <div className="emx-report-value">{headshots}</div>
+                <div className="emx-report-sub">{headshotRate}% HEAD CONVERSION</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">BONUS SCORE</div>
+                <div className="emx-report-value">+{totalBonusPoints}</div>
+                <div className="emx-report-sub">EXTRA POINTS EARNED</div>
               </div>
 
               <div className="emx-report-stat">
@@ -913,19 +1190,166 @@ export default function App() {
                 <strong>MODULE</strong>
                 <span>{scenarioTitle}</span>
               </div>
+
               <div>
                 <strong>WEAPON</strong>
                 <span>{weaponTitle}</span>
               </div>
+
               <div>
-                <strong>NEXT STEP</strong>
+                <strong>HIT MIX</strong>
                 <span>
-                  {accuracy < 70
-                    ? 'Slow down and clean first-shot accuracy.'
-                    : 'Increase speed or move into tracking drills.'}
+                  HEAD {headshots} // BODY {bodyHits} // TRACK {trackingHits}
                 </span>
               </div>
+
+              <div>
+                <strong>NEXT STEP</strong>
+                <span>{coachNote}</span>
+              </div>
             </div>
+
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                gap: 10,
+                marginTop: 14,
+              }}
+            >
+              {hitTypeBreakdown.map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 12,
+                    border: `1px solid ${item.color}55`,
+                    background: 'rgba(0,0,0,0.42)',
+                    boxShadow: `0 0 18px ${item.color}12`,
+                  }}
+                >
+                  <div
+                    style={{
+                      color: 'rgba(255,255,255,0.45)',
+                      fontSize: 10,
+                      letterSpacing: 3,
+                      fontWeight: 900,
+                      marginBottom: 7,
+                    }}
+                  >
+                    {item.label}
+                  </div>
+
+                  <div
+                    style={{
+                      color: item.color,
+                      fontSize: 24,
+                      fontWeight: 900,
+                      textShadow: `0 0 12px ${item.color}`,
+                    }}
+                  >
+                    {item.value}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 8,
+                      height: 5,
+                      borderRadius: 999,
+                      background: 'rgba(255,255,255,0.1)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${item.percent}%`,
+                        height: '100%',
+                        borderRadius: 999,
+                        background: item.color,
+                        boxShadow: `0 0 12px ${item.color}`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {recentHits.length > 0 && (
+              <div
+                style={{
+                  position: 'relative',
+                  zIndex: 2,
+                  marginTop: 14,
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(0,0,0,0.36)',
+                }}
+              >
+                <div
+                  style={{
+                    color: 'rgba(255,255,255,0.45)',
+                    fontSize: 10,
+                    letterSpacing: 4,
+                    fontWeight: 900,
+                    marginBottom: 10,
+                  }}
+                >
+                  RECENT HIT FEED
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+                    gap: 8,
+                  }}
+                >
+                  {recentHits.map((hit, index) => (
+                    <div
+                      key={`${hit.time}-${index}`}
+                      style={{
+                        padding: '10px',
+                        borderRadius: 10,
+                        border:
+                          hit.type === 'headshot'
+                            ? '1px solid rgba(255,212,0,0.45)'
+                            : '1px solid rgba(255,255,255,0.1)',
+                        background:
+                          hit.type === 'headshot'
+                            ? 'rgba(255,212,0,0.08)'
+                            : 'rgba(255,255,255,0.035)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: hit.type === 'headshot' ? '#ffd400' : color,
+                          fontSize: 11,
+                          letterSpacing: 2,
+                          fontWeight: 900,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {hit.type}
+                      </div>
+
+                      <div
+                        style={{
+                          color: '#fff',
+                          fontSize: 18,
+                          fontWeight: 900,
+                          marginTop: 5,
+                        }}
+                      >
+                        +{hit.points}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="emx-session-actions">
               <button onClick={startGame} className="emx-primary-action">

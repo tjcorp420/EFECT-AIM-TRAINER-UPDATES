@@ -28,8 +28,8 @@ export default function TopNav({
       style={{
         width: '92%',
         maxWidth: 1600,
-        display: 'flex',
-        justifyContent: 'space-between',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(180px, 1fr) auto minmax(180px, 1fr)',
         alignItems: 'center',
         gap: 22,
         borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -37,7 +37,13 @@ export default function TopNav({
         fontFamily: 'monospace',
       }}
     >
-      <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+        }}
+      >
         {onBack && (
           <EFECTButton color={color} variant="ghost" onClick={onBack}>
             &lt; {backLabel}
@@ -45,7 +51,12 @@ export default function TopNav({
         )}
       </div>
 
-      <div style={{ textAlign: 'center' }}>
+      <div
+        style={{
+          textAlign: 'center',
+          minWidth: 0,
+        }}
+      >
         <div
           style={{
             color,
@@ -53,6 +64,8 @@ export default function TopNav({
             fontSize: '0.78rem',
             fontWeight: 900,
             marginBottom: 8,
+            textShadow: `0 0 18px ${color}`,
+            whiteSpace: 'nowrap',
           }}
         >
           EFECT_SYSTEM_INTERFACE
@@ -66,19 +79,39 @@ export default function TopNav({
             letterSpacing: 'clamp(8px, 1.5vw, 18px)',
             textShadow: `0 0 36px ${color}`,
             fontWeight: 900,
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
           }}
         >
           {title}
         </h1>
 
         {subtitle && (
-          <div style={{ marginTop: 8, color: '#666', letterSpacing: 4 }}>
+          <div
+            style={{
+              marginTop: 10,
+              color: 'rgba(255,255,255,0.48)',
+              letterSpacing: 4,
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {subtitle}
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          minWidth: 0,
+        }}
+      >
         {username && <StatPill label="AGENT" value={username} color={color} />}
 
         {rightAction && (
