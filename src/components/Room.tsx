@@ -16,6 +16,7 @@ type ThemeStyle = {
   metalness: number;
   floorOpacity: number;
   platformOpacity: number;
+  envMapIntensity: number;
 };
 
 const ROOM_STYLES: Record<string, ThemeStyle> = {
@@ -24,33 +25,35 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#071014',
     trim: '#0c2024',
     accent: '#00ffcc',
-    ambient: 0.42,
-    hemiSky: '#18404b',
+    ambient: 0.32,
+    hemiSky: '#10333b',
     hemiGround: '#020406',
-    hemi: 0.72,
-    directional: 0.85,
-    point: 0.9,
-    roughness: 0.3,
-    metalness: 0.62,
-    floorOpacity: 0.82,
-    platformOpacity: 0.92,
+    hemi: 0.48,
+    directional: 0.62,
+    point: 0.72,
+    roughness: 0.42,
+    metalness: 0.44,
+    floorOpacity: 0.78,
+    platformOpacity: 0.88,
+    envMapIntensity: 0.22,
   },
 
   skydeck_cloud_lab: {
-    floor: '#dce7eb',
-    platform: '#f7fbff',
-    trim: '#c8d7de',
+    floor: '#394448',
+    platform: '#4b565a',
+    trim: '#26343a',
     accent: '#8fe8ff',
-    ambient: 0.95,
-    hemiSky: '#ffffff',
-    hemiGround: '#6c7a80',
-    hemi: 1.1,
-    directional: 1.4,
-    point: 0.42,
-    roughness: 0.72,
-    metalness: 0.08,
-    floorOpacity: 0.86,
-    platformOpacity: 0.94,
+    ambient: 0.38,
+    hemiSky: '#8fb5c3',
+    hemiGround: '#1b2023',
+    hemi: 0.42,
+    directional: 0.46,
+    point: 0.28,
+    roughness: 0.82,
+    metalness: 0.02,
+    floorOpacity: 0.78,
+    platformOpacity: 0.86,
+    envMapIntensity: 0.08,
   },
 
   industrial_warehouse: {
@@ -58,16 +61,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#24211e',
     trim: '#46321f',
     accent: '#ffaa3c',
-    ambient: 0.52,
-    hemiSky: '#d6a765',
+    ambient: 0.38,
+    hemiSky: '#a37948',
     hemiGround: '#080604',
-    hemi: 0.75,
-    directional: 1.0,
-    point: 0.75,
-    roughness: 0.62,
-    metalness: 0.24,
-    floorOpacity: 0.88,
-    platformOpacity: 0.94,
+    hemi: 0.5,
+    directional: 0.72,
+    point: 0.62,
+    roughness: 0.68,
+    metalness: 0.18,
+    floorOpacity: 0.84,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.18,
   },
 
   jungle_temple_ruins: {
@@ -75,16 +79,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#111a10',
     trim: '#1b3218',
     accent: '#34f0bf',
-    ambient: 0.58,
-    hemiSky: '#83d99a',
+    ambient: 0.38,
+    hemiSky: '#5ea070',
     hemiGround: '#050906',
-    hemi: 0.82,
-    directional: 1.0,
-    point: 0.78,
-    roughness: 0.82,
-    metalness: 0.08,
-    floorOpacity: 0.86,
-    platformOpacity: 0.9,
+    hemi: 0.56,
+    directional: 0.7,
+    point: 0.62,
+    roughness: 0.86,
+    metalness: 0.05,
+    floorOpacity: 0.82,
+    platformOpacity: 0.88,
+    envMapIntensity: 0.12,
   },
 
   neon_rooftop_city: {
@@ -92,16 +97,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#100b18',
     trim: '#1c1026',
     accent: '#ff3bd4',
-    ambient: 0.46,
-    hemiSky: '#835cff',
+    ambient: 0.34,
+    hemiSky: '#5e43bd',
     hemiGround: '#050009',
-    hemi: 0.74,
-    directional: 0.95,
-    point: 0.95,
-    roughness: 0.24,
-    metalness: 0.72,
-    floorOpacity: 0.82,
-    platformOpacity: 0.92,
+    hemi: 0.5,
+    directional: 0.65,
+    point: 0.7,
+    roughness: 0.38,
+    metalness: 0.48,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 
   tech_training_arena: {
@@ -109,16 +115,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0c1210',
     trim: '#102822',
     accent: '#57ff9f',
-    ambient: 0.56,
-    hemiSky: '#baffdf',
+    ambient: 0.36,
+    hemiSky: '#8fe8ba',
     hemiGround: '#030706',
-    hemi: 0.82,
-    directional: 1.15,
-    point: 0.88,
-    roughness: 0.32,
-    metalness: 0.56,
-    floorOpacity: 0.86,
-    platformOpacity: 0.94,
+    hemi: 0.52,
+    directional: 0.74,
+    point: 0.64,
+    roughness: 0.44,
+    metalness: 0.38,
+    floorOpacity: 0.82,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.2,
   },
 
   training_chamber: {
@@ -126,16 +133,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0b1111',
     trim: '#10201d',
     accent: '#00ffcc',
-    ambient: 0.52,
-    hemiSky: '#69ffd8',
+    ambient: 0.34,
+    hemiSky: '#4ec4ac',
     hemiGround: '#020504',
-    hemi: 0.78,
-    directional: 1.0,
-    point: 0.8,
-    roughness: 0.36,
-    metalness: 0.58,
-    floorOpacity: 0.86,
-    platformOpacity: 0.94,
+    hemi: 0.5,
+    directional: 0.68,
+    point: 0.6,
+    roughness: 0.46,
+    metalness: 0.42,
+    floorOpacity: 0.82,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.2,
   },
 
   efect_arena: {
@@ -143,16 +151,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#091009',
     trim: '#143014',
     accent: '#39ff14',
-    ambient: 0.5,
-    hemiSky: '#39ff14',
+    ambient: 0.34,
+    hemiSky: '#2ecc16',
     hemiGround: '#020302',
-    hemi: 0.78,
-    directional: 1.05,
-    point: 0.95,
-    roughness: 0.3,
-    metalness: 0.64,
-    floorOpacity: 0.84,
-    platformOpacity: 0.94,
+    hemi: 0.52,
+    directional: 0.7,
+    point: 0.68,
+    roughness: 0.42,
+    metalness: 0.44,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 
   luxury_lounge: {
@@ -160,16 +169,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0e0d09',
     trim: '#2c2414',
     accent: '#ffd680',
-    ambient: 0.58,
-    hemiSky: '#f0d6a3',
+    ambient: 0.38,
+    hemiSky: '#bca777',
     hemiGround: '#050403',
-    hemi: 0.72,
-    directional: 1.05,
-    point: 0.62,
-    roughness: 0.2,
-    metalness: 0.72,
-    floorOpacity: 0.84,
-    platformOpacity: 0.94,
+    hemi: 0.5,
+    directional: 0.7,
+    point: 0.46,
+    roughness: 0.36,
+    metalness: 0.48,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.2,
   },
 
   cyber_rooftop: {
@@ -177,16 +187,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0d0a18',
     trim: '#1d1230',
     accent: '#b967ff',
-    ambient: 0.46,
-    hemiSky: '#7c5cff',
+    ambient: 0.34,
+    hemiSky: '#5e45c2',
     hemiGround: '#040008',
-    hemi: 0.75,
-    directional: 0.95,
-    point: 0.88,
-    roughness: 0.24,
-    metalness: 0.68,
-    floorOpacity: 0.82,
-    platformOpacity: 0.92,
+    hemi: 0.5,
+    directional: 0.62,
+    point: 0.68,
+    roughness: 0.38,
+    metalness: 0.48,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 
   cyber: {
@@ -194,33 +205,35 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#091009',
     trim: '#143014',
     accent: '#39ff14',
-    ambient: 0.5,
-    hemiSky: '#39ff14',
+    ambient: 0.34,
+    hemiSky: '#2ecc16',
     hemiGround: '#020302',
-    hemi: 0.78,
-    directional: 1.05,
-    point: 0.95,
-    roughness: 0.3,
-    metalness: 0.64,
-    floorOpacity: 0.84,
-    platformOpacity: 0.94,
+    hemi: 0.52,
+    directional: 0.7,
+    point: 0.68,
+    roughness: 0.42,
+    metalness: 0.44,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 
   minimal: {
-    floor: '#dce7eb',
-    platform: '#f7fbff',
-    trim: '#c8d7de',
+    floor: '#394448',
+    platform: '#4b565a',
+    trim: '#26343a',
     accent: '#8fe8ff',
-    ambient: 0.95,
-    hemiSky: '#ffffff',
-    hemiGround: '#6c7a80',
-    hemi: 1.1,
-    directional: 1.4,
-    point: 0.42,
-    roughness: 0.72,
-    metalness: 0.08,
-    floorOpacity: 0.86,
-    platformOpacity: 0.94,
+    ambient: 0.38,
+    hemiSky: '#8fb5c3',
+    hemiGround: '#1b2023',
+    hemi: 0.42,
+    directional: 0.46,
+    point: 0.28,
+    roughness: 0.82,
+    metalness: 0.02,
+    floorOpacity: 0.78,
+    platformOpacity: 0.86,
+    envMapIntensity: 0.08,
   },
 
   galaxy: {
@@ -228,16 +241,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#071014',
     trim: '#0c2024',
     accent: '#00ffcc',
-    ambient: 0.42,
-    hemiSky: '#18404b',
+    ambient: 0.32,
+    hemiSky: '#10333b',
     hemiGround: '#020406',
-    hemi: 0.72,
-    directional: 0.85,
-    point: 0.9,
-    roughness: 0.3,
-    metalness: 0.62,
-    floorOpacity: 0.82,
-    platformOpacity: 0.92,
+    hemi: 0.48,
+    directional: 0.62,
+    point: 0.72,
+    roughness: 0.42,
+    metalness: 0.44,
+    floorOpacity: 0.78,
+    platformOpacity: 0.88,
+    envMapIntensity: 0.22,
   },
 
   night: {
@@ -245,16 +259,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0b1111',
     trim: '#10201d',
     accent: '#00ffcc',
-    ambient: 0.52,
-    hemiSky: '#69ffd8',
+    ambient: 0.34,
+    hemiSky: '#4ec4ac',
     hemiGround: '#020504',
-    hemi: 0.78,
-    directional: 1.0,
-    point: 0.8,
-    roughness: 0.36,
-    metalness: 0.58,
-    floorOpacity: 0.86,
-    platformOpacity: 0.94,
+    hemi: 0.5,
+    directional: 0.68,
+    point: 0.6,
+    roughness: 0.46,
+    metalness: 0.42,
+    floorOpacity: 0.82,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.2,
   },
 
   synthwave: {
@@ -262,16 +277,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0d0a18',
     trim: '#1d1230',
     accent: '#b967ff',
-    ambient: 0.46,
-    hemiSky: '#7c5cff',
+    ambient: 0.34,
+    hemiSky: '#5e45c2',
     hemiGround: '#040008',
-    hemi: 0.75,
-    directional: 0.95,
-    point: 0.88,
-    roughness: 0.24,
-    metalness: 0.68,
-    floorOpacity: 0.82,
-    platformOpacity: 0.92,
+    hemi: 0.5,
+    directional: 0.62,
+    point: 0.68,
+    roughness: 0.38,
+    metalness: 0.48,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 
   zenith: {
@@ -279,16 +295,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0e0d09',
     trim: '#2c2414',
     accent: '#ffd680',
-    ambient: 0.58,
-    hemiSky: '#f0d6a3',
+    ambient: 0.38,
+    hemiSky: '#bca777',
     hemiGround: '#050403',
-    hemi: 0.72,
-    directional: 1.05,
-    point: 0.62,
-    roughness: 0.2,
-    metalness: 0.72,
-    floorOpacity: 0.84,
-    platformOpacity: 0.94,
+    hemi: 0.5,
+    directional: 0.7,
+    point: 0.46,
+    roughness: 0.36,
+    metalness: 0.48,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.2,
   },
 
   factory: {
@@ -296,16 +313,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#24211e',
     trim: '#46321f',
     accent: '#ffaa3c',
-    ambient: 0.52,
-    hemiSky: '#d6a765',
+    ambient: 0.38,
+    hemiSky: '#a37948',
     hemiGround: '#080604',
-    hemi: 0.75,
-    directional: 1.0,
-    point: 0.75,
-    roughness: 0.62,
-    metalness: 0.24,
-    floorOpacity: 0.88,
-    platformOpacity: 0.94,
+    hemi: 0.5,
+    directional: 0.72,
+    point: 0.62,
+    roughness: 0.68,
+    metalness: 0.18,
+    floorOpacity: 0.84,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.18,
   },
 
   temple: {
@@ -313,16 +331,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#111a10',
     trim: '#1b3218',
     accent: '#34f0bf',
-    ambient: 0.58,
-    hemiSky: '#83d99a',
+    ambient: 0.38,
+    hemiSky: '#5ea070',
     hemiGround: '#050906',
-    hemi: 0.82,
-    directional: 1.0,
-    point: 0.78,
-    roughness: 0.82,
-    metalness: 0.08,
-    floorOpacity: 0.86,
-    platformOpacity: 0.9,
+    hemi: 0.56,
+    directional: 0.7,
+    point: 0.62,
+    roughness: 0.86,
+    metalness: 0.05,
+    floorOpacity: 0.82,
+    platformOpacity: 0.88,
+    envMapIntensity: 0.12,
   },
 
   mirage: {
@@ -330,34 +349,35 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#100b18',
     trim: '#1c1026',
     accent: '#ff3bd4',
-    ambient: 0.46,
-    hemiSky: '#835cff',
+    ambient: 0.34,
+    hemiSky: '#5e43bd',
     hemiGround: '#050009',
-    hemi: 0.74,
-    directional: 0.95,
-    point: 0.95,
-    roughness: 0.24,
-    metalness: 0.72,
-    floorOpacity: 0.82,
-    platformOpacity: 0.92,
+    hemi: 0.5,
+    directional: 0.65,
+    point: 0.7,
+    roughness: 0.38,
+    metalness: 0.48,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 
-  // Saved-name compatibility
   cosmic_space_360: {
     floor: '#02060a',
     platform: '#071014',
     trim: '#0c2024',
     accent: '#00ffcc',
-    ambient: 0.42,
-    hemiSky: '#18404b',
+    ambient: 0.32,
+    hemiSky: '#10333b',
     hemiGround: '#020406',
-    hemi: 0.72,
-    directional: 0.85,
-    point: 0.9,
-    roughness: 0.3,
-    metalness: 0.62,
-    floorOpacity: 0.82,
-    platformOpacity: 0.92,
+    hemi: 0.48,
+    directional: 0.62,
+    point: 0.72,
+    roughness: 0.42,
+    metalness: 0.44,
+    floorOpacity: 0.78,
+    platformOpacity: 0.88,
+    envMapIntensity: 0.22,
   },
 
   training_chamber_360: {
@@ -365,16 +385,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#0b1111',
     trim: '#10201d',
     accent: '#00ffcc',
-    ambient: 0.52,
-    hemiSky: '#69ffd8',
+    ambient: 0.34,
+    hemiSky: '#4ec4ac',
     hemiGround: '#020504',
-    hemi: 0.78,
-    directional: 1.0,
-    point: 0.8,
-    roughness: 0.36,
-    metalness: 0.58,
-    floorOpacity: 0.86,
-    platformOpacity: 0.94,
+    hemi: 0.5,
+    directional: 0.68,
+    point: 0.6,
+    roughness: 0.46,
+    metalness: 0.42,
+    floorOpacity: 0.82,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.2,
   },
 
   efect_arena_360: {
@@ -382,16 +403,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#091009',
     trim: '#143014',
     accent: '#39ff14',
-    ambient: 0.5,
-    hemiSky: '#39ff14',
+    ambient: 0.34,
+    hemiSky: '#2ecc16',
     hemiGround: '#020302',
-    hemi: 0.78,
-    directional: 1.05,
-    point: 0.95,
-    roughness: 0.3,
-    metalness: 0.64,
-    floorOpacity: 0.84,
-    platformOpacity: 0.94,
+    hemi: 0.52,
+    directional: 0.7,
+    point: 0.68,
+    roughness: 0.42,
+    metalness: 0.44,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 
   default: {
@@ -399,16 +421,17 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     platform: '#091009',
     trim: '#143014',
     accent: '#39ff14',
-    ambient: 0.5,
-    hemiSky: '#39ff14',
+    ambient: 0.34,
+    hemiSky: '#2ecc16',
     hemiGround: '#020302',
-    hemi: 0.78,
-    directional: 1.05,
-    point: 0.95,
-    roughness: 0.3,
-    metalness: 0.64,
-    floorOpacity: 0.84,
-    platformOpacity: 0.94,
+    hemi: 0.52,
+    directional: 0.7,
+    point: 0.68,
+    roughness: 0.42,
+    metalness: 0.44,
+    floorOpacity: 0.8,
+    platformOpacity: 0.9,
+    envMapIntensity: 0.22,
   },
 };
 
@@ -493,22 +516,19 @@ export default function Room() {
 
   return (
     <group>
-      {/* Controlled lighting only. No wire cage, no grid helper. */}
       <ambientLight intensity={style.ambient} />
 
-      <hemisphereLight
-        args={[style.hemiSky, style.hemiGround, style.hemi]}
-      />
+      <hemisphereLight args={[style.hemiSky, style.hemiGround, style.hemi]} />
 
       <directionalLight
         position={[6, 9, 4]}
         intensity={style.directional}
-        color="#ffffff"
+        color="#f2fbff"
       />
 
       <directionalLight
         position={[-7, 5, -5]}
-        intensity={style.directional * 0.36}
+        intensity={style.directional * 0.28}
         color={accent}
       />
 
@@ -521,19 +541,18 @@ export default function Room() {
 
       <pointLight
         position={[0, 2.5, -9]}
-        intensity={style.point * 0.42}
+        intensity={style.point * 0.34}
         color={accent}
         distance={18}
       />
 
       <pointLight
         position={[0, 2.5, 9]}
-        intensity={style.point * 0.28}
+        intensity={style.point * 0.22}
         color={accent}
         distance={16}
       />
 
-      {/* Main premium floor. Transparent enough to let the 360 scene breathe. */}
       <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[96, 96]} />
         <meshStandardMaterial
@@ -542,51 +561,47 @@ export default function Room() {
           metalness={style.metalness}
           transparent
           opacity={style.floorOpacity}
-          envMapIntensity={0.38}
+          envMapIntensity={style.envMapIntensity}
         />
       </mesh>
 
-      {/* Soft center platform */}
       <mesh position={[0, -0.083, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[3.15, 96]} />
         <meshStandardMaterial
           color={style.platform}
           emissive={accent}
-          emissiveIntensity={0.08}
-          roughness={0.28}
-          metalness={0.5}
+          emissiveIntensity={0.055}
+          roughness={0.44}
+          metalness={0.32}
           transparent
           opacity={style.platformOpacity}
-          envMapIntensity={0.45}
+          envMapIntensity={style.envMapIntensity}
         />
       </mesh>
 
-      {/* Premium rings */}
-      <GlowRing radius={3.45} tube={0.08} opacity={0.34} color={accent} />
-      <GlowRing radius={5.7} tube={0.035} opacity={0.18} color={accent} z={0.002} />
-      <GlowRing radius={10.5} tube={0.025} opacity={0.08} color={accent} z={0.004} />
+      <GlowRing radius={3.45} tube={0.08} opacity={0.26} color={accent} />
+      <GlowRing radius={5.7} tube={0.035} opacity={0.12} color={accent} z={0.002} />
+      <GlowRing radius={10.5} tube={0.025} opacity={0.055} color={accent} z={0.004} />
 
-      {/* Minimal arena trim lines, not a full grid */}
-      <LowTrimLine x={0} z={-11} width={18} depth={0.035} color={accent} opacity={0.2} />
-      <LowTrimLine x={0} z={11} width={18} depth={0.035} color={accent} opacity={0.13} />
-      <LowTrimLine x={-11} z={0} width={0.035} depth={18} color={accent} opacity={0.13} />
-      <LowTrimLine x={11} z={0} width={0.035} depth={18} color={accent} opacity={0.13} />
+      <LowTrimLine x={0} z={-11} width={18} depth={0.035} color={accent} opacity={0.14} />
+      <LowTrimLine x={0} z={11} width={18} depth={0.035} color={accent} opacity={0.09} />
+      <LowTrimLine x={-11} z={0} width={0.035} depth={18} color={accent} opacity={0.09} />
+      <LowTrimLine x={11} z={0} width={0.035} depth={18} color={accent} opacity={0.09} />
 
-      {/* Spawn / aim pads */}
-      <SpawnPad x={0} z={-7.5} color={accent} opacity={0.2} />
-      <SpawnPad x={-7.5} z={0} color={accent} opacity={0.14} />
-      <SpawnPad x={7.5} z={0} color={accent} opacity={0.14} />
-      <SpawnPad x={0} z={7.5} color={accent} opacity={0.12} />
+      <SpawnPad x={0} z={-7.5} color={accent} opacity={0.15} />
+      <SpawnPad x={-7.5} z={0} color={accent} opacity={0.1} />
+      <SpawnPad x={7.5} z={0} color={accent} opacity={0.1} />
+      <SpawnPad x={0} z={7.5} color={accent} opacity={0.08} />
 
-      {/* Low side blocks for depth. They stay small so the 360 background remains visible. */}
       <mesh position={[-9.5, 0.18, -7.5]}>
         <boxGeometry args={[0.24, 0.55, 4.2]} />
         <meshStandardMaterial
           color={style.trim}
           emissive={accent}
-          emissiveIntensity={0.05}
-          roughness={0.38}
-          metalness={0.45}
+          emissiveIntensity={0.035}
+          roughness={0.52}
+          metalness={0.28}
+          envMapIntensity={style.envMapIntensity}
         />
       </mesh>
 
@@ -595,9 +610,10 @@ export default function Room() {
         <meshStandardMaterial
           color={style.trim}
           emissive={accent}
-          emissiveIntensity={0.05}
-          roughness={0.38}
-          metalness={0.45}
+          emissiveIntensity={0.035}
+          roughness={0.52}
+          metalness={0.28}
+          envMapIntensity={style.envMapIntensity}
         />
       </mesh>
 
@@ -606,9 +622,10 @@ export default function Room() {
         <meshStandardMaterial
           color={style.trim}
           emissive={accent}
-          emissiveIntensity={0.035}
-          roughness={0.38}
-          metalness={0.45}
+          emissiveIntensity={0.025}
+          roughness={0.52}
+          metalness={0.28}
+          envMapIntensity={style.envMapIntensity}
         />
       </mesh>
 
@@ -617,9 +634,10 @@ export default function Room() {
         <meshStandardMaterial
           color={style.trim}
           emissive={accent}
-          emissiveIntensity={0.035}
-          roughness={0.38}
-          metalness={0.45}
+          emissiveIntensity={0.025}
+          roughness={0.52}
+          metalness={0.28}
+          envMapIntensity={style.envMapIntensity}
         />
       </mesh>
     </group>

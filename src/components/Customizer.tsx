@@ -631,7 +631,7 @@ export default function Customizer() {
     return BACKGROUND_PRESETS.find((bg) => bg.id === mapTheme) || BACKGROUND_PRESETS[0];
   }, [mapTheme]);
 
-  const filteredBackgrounds = useMemo(() => {
+    const filteredBackgrounds = useMemo(() => {
     if (activeBgCategory === 'ALL') return BACKGROUND_PRESETS;
 
     return BACKGROUND_PRESETS.filter((bg) => {
@@ -657,6 +657,36 @@ export default function Customizer() {
       );
     });
   }, [activeBgCategory]);
+
+  const chooseBgCategory = (filter: 'ALL' | 'DARK' | 'BRIGHT' | 'ARENA') => {
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+
+    const activeElement = document.activeElement as HTMLElement | null;
+    activeElement?.blur?.();
+
+    setActiveBgCategory(filter);
+  };
+
+  const chooseBackground = (bgId: string) => {
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+
+    const activeElement = document.activeElement as HTMLElement | null;
+    activeElement?.blur?.();
+
+    useStore.getState().setSettings({
+      mapTheme: bgId as any,
+    });
+
+    window.requestAnimationFrame(() => {
+      useStore.getState().setSettings({
+        mapTheme: bgId as any,
+      });
+    });
+  };
 
   const handleCloudSync = async () => {
     if (!auth.currentUser) {
@@ -2389,23 +2419,40 @@ export default function Customizer() {
                     const active = activeBgCategory === filter;
 
                     return (
-                      <button
+                                            <button
                         key={filter}
                         type="button"
-                        onClick={() => setActiveBgCategory(filter)}
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          chooseBgCategory(filter);
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          chooseBgCategory(filter);
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          chooseBgCategory(filter);
+                        }}
                         className={
                           active ? 'armory-btn stable-hover' : 'armory-ghost stable-hover'
                         }
                         style={{
-                          padding: '10px 13px',
-                          borderRadius: 8,
-                          border: `1px solid ${active ? color : 'rgba(255,255,255,0.14)'}`,
-                          background: active ? color : 'rgba(0,0,0,0.55)',
-                          color: active ? '#000' : 'rgba(255,255,255,0.75)',
-                          cursor: 'pointer',
-                          fontWeight: 900,
-                          letterSpacing: 2,
-                        }}
+  padding: '10px 13px',
+  borderRadius: 8,
+  border: `1px solid ${active ? color : 'rgba(255,255,255,0.14)'}`,
+  background: active ? color : 'rgba(0,0,0,0.55)',
+  color: active ? '#000' : 'rgba(255,255,255,0.75)',
+  cursor: 'pointer',
+  fontWeight: 900,
+  letterSpacing: 2,
+  pointerEvents: 'auto',
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
+}}
                       >
                         {filter}
                       </button>
@@ -2429,32 +2476,47 @@ export default function Customizer() {
 
                     return (
                       <button
-                        key={bg.id}
-                        type="button"
-                        className="bg-card stable-hover"
-                        onClick={() =>
-                          setSettings({
-                            mapTheme: bg.id as any,
-                          })
-                        }
-                        style={{
-                          position: 'relative',
-                          minHeight: 154,
-                          overflow: 'hidden',
-                          borderRadius: 14,
-                          border: `1px solid ${active ? color : 'rgba(255,255,255,0.12)'}`,
-                          background: 'rgba(0,0,0,0.62)',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          padding: 0,
-                          boxShadow: active ? `0 0 24px ${color}44` : 'none',
-                        }}
-                      >
+  key={bg.id}
+  type="button"
+  className="bg-card stable-hover"
+  onPointerDown={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    chooseBackground(bg.id);
+  }}
+  onMouseDown={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    chooseBackground(bg.id);
+  }}
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    chooseBackground(bg.id);
+  }}
+  style={{
+    position: 'relative',
+    minHeight: 154,
+    overflow: 'hidden',
+    borderRadius: 14,
+    border: `1px solid ${active ? color : 'rgba(255,255,255,0.12)'}`,
+    background: 'rgba(0,0,0,0.62)',
+    color: '#fff',
+    cursor: 'pointer',
+    textAlign: 'left',
+    padding: 0,
+    boxShadow: active ? `0 0 24px ${color}44` : 'none',
+    pointerEvents: 'auto',
+    touchAction: 'manipulation',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+  }}
+>
                         {isImage ? (
                           <div
                             className="bg-card-img"
                             style={{
+                              pointerEvents: 'none',
                               position: 'absolute',
                               inset: 0,
                               backgroundImage: `url('/backgrounds/${bg.file}')`,
@@ -2468,6 +2530,7 @@ export default function Customizer() {
                           <div
                             className="bg-card-img"
                             style={{
+                              pointerEvents: 'none',
                               position: 'absolute',
                               inset: 0,
                               background:

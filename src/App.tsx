@@ -17,6 +17,52 @@ import Login from './components/Login';
 import { useStore, TRACK_LIST, GAME_PROFILES } from './store/useStore';
 import './App.css';
 
+const EMX_LOGO_SRC = '/emx-logo.png';
+
+const hexToRgbString = (hex: string) => {
+  const clean = hex.replace('#', '').trim();
+  const normalized =
+    clean.length === 3 ? clean.split('').map((char) => char + char).join('') : clean;
+
+  const value = Number.parseInt(normalized, 16);
+
+  if (Number.isNaN(value)) return '0, 255, 204';
+
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+
+  return `${r}, ${g}, ${b}`;
+};
+
+const getTauriWindow = async () => {
+  const tauriWindow = (await import('@tauri-apps/api/window')) as any;
+
+  if (typeof tauriWindow.getCurrentWindow === 'function') {
+    return tauriWindow.getCurrentWindow();
+  }
+
+  return tauriWindow.appWindow;
+};
+
+const minimizeAppWindow = async () => {
+  try {
+    const win = await getTauriWindow();
+    await win?.minimize?.();
+  } catch (error) {
+    console.warn('Window minimize is only available inside Tauri.', error);
+  }
+};
+
+const closeAppWindow = async () => {
+  try {
+    const win = await getTauriWindow();
+    await win?.close?.();
+  } catch (error) {
+    window.close();
+  }
+};
+
 function FloatingTextUI() {
   const [texts, setTexts] = useState<
     { id: number; text: string; x: number; y: number; color: string }[]
@@ -94,6 +140,23 @@ const getRankInfo = (score: number, accuracy: number) => {
   if (rating >= 15000) return { title: 'SILVER', color: '#aaaaaa', icon: '🥈' };
 
   return { title: 'BRONZE', color: '#cd7f32', icon: '🥉' };
+};
+
+const getPerformanceGrade = (
+  score: number,
+  accuracy: number,
+  maxStreak: number,
+  hitsPerSecond: number
+) => {
+  const gradeScore = score * 0.018 + accuracy * 2.7 + maxStreak * 6 + hitsPerSecond * 90;
+
+  if (gradeScore >= 720) return { letter: 'S+', title: 'ELITE PERFORMANCE', color: '#ff00ff' };
+  if (gradeScore >= 600) return { letter: 'S', title: 'PRO LEVEL CONTROL', color: '#b967ff' };
+  if (gradeScore >= 460) return { letter: 'A', title: 'HIGH PERFORMANCE', color: '#39ff14' };
+  if (gradeScore >= 330) return { letter: 'B', title: 'SOLID TRAINING RUN', color: '#00ffcc' };
+  if (gradeScore >= 220) return { letter: 'C', title: 'BUILDING CONSISTENCY', color: '#ffaa00' };
+
+  return { letter: 'D', title: 'WARMUP COMPLETE', color: '#ff0055' };
 };
 
 function HitMarkerUI() {
@@ -287,6 +350,40 @@ const getWeaponTitle = (weaponClass: string) => {
   return 'PISTOL TACTICAL';
 };
 
+function WindowChrome() {
+  return (
+    <div className="emx-window-chrome">
+      <button
+        type="button"
+        className="emx-window-btn emx-window-minimize"
+        title="Minimize"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          minimizeAppWindow();
+        }}
+      >
+        —
+      </button>
+
+      <button
+        type="button"
+        className="emx-window-btn emx-window-close"
+        title="Exit"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeAppWindow();
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const {
     score,
@@ -326,8 +423,12 @@ export default function App() {
   );
 
   const accuracy = shots > 0 ? Math.round((hitTrigger / shots) * 100) : 0;
-  const avgReaction = score > 0 ? Math.round((drillDuration * 1000) / hitTrigger) : 0;
+  const avgReaction = hitTrigger > 0 ? Math.round((drillDuration * 1000) / hitTrigger) : 0;
   const finalRank = getRankInfo(score, accuracy);
+  const previousBest = highScores[scenario] || 0;
+  const finalHitsPerSecond = drillDuration > 0 ? hitTrigger / drillDuration : 0;
+  const isNewRecord = score > 0 && score >= previousBest;
+  const performanceGrade = getPerformanceGrade(score, accuracy, maxStreak, finalHitsPerSecond);
 
   const hasStartedFiring = shots > 0;
 
@@ -374,6 +475,7 @@ export default function App() {
     }
 
     document.documentElement.style.setProperty('--theme-color', color);
+    document.documentElement.style.setProperty('--theme-rgb', hexToRgbString(color));
   }, [gameState, color]);
 
   useEffect(() => {
@@ -478,6 +580,7 @@ export default function App() {
       }}
     >
       <audio ref={audioPlayerRef} />
+      <WindowChrome />
 
       {!booted && (
         <BootSplash
@@ -494,7 +597,7 @@ export default function App() {
 
       {gameState === 'playing' && !hasStartedFiring && (
         <div className="efect-ready-overlay">
-          <div className="efect-ready-kicker">EFECT TRAINING MODULE ONLINE</div>
+          <div className="efect-ready-kicker">EMX TRAINING MODULE ONLINE</div>
           <div className="efect-ready-title">CLICK TO BEGIN</div>
           <div className="efect-ready-sub">
             LOCK CURSOR // START TIMER // ENGAGE TARGETS
@@ -542,7 +645,8 @@ export default function App() {
       {gameState !== 'playing' &&
         gameState !== 'leaderboard' &&
         gameState !== 'login' &&
-        gameState !== 'customizer' && (
+        gameState !== 'customizer' &&
+        gameState !== 'gameover' && (
           <div
             className="glow-ui"
             style={{
@@ -685,7 +789,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="efect-hud-watermark">EFECT AIM TRAINER</div>
+          <div className="efect-hud-watermark">EMX AIM TRAINER</div>
 
           <div className="efect-hud-esc">
             <span>ESC</span> RETURN TO ARMORY
@@ -694,157 +798,101 @@ export default function App() {
       )}
 
       {gameState === 'gameover' && (
-        <div className="efect-session-shell">
-          <div className="efect-session-card">
-            <div className="efect-session-title">SESSION REVIEW</div>
+        <div className="efect-session-shell emx-session-shell">
+          <div className="efect-session-card emx-session-card">
+            <div className="emx-session-scanline" />
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '15px',
-                margin: '20px auto 26px',
-                width: 'fit-content',
-                background: 'rgba(20,20,20,0.6)',
-                padding: '10px 30px',
-                borderRadius: '50px',
-                border: `1px solid ${finalRank.color}`,
-              }}
-            >
-              <span style={{ fontSize: '2.5rem' }}>{finalRank.icon}</span>
-
-              <div>
-                <div
-                  style={{
-                    color: '#aaa',
-                    fontSize: '0.8rem',
-                    letterSpacing: '2px',
+            <div className="emx-session-header">
+              <div className="emx-session-logo-wrap">
+                <div className="emx-logo-orbit" />
+                <img
+                  src={EMX_LOGO_SRC}
+                  alt="EMX"
+                  className="emx-session-logo"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
                   }}
-                >
-                  PERFORMANCE RATING
-                </div>
-
-                <div
-                  style={{
-                    color: finalRank.color,
-                    fontSize: '1.8rem',
-                    fontWeight: '900',
-                    letterSpacing: '4px',
-                    textShadow: `0 0 10px ${finalRank.color}80`,
-                  }}
-                >
-                  {finalRank.title}
-                </div>
+                />
               </div>
+
+              <div className="emx-session-kicker">EMX TRAINING SUITE</div>
+              <div className="emx-session-title">PERFORMANCE REPORT</div>
+
+              {isNewRecord && (
+                <div className="emx-record-banner">NEW PERSONAL BEST // {score} POINTS</div>
+              )}
             </div>
 
-            <div className="efect-session-grid">
-              <div
-                className="efect-session-stat"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                }}
-              >
-                <div className="efect-session-stat-label">FINAL SCORE</div>
-                <div className="efect-session-stat-value">{score}</div>
-                <div
-                  style={{
-                    color: '#666',
-                    fontSize: '1.2rem',
-                    marginTop: '10px',
-                  }}
-                >
-                  BEST: {highScores[scenario] || 0}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '15px',
-                }}
-              >
-                <div className="efect-session-stat">
-                  <div className="efect-session-stat-label">ACCURACY</div>
-                  <div className="efect-session-stat-value">{accuracy}%</div>
+            <div className="emx-report-grid">
+              <div className="emx-grade-panel">
+                <div className="emx-grade-letter" style={{ color: performanceGrade.color }}>
+                  {performanceGrade.letter}
                 </div>
 
-                <div className="efect-session-stat">
-                  <div className="efect-session-stat-label">MAX STREAK</div>
-                  <div className="efect-session-stat-value">{maxStreak}</div>
+                <div className="emx-grade-title" style={{ color: performanceGrade.color }}>
+                  {performanceGrade.title}
                 </div>
 
-                <div className="efect-session-stat">
-                  <div className="efect-session-stat-label">AVG REACTION</div>
-                  <div className="efect-session-stat-value">{avgReaction}ms</div>
-                </div>
-
-                <div className="efect-session-stat">
-                  <div className="efect-session-stat-label">HITS / SEC</div>
-                  <div className="efect-session-stat-value">
-                    {(hitTrigger / drillDuration).toFixed(2)}
+                <div className="emx-grade-rank-chip" style={{ borderColor: finalRank.color }}>
+                  <span>{finalRank.icon}</span>
+                  <div>
+                    <small>RANK</small>
+                    <strong style={{ color: finalRank.color }}>{finalRank.title}</strong>
                   </div>
                 </div>
               </div>
 
-              <div
-                className="efect-session-stat"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '1rem',
-                    color: '#aaa',
-                    marginBottom: '15px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <span>PERFORMANCE HEATMAP (HPS)</span>
-                  <span style={{ color }}>Peak: {maxHPS.toFixed(1)}</span>
+              <div className="emx-report-stat emx-report-score">
+                <div className="emx-report-label">FINAL SCORE</div>
+                <div className="emx-report-value">{score}</div>
+                <div className="emx-report-sub">BEST: {previousBest}</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">ACCURACY</div>
+                <div className="emx-report-value">{accuracy}%</div>
+                <div className="emx-report-sub">SHOTS: {shots}</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">MAX STREAK</div>
+                <div className="emx-report-value">{maxStreak}</div>
+                <div className="emx-report-sub">CHAIN CONTROL</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">AVG REACTION</div>
+                <div className="emx-report-value">{avgReaction}ms</div>
+                <div className="emx-report-sub">TARGET RESPONSE</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">HITS / SEC</div>
+                <div className="emx-report-value">{finalHitsPerSecond.toFixed(2)}</div>
+                <div className="emx-report-sub">SPEED OUTPUT</div>
+              </div>
+
+              <div className="emx-heatmap-panel">
+                <div className="emx-heatmap-top">
+                  <span>PERFORMANCE HEATMAP</span>
+                  <strong>PEAK: {maxHPS.toFixed(1)} HPS</strong>
                 </div>
 
-                <div
-                  style={{
-                    flex: 1,
-                    minHeight: 180,
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    gap: '6px',
-                    borderBottom: '1px solid #444',
-                    paddingBottom: '10px',
-                  }}
-                >
+                <div className="emx-heatmap-bars">
                   {chartData.map((val, idx) => {
                     const heightPct = (val / maxHPS) * 100;
 
                     return (
-                      <div
-                        key={idx}
-                        style={{
-                          flex: 1,
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'flex-end',
-                        }}
-                      >
+                      <div key={idx} className="emx-heatmap-bar-wrap">
                         <div
+                          className="emx-heatmap-bar"
                           style={{
-                            width: '100%',
                             height: `${heightPct}%`,
-                            background: color,
-                            opacity: val > 0 ? 0.8 : 0.1,
-                            boxShadow: val === maxHPS ? `0 0 10px ${color}` : 'none',
-                            borderRadius: '2px 2px 0 0',
-                            transition: 'height 0.4s ease-out',
+                            opacity: val > 0 ? 0.88 : 0.14,
+                            boxShadow:
+                              val === maxHPS
+                                ? `0 0 18px ${color}, 0 0 34px ${color}55`
+                                : 'none',
                           }}
                         />
                       </div>
@@ -852,15 +900,7 @@ export default function App() {
                   })}
                 </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    color: '#666',
-                    fontSize: '0.8rem',
-                    marginTop: '10px',
-                  }}
-                >
+                <div className="emx-heatmap-axis">
                   <span>0s</span>
                   <span>{drillDuration / 2}s</span>
                   <span>{drillDuration}s</span>
@@ -868,62 +908,35 @@ export default function App() {
               </div>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '20px',
-                marginTop: 24,
-              }}
-            >
-              <button
-                onClick={startGame}
-                className="glow-ui"
-                style={{
-                  flex: 1,
-                  padding: '20px',
-                  background: color,
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#000',
-                  fontWeight: '900',
-                  fontSize: '1.2rem',
-                  cursor: 'pointer',
-                }}
-              >
+            <div className="emx-report-notes">
+              <div>
+                <strong>MODULE</strong>
+                <span>{scenarioTitle}</span>
+              </div>
+              <div>
+                <strong>WEAPON</strong>
+                <span>{weaponTitle}</span>
+              </div>
+              <div>
+                <strong>NEXT STEP</strong>
+                <span>
+                  {accuracy < 70
+                    ? 'Slow down and clean first-shot accuracy.'
+                    : 'Increase speed or move into tracking drills.'}
+                </span>
+              </div>
+            </div>
+
+            <div className="emx-session-actions">
+              <button onClick={startGame} className="emx-primary-action">
                 REDEPLOY
               </button>
 
-              <button
-                onClick={goToCustomizer}
-                style={{
-                  flex: 1,
-                  padding: '20px',
-                  background: 'rgba(30,30,30,0.8)',
-                  border: '1px solid #555',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  fontSize: '1.2rem',
-                  cursor: 'pointer',
-                }}
-              >
+              <button onClick={goToCustomizer} className="emx-secondary-action">
                 ARMORY
               </button>
 
-              <button
-                onClick={goToScenarios}
-                style={{
-                  flex: 1,
-                  padding: '20px',
-                  background: 'transparent',
-                  color: '#fff',
-                  border: '1px solid #444',
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  fontSize: '1.2rem',
-                  cursor: 'pointer',
-                }}
-              >
+              <button onClick={goToScenarios} className="emx-secondary-action">
                 HUB
               </button>
             </div>
@@ -955,12 +968,12 @@ export default function App() {
 
           {graphicsQuality === 'high' && (
             <EffectComposer>
-              <Bloom luminanceThreshold={0.5} intensity={0.6} />
+              <Bloom luminanceThreshold={0.76} intensity={0.28} />
             </EffectComposer>
           )}
 
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[5, 10, 5]} intensity={1.5} />
+          <ambientLight intensity={0.32} />
+          <directionalLight position={[5, 10, 5]} intensity={0.92} />
 
           <FireController />
           <PlayerMovement />
@@ -972,6 +985,8 @@ export default function App() {
           ))}
         </Canvas>
       )}
+
+      {gameState === 'playing' && <div className="efect-brightness-shield" />}
     </div>
   );
 }

@@ -18,11 +18,13 @@ type BootStep = {
   detail: string;
 };
 
+const EMX_LOGO_SRC = '/emx-logo.png';
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 const BOOT_STEPS: BootStep[] = [
-  { threshold: 4, label: 'SECURE_CHANNEL', detail: 'Establishing encrypted EFECT runtime tunnel' },
+  { threshold: 4, label: 'SECURE_CHANNEL', detail: 'Establishing encrypted EMX runtime tunnel' },
   { threshold: 10, label: 'CORE_HANDSHAKE', detail: 'Authenticating aim trainer boot authority' },
   { threshold: 18, label: 'VISUAL_MATRIX', detail: 'Spinning up holographic HUD compositor' },
   { threshold: 27, label: 'INPUT_PIPELINE', detail: 'Calibrating pointer lock and click response' },
@@ -33,7 +35,7 @@ const BOOT_STEPS: BootStep[] = [
   { threshold: 79, label: 'ARENA_SYSTEMS', detail: 'Loading scenario architecture and lighting grid' },
   { threshold: 89, label: 'UI_COMPOSITOR', detail: 'Rendering command center interface shell' },
   { threshold: 96, label: 'FINAL_VALIDATION', detail: 'Performing final integrity sweep' },
-  { threshold: 100, label: 'LAUNCH_READY', detail: 'EFECT Aim Trainer shell online' },
+  { threshold: 100, label: 'LAUNCH_READY', detail: 'EMX Aim Trainer shell online' },
 ];
 
 const MODULES = [
@@ -77,6 +79,7 @@ export default function BootSplash({
   const [mouse, setMouse] = useState({ x: 50, y: 50 });
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [tick, setTick] = useState(0);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   const completeTriggeredRef = useRef(false);
   const closeTimersRef = useRef<number[]>([]);
@@ -154,7 +157,7 @@ export default function BootSplash({
         `[${String(Math.round(progress)).padStart(3, '0')}%] ${activeStep.label.toLowerCase()} :: ${activeStep.detail.toLowerCase()}`
       );
     } else {
-      lines.push('[100%] launch_ready :: efect aim trainer shell online');
+      lines.push('[100%] launch_ready :: emx aim trainer shell online');
     }
 
     return lines.slice(-8).reverse();
@@ -281,8 +284,8 @@ export default function BootSplash({
           }
 
           @keyframes bs-float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.018); }
           }
 
           @keyframes bs-ring-spin {
@@ -302,6 +305,7 @@ export default function BootSplash({
                 0 0 80px ${color}12,
                 inset 0 0 30px rgba(255,255,255,0.02);
             }
+
             50% {
               box-shadow:
                 0 0 45px ${color}44,
@@ -310,20 +314,55 @@ export default function BootSplash({
             }
           }
 
-          @keyframes bs-text-glow {
+          @keyframes bs-emx-logo-pulse {
             0%, 100% {
-              text-shadow:
-                0 0 18px ${color}38,
-                0 0 55px ${color}1f,
-                0 0 110px ${color}12;
-              letter-spacing: 14px;
+              transform: translateY(0) scale(1);
+              filter:
+                drop-shadow(0 0 18px rgba(57,255,20,0.82))
+                drop-shadow(0 0 28px rgba(185,103,255,0.64))
+                drop-shadow(0 0 48px rgba(255,0,255,0.26));
             }
+
             50% {
-              text-shadow:
-                0 0 26px #ffffffaa,
-                0 0 85px ${color}66,
-                0 0 150px ${color}33;
-              letter-spacing: 18px;
+              transform: translateY(-6px) scale(1.045);
+              filter:
+                drop-shadow(0 0 28px rgba(57,255,20,0.98))
+                drop-shadow(0 0 42px rgba(185,103,255,0.82))
+                drop-shadow(0 0 66px rgba(255,0,255,0.44));
+            }
+          }
+
+          @keyframes bs-emx-orbit {
+            0% {
+              transform: translate(-50%, -50%) rotate(-14deg) scale(1);
+              opacity: 0.52;
+            }
+
+            50% {
+              transform: translate(-50%, -50%) rotate(166deg) scale(1.04);
+              opacity: 0.95;
+            }
+
+            100% {
+              transform: translate(-50%, -50%) rotate(346deg) scale(1);
+              opacity: 0.52;
+            }
+          }
+
+          @keyframes bs-emx-orbit-reverse {
+            0% {
+              transform: translate(-50%, -50%) rotate(18deg) scale(1.05);
+              opacity: 0.34;
+            }
+
+            50% {
+              transform: translate(-50%, -50%) rotate(-162deg) scale(1);
+              opacity: 0.72;
+            }
+
+            100% {
+              transform: translate(-50%, -50%) rotate(-342deg) scale(1.05);
+              opacity: 0.34;
             }
           }
 
@@ -338,6 +377,7 @@ export default function BootSplash({
               transform: translate(-50%, -50%) scale(0.2);
               opacity: 0.95;
             }
+
             100% {
               transform: translate(-50%, -50%) scale(3.2);
               opacity: 0;
@@ -359,6 +399,24 @@ export default function BootSplash({
             0% { transform: translateX(-130%); opacity: 0; }
             25% { opacity: 0.9; }
             100% { transform: translateX(130%); opacity: 0; }
+          }
+
+          @keyframes bs-fallback-text-glow {
+            0%, 100% {
+              text-shadow:
+                0 0 18px ${color}38,
+                0 0 55px ${color}1f,
+                0 0 110px ${color}12;
+              letter-spacing: 14px;
+            }
+
+            50% {
+              text-shadow:
+                0 0 26px #ffffffaa,
+                0 0 85px ${color}66,
+                0 0 150px ${color}33;
+              letter-spacing: 18px;
+            }
           }
         `}
       </style>
@@ -503,7 +561,7 @@ export default function BootSplash({
           zIndex: 5,
         }}
       >
-        <div>EFECT // AIM TRAINER // QUANTUM_BOOT_SEQUENCE</div>
+        <div>EMX // AIM TRAINER // QUANTUM_BOOT_SEQUENCE</div>
         <div style={{ color, fontWeight: 900, textShadow: `0 0 12px ${color}` }}>
           {Math.round(progress)}%
         </div>
@@ -639,12 +697,43 @@ export default function BootSplash({
           style={{
             position: 'absolute',
             left: '50%',
+            top: '28%',
+            width: 360,
+            height: 220,
+            borderRadius: '50%',
+            border: `1px solid ${color}22`,
+            boxShadow: `0 0 24px ${color}16, inset 0 0 20px rgba(185,103,255,0.09)`,
+            transform: 'translate(-50%, -50%) rotate(-14deg)',
+            animation: 'bs-emx-orbit 6s linear infinite',
+            pointerEvents: 'none',
+          }}
+        />
+
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '28%',
+            width: 470,
+            height: 300,
+            borderRadius: '50%',
+            border: `1px dashed ${color}18`,
+            transform: 'translate(-50%, -50%) rotate(18deg)',
+            animation: 'bs-emx-orbit-reverse 9s linear infinite',
+            pointerEvents: 'none',
+          }}
+        />
+
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
             top: '31%',
             width: 340,
             height: 340,
             borderRadius: '50%',
-            border: `1px solid ${color}20`,
-            boxShadow: `0 0 22px ${color}12`,
+            border: `1px solid ${color}12`,
+            boxShadow: `0 0 22px ${color}10`,
             transform: 'translate(-50%, -50%)',
             animation: 'bs-ring-spin 14s linear infinite',
             pointerEvents: 'none',
@@ -659,7 +748,7 @@ export default function BootSplash({
             width: 460,
             height: 460,
             borderRadius: '50%',
-            border: `1px dashed ${color}18`,
+            border: `1px dashed ${color}12`,
             transform: 'translate(-50%, -50%)',
             animation: 'bs-ring-spin-reverse 20s linear infinite',
             pointerEvents: 'none',
@@ -697,7 +786,7 @@ export default function BootSplash({
           <div
             style={{
               textAlign: 'center',
-              marginBottom: 26,
+              marginBottom: 20,
               animation: 'bs-float 4.5s ease-in-out infinite',
             }}
           >
@@ -717,32 +806,51 @@ export default function BootSplash({
             <div
               style={{
                 position: 'relative',
-                display: 'inline-block',
-                overflow: 'hidden',
-                padding: '0 18px',
+                display: 'inline-grid',
+                placeItems: 'center',
+                width: 330,
+                height: 150,
+                maxWidth: '80vw',
+                overflow: 'visible',
+                marginBottom: 4,
               }}
             >
-              <div
-                style={{
-                  fontSize: '4.35rem',
-                  fontWeight: 900,
-                  letterSpacing: '14px',
-                  color: '#f2f7fb',
-                  marginBottom: 12,
-                  animation: 'bs-text-glow 2.2s ease-in-out infinite',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                EFECT
-              </div>
+              {!logoFailed ? (
+                <img
+                  src={EMX_LOGO_SRC}
+                  alt="EMX"
+                  onError={() => setLogoFailed(true)}
+                  style={{
+                    width: 286,
+                    maxWidth: '100%',
+                    maxHeight: 138,
+                    objectFit: 'contain',
+                    animation: 'bs-emx-logo-pulse 2.4s ease-in-out infinite',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    fontSize: '4.35rem',
+                    fontWeight: 900,
+                    letterSpacing: '14px',
+                    color: '#f2f7fb',
+                    animation: 'bs-fallback-text-glow 2.2s ease-in-out infinite',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  EMX
+                </div>
+              )}
 
               <div
                 style={{
                   position: 'absolute',
-                  inset: 0,
-                  background: `linear-gradient(90deg, transparent, ${color}35, #ffffff88, ${color}35, transparent)`,
+                  inset: '8px -28px',
+                  background: `linear-gradient(90deg, transparent, ${color}18, rgba(255,255,255,0.25), rgba(185,103,255,0.18), transparent)`,
                   animation: 'bs-logo-sweep 2.9s ease-in-out infinite',
                   mixBlendMode: 'screen',
+                  pointerEvents: 'none',
                 }}
               />
             </div>
@@ -818,7 +926,7 @@ export default function BootSplash({
                   width: `${progress}%`,
                   height: '100%',
                   borderRadius: 999,
-                  background: `linear-gradient(90deg, ${color}, #00ffe0, #8fe9ff)`,
+                  background: `linear-gradient(90deg, ${color}, #00ffe0, #b967ff)`,
                   boxShadow: `0 0 16px ${color}, 0 0 32px ${color}55`,
                   transition: 'width 80ms linear',
                 }}
