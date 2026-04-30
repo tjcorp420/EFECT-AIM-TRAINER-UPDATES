@@ -1,10 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useStore, TRACK_LIST, GAME_PROFILES } from '../store/useStore';
+import { createPortal } from 'react-dom';
+import { useStore, TRACK_LIST, GAME_PROFILES, playHitSound } from '../store/useStore';
 import { auth, syncArmoryToCloud } from '../firebase';
 import EfectSlider from './EfectSlider';
 
-type CrosshairStyle = 'compact' | 'clean' | 'micro' | 'wide' | 'dot' | 'box';
+type CrosshairStyle =
+  | 'compact'
+  | 'clean'
+  | 'micro'
+  | 'wide'
+  | 'dot'
+  | 'box'
+  | 'circle'
+  | 'diamond'
+  | 'brackets'
+  | 'plus'
+  | 'triad'
+  | 'hybrid';
 type WeaponId = 'pistol' | 'smg' | 'sniper' | 'nerf';
 
 type CrosshairPreset = {
@@ -16,6 +29,10 @@ type CrosshairPreset = {
   gap: number;
   dot: boolean;
   crosshairOutline: boolean;
+  crosshairOpacity?: number;
+  crosshairGlow?: number;
+  crosshairDotScale?: number;
+  crosshairHitReact?: 'off' | 'pulse' | 'burst';
 };
 
 type CrosshairSegment = {
@@ -23,6 +40,13 @@ type CrosshairSegment = {
   y: number;
   w: number;
   h: number;
+  opacity?: number;
+  rotate?: number;
+};
+
+type SelectOption = {
+  value: string | number;
+  label: string;
 };
 
 type WeaponPreset = {
@@ -104,6 +128,74 @@ const CROSSHAIR_PRESETS: CrosshairPreset[] = [
     gap: 5,
     dot: true,
     crosshairOutline: true,
+  },
+  {
+    id: 'circle',
+    name: 'RING TRACKER',
+    tag: 'SMOOTH LOCK',
+    size: 16,
+    thickness: 2,
+    gap: 7,
+    dot: true,
+    crosshairOutline: true,
+    crosshairGlow: 1.25,
+  },
+  {
+    id: 'diamond',
+    name: 'DIAMOND LOCK',
+    tag: 'TARGET READ',
+    size: 17,
+    thickness: 2,
+    gap: 7,
+    dot: true,
+    crosshairOutline: true,
+    crosshairGlow: 1.35,
+  },
+  {
+    id: 'brackets',
+    name: 'BRACKET HUD',
+    tag: 'TECH FRAME',
+    size: 18,
+    thickness: 2,
+    gap: 8,
+    dot: false,
+    crosshairOutline: true,
+    crosshairOpacity: 0.92,
+  },
+  {
+    id: 'plus',
+    name: 'MINI PLUS',
+    tag: 'LOW CLUTTER',
+    size: 10,
+    thickness: 2,
+    gap: 0,
+    dot: false,
+    crosshairOutline: true,
+    crosshairGlow: 0.85,
+  },
+  {
+    id: 'triad',
+    name: 'TRIAD BURST',
+    tag: 'REACT',
+    size: 14,
+    thickness: 2,
+    gap: 6,
+    dot: true,
+    crosshairOutline: true,
+    crosshairHitReact: 'burst',
+  },
+  {
+    id: 'hybrid',
+    name: 'EMX HYBRID',
+    tag: 'PREMIUM',
+    size: 15,
+    thickness: 2,
+    gap: 6,
+    dot: true,
+    crosshairOutline: true,
+    crosshairGlow: 1.45,
+    crosshairDotScale: 1.15,
+    crosshairHitReact: 'burst',
   },
 ];
 
@@ -278,7 +370,13 @@ const readCrosshairStyle = (): CrosshairStyle => {
     saved === 'micro' ||
     saved === 'wide' ||
     saved === 'dot' ||
-    saved === 'box'
+    saved === 'box' ||
+    saved === 'circle' ||
+    saved === 'diamond' ||
+    saved === 'brackets' ||
+    saved === 'plus' ||
+    saved === 'triad' ||
+    saved === 'hybrid'
   ) {
     return saved;
   }
@@ -355,6 +453,59 @@ const buildCrosshairSegments = (
       ];
     }
 
+    case 'brackets': {
+      const d = Math.max(9, g + Math.round(s * 0.72));
+      const len = Math.max(7, Math.round(s * 0.72));
+
+      return [
+        { x: -d, y: -(d + len / 2), w: t, h: len },
+        { x: -(d + len / 2), y: -d, w: len, h: t },
+        { x: d, y: -(d + len / 2), w: t, h: len },
+        { x: d + len / 2, y: -d, w: len, h: t },
+        { x: -d, y: d + len / 2, w: t, h: len },
+        { x: -(d + len / 2), y: d, w: len, h: t },
+        { x: d, y: d + len / 2, w: t, h: len },
+        { x: d + len / 2, y: d, w: len, h: t },
+      ];
+    }
+
+    case 'plus': {
+      const len = Math.max(7, Math.round(s * 0.72));
+
+      return [
+        { x: 0, y: 0, w: t, h: len },
+        { x: 0, y: 0, w: len, h: t },
+      ];
+    }
+
+    case 'triad': {
+      const len = Math.max(8, Math.round(s * 0.95));
+      const triGap = Math.max(5, g);
+
+      return [
+        { x: 0, y: -(triGap + len / 2), w: t, h: len },
+        { x: -(triGap + len / 2), y: triGap * 0.72, w: len, h: t, rotate: 28 },
+        { x: triGap + len / 2, y: triGap * 0.72, w: len, h: t, rotate: -28 },
+      ];
+    }
+
+    case 'hybrid': {
+      const inner = Math.max(5, Math.round(s * 0.52));
+      const outer = Math.max(9, Math.round(s * 0.95));
+      const outerGap = Math.max(6, Math.round(g * 1.3));
+
+      return [
+        { x: 0, y: -(g + inner / 2), w: t, h: inner },
+        { x: 0, y: g + inner / 2, w: t, h: inner },
+        { x: -(g + inner / 2), y: 0, w: inner, h: t },
+        { x: g + inner / 2, y: 0, w: inner, h: t },
+        { x: -(outerGap + outer / 2), y: 0, w: outer, h: Math.max(1, t - 1), opacity: 0.42 },
+        { x: outerGap + outer / 2, y: 0, w: outer, h: Math.max(1, t - 1), opacity: 0.42 },
+      ];
+    }
+
+    case 'circle':
+    case 'diamond':
     case 'dot':
       return [];
 
@@ -377,6 +528,9 @@ function CrosshairPreviewArt({
   thickness,
   dot,
   crosshairOutline,
+  crosshairOpacity = 1,
+  crosshairGlow = 1,
+  crosshairDotScale = 1,
   canvasSize = 72,
 }: {
   styleName: CrosshairStyle;
@@ -386,21 +540,24 @@ function CrosshairPreviewArt({
   thickness: number;
   dot: boolean;
   crosshairOutline: boolean;
+  crosshairOpacity?: number;
+  crosshairGlow?: number;
+  crosshairDotScale?: number;
   canvasSize?: number;
 }) {
   const segments = buildCrosshairSegments(styleName, gap, size, thickness);
   const center = canvasSize / 2;
 
   const glow = crosshairOutline
-    ? `0 0 0 1px rgba(0,0,0,0.95), 0 0 10px ${color}, 0 0 18px ${color}`
-    : `0 0 10px ${color}, 0 0 18px ${color}`;
+    ? `0 0 0 1px rgba(0,0,0,0.95), 0 0 ${Math.round(10 * crosshairGlow)}px ${color}, 0 0 ${Math.round(18 * crosshairGlow)}px ${color}`
+    : `0 0 ${Math.round(10 * crosshairGlow)}px ${color}, 0 0 ${Math.round(18 * crosshairGlow)}px ${color}`;
 
   const dotSize =
     styleName === 'dot'
-      ? Math.max(5, thickness * 2.2)
+      ? Math.max(5, thickness * 2.2 * crosshairDotScale)
       : styleName === 'micro'
-        ? Math.max(2, thickness + 1)
-        : Math.max(3, thickness + 1);
+        ? Math.max(2, (thickness + 1) * crosshairDotScale)
+        : Math.max(3, (thickness + 1) * crosshairDotScale);
 
   const showDot = dot || styleName === 'dot';
 
@@ -410,8 +567,25 @@ function CrosshairPreviewArt({
         position: 'relative',
         width: canvasSize,
         height: canvasSize,
+        opacity: crosshairOpacity,
       }}
     >
+      {(styleName === 'circle' || styleName === 'diamond') && (
+        <div
+          style={{
+            position: 'absolute',
+            left: center - Math.max(8, gap + size * 0.8),
+            top: center - Math.max(8, gap + size * 0.8),
+            width: Math.max(16, (gap + size * 0.8) * 2),
+            height: Math.max(16, (gap + size * 0.8) * 2),
+            borderRadius: styleName === 'circle' ? '50%' : 4,
+            border: `${Math.max(1, thickness)}px solid ${color}`,
+            transform: styleName === 'diamond' ? 'rotate(45deg)' : 'none',
+            boxShadow: glow,
+          }}
+        />
+      )}
+
       {segments.map((seg, index) => (
         <div
           key={`${styleName}-${index}`}
@@ -423,7 +597,9 @@ function CrosshairPreviewArt({
             height: seg.h,
             borderRadius: Math.max(1, thickness / 2),
             background: color,
+            opacity: seg.opacity ?? 1,
             boxShadow: glow,
+            transform: seg.rotate ? `rotate(${seg.rotate}deg)` : 'none',
           }}
         />
       ))}
@@ -544,6 +720,157 @@ function StatMeter({
   );
 }
 
+function ArmorySelect({
+  value,
+  options,
+  color,
+  onChange,
+}: {
+  value: string | number;
+  options: SelectOption[];
+  color: string;
+  onChange: (value: string | number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const selected = options.find((option) => String(option.value) === String(value)) || options[0];
+
+  useEffect(() => {
+    if (!open) return;
+
+    const syncPosition = () => {
+      if (buttonRef.current) {
+        setMenuRect(buttonRef.current.getBoundingClientRect());
+      }
+    };
+    const close = () => setOpen(false);
+
+    syncPosition();
+    window.addEventListener('pointerdown', close);
+    window.addEventListener('keydown', close);
+    window.addEventListener('resize', syncPosition);
+    window.addEventListener('scroll', syncPosition, true);
+
+    return () => {
+      window.removeEventListener('pointerdown', close);
+      window.removeEventListener('keydown', close);
+      window.removeEventListener('resize', syncPosition);
+      window.removeEventListener('scroll', syncPosition, true);
+    };
+  }, [open]);
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        zIndex: open ? 20000 : 2,
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        className="armory-custom-select"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((prev) => !prev);
+        }}
+        style={{
+          width: '100%',
+          minHeight: 47,
+          padding: '13px 42px 13px 14px',
+          borderRadius: 8,
+          border: `1px solid ${open ? color : 'rgba(255,255,255,0.16)'}`,
+          background: open ? 'rgba(0,0,0,0.86)' : 'rgba(0,0,0,0.72)',
+          color: '#fff',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          fontWeight: 900,
+          letterSpacing: 1,
+          textAlign: 'left',
+          boxShadow: open ? `0 0 24px ${color}33` : 'none',
+          position: 'relative',
+        }}
+      >
+        <span>{selected?.label || 'Select'}</span>
+        <span
+          style={{
+            position: 'absolute',
+            right: 14,
+            top: '50%',
+            transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
+            color,
+            transition: 'transform 0.16s ease',
+          }}
+        >
+          v
+        </span>
+      </button>
+
+      {open && menuRect && createPortal(
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            left: menuRect.left,
+            top: Math.min(
+              menuRect.bottom + 8,
+              window.innerHeight - Math.min(260, options.length * 45 + 14) - 10
+            ),
+            width: menuRect.width,
+            maxHeight: 260,
+            overflowY: 'auto',
+            zIndex: 2147483200,
+            borderRadius: 12,
+            border: `1px solid ${color}66`,
+            background:
+              'linear-gradient(180deg, rgba(18,18,22,0.98), rgba(0,0,0,0.98))',
+            boxShadow: `0 18px 48px rgba(0,0,0,0.72), 0 0 26px ${color}30`,
+            padding: 6,
+          }}
+        >
+          {options.map((option) => {
+            const active = String(option.value) === String(value);
+
+            return (
+              <button
+                key={String(option.value)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '11px 12px',
+                  borderRadius: 8,
+                  border: `1px solid ${active ? color : 'transparent'}`,
+                  background: active ? `${color}22` : 'transparent',
+                  color: active ? color : 'rgba(255,255,255,0.76)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                  fontWeight: 900,
+                  letterSpacing: 1,
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 export default function Customizer() {
   const {
     color,
@@ -552,6 +879,10 @@ export default function Customizer() {
     gap,
     dot,
     crosshairOutline,
+    crosshairOpacity,
+    crosshairGlow,
+    crosshairDotScale,
+    crosshairHitReact,
     skipClickToBegin,
     targetColor,
     targetShape,
@@ -559,6 +890,7 @@ export default function Customizer() {
     hitSound,
     scenario,
     weaponMode,
+    bulletEffect,
     weaponClass,
     targetSpeed,
     modelScale,
@@ -697,12 +1029,17 @@ const forceDeploy = () => {
       gap: state.gap,
       dot: state.dot,
       crosshairOutline: state.crosshairOutline,
+      crosshairOpacity: state.crosshairOpacity,
+      crosshairGlow: state.crosshairGlow,
+      crosshairDotScale: state.crosshairDotScale,
+      crosshairHitReact: state.crosshairHitReact,
       skipClickToBegin: state.skipClickToBegin,
       targetColor: state.targetColor,
       targetShape: state.targetShape,
       targetSkinMode: state.targetSkinMode,
       hitSound: state.hitSound,
       weaponMode: state.weaponMode,
+      bulletEffect: state.bulletEffect,
       weaponClass: state.weaponClass,
       targetSpeed: state.targetSpeed,
       modelScale: state.modelScale,
@@ -735,6 +1072,10 @@ const forceDeploy = () => {
       gap: preset.gap,
       dot: preset.dot,
       crosshairOutline: preset.crosshairOutline,
+      crosshairOpacity: preset.crosshairOpacity ?? crosshairOpacity,
+      crosshairGlow: preset.crosshairGlow ?? crosshairGlow,
+      crosshairDotScale: preset.crosshairDotScale ?? crosshairDotScale,
+      crosshairHitReact: preset.crosshairHitReact ?? crosshairHitReact,
     });
   };
 
@@ -751,7 +1092,11 @@ const forceDeploy = () => {
       preset.thickness === thickness &&
       preset.gap === gap &&
       preset.dot === dot &&
-      preset.crosshairOutline === crosshairOutline
+      preset.crosshairOutline === crosshairOutline &&
+      (preset.crosshairOpacity ?? crosshairOpacity) === crosshairOpacity &&
+      (preset.crosshairGlow ?? crosshairGlow) === crosshairGlow &&
+      (preset.crosshairDotScale ?? crosshairDotScale) === crosshairDotScale &&
+      (preset.crosshairHitReact ?? crosshairHitReact) === crosshairHitReact
     );
   };
 
@@ -777,7 +1122,7 @@ const forceDeploy = () => {
         borderRadius: 18,
         padding: 20,
         boxShadow: `0 0 36px ${color}18, inset 0 0 42px rgba(255,255,255,0.025)`,
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
     >
       <div
@@ -868,11 +1213,6 @@ const forceDeploy = () => {
     fontWeight: 900,
     letterSpacing: 1,
     outline: 'none',
-  };
-
-  const selectStyle: CSSProperties = {
-    ...inputStyle,
-    cursor: 'pointer',
   };
 
   const toggleStyle: CSSProperties = {
@@ -1012,6 +1352,11 @@ const forceDeploy = () => {
         .armory-select:focus {
           border-color: ${color} !important;
           box-shadow: 0 0 20px ${color}33 !important;
+        }
+
+        .armory-custom-select:hover {
+          border-color: ${color} !important;
+          box-shadow: 0 0 22px ${color}28 !important;
         }
 
         .bg-card:hover .bg-card-img {
@@ -1177,12 +1522,22 @@ const forceDeploy = () => {
             grid-template-columns: 1fr !important;
           }
 
+          .armory-bg-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
           .armory-header {
             grid-template-columns: 1fr !important;
           }
 
           .armory-title {
             text-align: left !important;
+          }
+        }
+
+        @media (min-width: 1201px) {
+          .armory-bg-library {
+            grid-column: 1 / -1;
           }
         }
       `}</style>
@@ -1424,10 +1779,9 @@ letterSpacing: 14,
             position: 'relative',
             zIndex: 2,
             display: 'grid',
-            gridTemplateColumns:
-  'minmax(320px, 0.9fr) minmax(370px, 1fr) minmax(460px, 1.22fr)',
-gap: 18,
-maxWidth: 1860,
+            gridTemplateColumns: 'minmax(330px, 0.86fr) minmax(620px, 1.14fr)',
+            gap: 20,
+            maxWidth: 1440,
             margin: '0 auto',
             alignItems: 'start',
           }}
@@ -1462,22 +1816,19 @@ maxWidth: 1860,
 
                 <div>
                   <FieldLabel>Target Game Engine</FieldLabel>
-                  <select
-                    className="armory-select"
+                  <ArmorySelect
                     value={gameProfile}
-                    onChange={(e) =>
+                    color={color}
+                    options={Object.entries(GAME_PROFILES).map(([key, val]) => ({
+                      value: key,
+                      label: val.name,
+                    }))}
+                    onChange={(nextValue) =>
                       setSettings({
-                        gameProfile: e.target.value,
+                        gameProfile: String(nextValue),
                       })
                     }
-                    style={selectStyle}
-                  >
-                    {Object.entries(GAME_PROFILES).map(([key, val]) => (
-                      <option key={key} value={key}>
-                        {val.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
@@ -1579,34 +1930,54 @@ maxWidth: 1860,
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <FieldLabel>Weapon Class</FieldLabel>
-                    <select
-                      className="armory-select"
+                    <ArmorySelect
                       value={weaponClass}
-                      onChange={(e) => setWeapon(e.target.value as any)}
-                      style={selectStyle}
-                    >
-                      <option value="pistol">Pistol Tactical</option>
-                      <option value="smg">SMG Automatic</option>
-                      <option value="sniper">Sniper High Impact</option>
-                      <option value="nerf">Nerf Training Blaster</option>
-                    </select>
+                      color={color}
+                      options={[
+                        { value: 'pistol', label: 'Pistol Tactical' },
+                        { value: 'smg', label: 'SMG Automatic' },
+                        { value: 'sniper', label: 'Sniper High Impact' },
+                        { value: 'nerf', label: 'Nerf Training Blaster' },
+                      ]}
+                      onChange={(nextValue) => setWeapon(nextValue as any)}
+                    />
                   </div>
 
                   <div>
                     <FieldLabel>Weapon Mode</FieldLabel>
-                    <select
-                      className="armory-select"
+                    <ArmorySelect
                       value={weaponMode}
-                      onChange={(e) =>
+                      color={color}
+                      options={[
+                        { value: 'laser', label: 'Hitscan Laser' },
+                        { value: 'stealth', label: 'Stealth No Tracer' },
+                      ]}
+                      onChange={(nextValue) =>
                         setSettings({
-                          weaponMode: e.target.value as any,
+                          weaponMode: nextValue as any,
                         })
                       }
-                      style={selectStyle}
-                    >
-                      <option value="laser">Hitscan Laser</option>
-                      <option value="stealth">Stealth No Tracer</option>
-                    </select>
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / span 2' }}>
+                    <FieldLabel>Bullet Effect</FieldLabel>
+                    <ArmorySelect
+                      value={bulletEffect}
+                      color={color}
+                      options={[
+                        { value: 'tracer', label: 'Neon Tracer' },
+                        { value: 'plasma', label: 'Plasma Bolt' },
+                        { value: 'spark', label: 'Spark Burst' },
+                        { value: 'rail', label: 'Rail Beam' },
+                        { value: 'none', label: 'Clean Hitscan' },
+                      ]}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          bulletEffect: nextValue as any,
+                        })
+                      }
+                    />
                   </div>
                 </div>
 
@@ -1764,40 +2135,45 @@ maxWidth: 1860,
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <FieldLabel>Drill Length</FieldLabel>
-                    <select
-                      className="armory-select"
+                    <ArmorySelect
                       value={drillDuration}
-                      onChange={(e) =>
+                      color={color}
+                      options={[
+                        { value: 30, label: '30 Seconds' },
+                        { value: 60, label: '60 Seconds' },
+                        { value: 90, label: '90 Seconds' },
+                        { value: 120, label: '120 Seconds' },
+                      ]}
+                      onChange={(nextValue) =>
                         setSettings({
-                          drillDuration: Number(e.target.value),
+                          drillDuration: Number(nextValue),
                         })
                       }
-                      style={selectStyle}
-                    >
-                      <option value={30}>30 Seconds</option>
-                      <option value={60}>60 Seconds</option>
-                      <option value={90}>90 Seconds</option>
-                      <option value={120}>120 Seconds</option>
-                    </select>
+                    />
                   </div>
 
                   <div>
                     <FieldLabel>Hit Sound</FieldLabel>
-                    <select
-                      className="armory-select"
+                    <ArmorySelect
                       value={hitSound}
-                      onChange={(e) =>
-                        setSettings({
-                          hitSound: e.target.value as any,
-                        })
+                      color={color}
+                      options={[
+                        { value: 'none', label: 'Muted' },
+                        { value: 'tick', label: 'Digital Tick' },
+                        { value: 'pop', label: 'Hollow Pop' },
+                        { value: 'ding', label: 'Combat Ding' },
+                        { value: 'crit', label: 'Headshot Crit' },
+                        { value: 'arcade', label: 'Arcade Pulse' },
+                      ]}
+                      onChange={(nextValue) =>
+                        {
+                          setSettings({
+                            hitSound: nextValue as any,
+                          });
+                          playHitSound(String(nextValue), 'headshot');
+                        }
                       }
-                      style={selectStyle}
-                    >
-                      <option value="none">Muted</option>
-                      <option value="tick">Digital Tick</option>
-                      <option value="pop">Hollow Pop</option>
-                      <option value="ding">Combat Ding</option>
-                    </select>
+                    />
                   </div>
                 </div>
               </div>
@@ -1864,40 +2240,37 @@ maxWidth: 1860,
 
                 <div>
                   <FieldLabel>Graphics Engine</FieldLabel>
-                  <select
-                    className="armory-select"
+                  <ArmorySelect
                     value={graphicsQuality}
-                    onChange={(e) =>
+                    color={color}
+                    options={[
+                      { value: 'high', label: 'HIGH_FX / Bloom Enabled' },
+                      { value: 'performance', label: 'PERFORMANCE / Low Bloom' },
+                    ]}
+                    onChange={(nextValue) =>
                       setSettings({
-                        graphicsQuality: e.target.value as any,
+                        graphicsQuality: nextValue as any,
                       })
                     }
-                    style={selectStyle}
-                  >
-                    <option value="high">HIGH_FX / Bloom Enabled</option>
-                    <option value="performance">PERFORMANCE / Low Bloom</option>
-                  </select>
+                  />
                 </div>
 
                 <div>
                   <FieldLabel>Background Track</FieldLabel>
-                  <select
-                    className="armory-select"
+                  <ArmorySelect
                     value={musicTrack}
-                    onChange={(e) =>
+                    color={color}
+                    options={TRACK_LIST.map((track) => ({
+                      value: track.id,
+                      label: track.name,
+                    }))}
+                    onChange={(nextValue) =>
                       setSettings({
-                        musicTrack: e.target.value,
-                        isMusicPlaying: e.target.value !== 'none',
+                        musicTrack: String(nextValue),
+                        isMusicPlaying: nextValue !== 'none',
                       })
                     }
-                    style={selectStyle}
-                  >
-                    {TRACK_LIST.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div>
@@ -1967,52 +2340,48 @@ maxWidth: 1860,
 
                 <div>
                   <FieldLabel>Target Geometry</FieldLabel>
-                  <select
-                    className="armory-select"
+                  <ArmorySelect
                     value={targetShape}
-                    onChange={(e) =>
+                    color={color}
+                    options={[
+                      { value: 'sphere', label: 'Sphere / High Accuracy' },
+                      { value: 'cube', label: 'Cube / Standard' },
+                      { value: 'humanoid', label: 'Humanoid / Character' },
+                    ]}
+                    onChange={(nextValue) =>
                       setSettings({
-                        targetShape: e.target.value as any,
+                        targetShape: nextValue as any,
                       })
                     }
-                    style={selectStyle}
-                  >
-                    <option value="sphere">Sphere / High Accuracy</option>
-                    <option value="cube">Cube / Standard</option>
-                    <option value="humanoid">Humanoid / Character</option>
-                  </select>
+                  />
                 </div>
 
                 {targetShape === 'humanoid' && (
                   <div>
                     <FieldLabel>Humanoid Shader</FieldLabel>
-                    <select
-                      className="armory-select"
+                    <ArmorySelect
                       value={targetSkinMode}
-                      onChange={(e) =>
+                      color={color}
+                      options={[
+                        { value: 'custom', label: 'Glow Performance' },
+                        { value: 'original', label: 'High-Fidelity Textures' },
+                      ]}
+                      onChange={(nextValue) =>
                         setSettings({
-                          targetSkinMode: e.target.value as any,
+                          targetSkinMode: nextValue as any,
                         })
                       }
-                      style={{
-                        ...selectStyle,
-                        color,
-                        borderColor: `${color}66`,
-                      }}
-                    >
-                      <option value="custom">Glow Performance</option>
-                      <option value="original">High-Fidelity Textures</option>
-                    </select>
+                    />
                   </div>
                 )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <FieldLabel>Scale: {modelScale}x</FieldLabel>
+                    <FieldLabel>Scale: {modelScale.toFixed(2)}x</FieldLabel>
                     <EfectSlider
-                      min={0.5}
-                      max={3}
-                      step={0.1}
+                      min={0.25}
+                      max={2.5}
+                      step={0.05}
                       value={modelScale}
                       color={color}
                       onChange={(nextValue) =>
@@ -2104,6 +2473,9 @@ maxWidth: 1860,
                       thickness={thickness}
                       dot={dot}
                       crosshairOutline={crosshairOutline}
+                      crosshairOpacity={crosshairOpacity}
+                      crosshairGlow={crosshairGlow}
+                      crosshairDotScale={crosshairDotScale}
                       canvasSize={132}
                     />
                   </div>
@@ -2197,10 +2569,13 @@ maxWidth: 1860,
                             gap={preset.gap}
                             size={preset.size}
                             thickness={preset.thickness}
-                            dot={preset.dot}
-                            crosshairOutline={preset.crosshairOutline}
-                            canvasSize={58}
-                          />
+                          dot={preset.dot}
+                          crosshairOutline={preset.crosshairOutline}
+                          crosshairOpacity={preset.crosshairOpacity ?? crosshairOpacity}
+                          crosshairGlow={preset.crosshairGlow ?? crosshairGlow}
+                          crosshairDotScale={preset.crosshairDotScale ?? crosshairDotScale}
+                          canvasSize={58}
+                        />
                         </div>
 
                         <div>
@@ -2290,7 +2665,64 @@ maxWidth: 1860,
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 14,
+                  }}
+                >
+                  <div>
+                    <FieldLabel>Opacity: {Math.round(crosshairOpacity * 100)}%</FieldLabel>
+                    <EfectSlider
+                      min={0.25}
+                      max={1}
+                      step={0.01}
+                      value={crosshairOpacity}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          crosshairOpacity: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Glow: {crosshairGlow.toFixed(2)}x</FieldLabel>
+                    <EfectSlider
+                      min={0}
+                      max={2.5}
+                      step={0.01}
+                      value={crosshairGlow}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          crosshairGlow: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Dot Scale: {crosshairDotScale.toFixed(2)}x</FieldLabel>
+                    <EfectSlider
+                      min={0.45}
+                      max={3.5}
+                      step={0.01}
+                      value={crosshairDotScale}
+                      color={color}
+                      onChange={(nextValue) =>
+                        setSettings({
+                          crosshairDotScale: nextValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <label
                     style={{
                       display: 'flex',
@@ -2344,12 +2776,58 @@ maxWidth: 1860,
                       style={toggleStyle}
                     />
                   </label>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: 8,
+                      padding: 14,
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: 'rgba(255,255,255,0.72)',
+                      fontWeight: 900,
+                      letterSpacing: 2,
+                    }}
+                  >
+                    HIT_REACT
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                      {(['off', 'pulse', 'burst'] as const).map((mode) => {
+                        const active = crosshairHitReact === mode;
+
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() =>
+                              setSettings({
+                                crosshairHitReact: mode,
+                              })
+                            }
+                            style={{
+                              padding: '7px 6px',
+                              borderRadius: 7,
+                              border: `1px solid ${active ? color : 'rgba(255,255,255,0.14)'}`,
+                              background: active ? color : 'rgba(0,0,0,0.55)',
+                              color: active ? '#000' : 'rgba(255,255,255,0.75)',
+                              cursor: 'pointer',
+                              fontWeight: 900,
+                              letterSpacing: 1,
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {mode}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </Panel>
           </div>
 
-          <div style={{ display: 'grid', gap: 22 }}>
+          <div className="armory-bg-library" style={{ display: 'grid', gap: 22 }}>
             <Panel
               index="05"
               title="360 Background Library"
@@ -2455,12 +2933,13 @@ maxWidth: 1860,
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
                     gap: 10,
-                    maxHeight: 560,
+                    maxHeight: 390,
                     overflowY: 'auto',
                     paddingRight: 4,
                   }}
+                  className="armory-bg-grid"
                 >
                   {filteredBackgrounds.map((bg) => {
                     const active = mapTheme === bg.id;

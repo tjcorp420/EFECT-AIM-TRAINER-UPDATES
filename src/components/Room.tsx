@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
+import { getScenarioGameplayConfig, type ScenarioArenaPropStyle } from '../store/scenarioData';
 
 type ThemeStyle = {
   floor: string;
@@ -433,37 +434,193 @@ function LowTrimLine({
   );
 }
 
+function ScenarioWallGrid({ color }: { color: string }) {
+  const gridLines = [-6, -3, 0, 3, 6];
+
+  return (
+    <group position={[0, 3.4, -12]}>
+      {gridLines.map((x) => (
+        <mesh key={`v-${x}`} position={[x, 0, 0]}>
+          <boxGeometry args={[0.035, 6.6, 0.035]} />
+          <meshBasicMaterial color={color} transparent opacity={0.24} toneMapped={false} />
+        </mesh>
+      ))}
+
+      {[-2.4, 0, 2.4].map((y) => (
+        <mesh key={`h-${y}`} position={[0, y, 0]}>
+          <boxGeometry args={[13.2, 0.035, 0.035]} />
+          <meshBasicMaterial color={color} transparent opacity={0.2} toneMapped={false} />
+        </mesh>
+      ))}
+
+      <mesh>
+        <boxGeometry args={[13.6, 6.9, 0.04]} />
+        <meshBasicMaterial color={color} transparent opacity={0.035} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function TrackingLane({ color }: { color: string }) {
+  return (
+    <group>
+      {[-1, 1].map((side) => (
+        <group key={side} position={[0, 0, side * 3.4]}>
+          <LowTrimLine x={0} z={0} width={26} depth={0.06} color={color} opacity={0.34} />
+          {[-11, -5.5, 0, 5.5, 11].map((x) => (
+            <SpawnPad key={`${side}-${x}`} x={x} z={0} color={color} opacity={0.08} />
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function VerticalGates({ color }: { color: string }) {
+  return (
+    <group position={[0, 3.2, -9]}>
+      {[-4.5, 0, 4.5].map((x, index) => (
+        <mesh key={x} position={[x, index === 1 ? 1.2 : 0, 0]} rotation={[0, 0, 0]}>
+          <torusGeometry args={[1.18, 0.025, 10, 64]} />
+          <meshBasicMaterial color={color} transparent opacity={0.34} toneMapped={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function CompassPads({ color }: { color: string }) {
+  return (
+    <group>
+      {Array.from({ length: 8 }).map((_, index) => {
+        const angle = (index / 8) * Math.PI * 2;
+        const x = Math.cos(angle) * 9.6;
+        const z = Math.sin(angle) * 9.6;
+
+        return (
+          <group key={index} position={[x, 0, z]} rotation={[0, -angle, 0]}>
+            <SpawnPad x={0} z={0} color={color} opacity={0.16} />
+            <mesh position={[0, 0.85, 0]}>
+              <boxGeometry args={[0.08, 1.7, 0.08]} />
+              <meshBasicMaterial color={color} transparent opacity={0.22} toneMapped={false} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function PrecisionSightFrame({ color }: { color: string }) {
+  return (
+    <group position={[0, 2.9, -13]}>
+      <mesh>
+        <torusGeometry args={[2.35, 0.022, 10, 96]} />
+        <meshBasicMaterial color={color} transparent opacity={0.26} toneMapped={false} />
+      </mesh>
+      <mesh>
+        <torusGeometry args={[0.82, 0.018, 8, 72]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.12} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[5.5, 0.025, 0.035]} />
+        <meshBasicMaterial color={color} transparent opacity={0.2} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.025, 5.5, 0.035]} />
+        <meshBasicMaterial color={color} transparent opacity={0.2} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function FortniteBoxProps({ color }: { color: string }) {
+  return (
+    <group>
+      {[-4.5, 0, 4.5].map((x) => (
+        <group key={x} position={[x, 1.65, -7.5]}>
+          <mesh>
+            <boxGeometry args={[2.2, 3.2, 0.05]} />
+            <meshBasicMaterial color={color} transparent opacity={0.085} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 1.62, 0]}>
+            <boxGeometry args={[2.2, 0.045, 0.08]} />
+            <meshBasicMaterial color={color} transparent opacity={0.28} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, -1.62, 0]}>
+            <boxGeometry args={[2.2, 0.045, 0.08]} />
+            <meshBasicMaterial color={color} transparent opacity={0.2} toneMapped={false} />
+          </mesh>
+          {[-1.1, 1.1].map((side) => (
+            <mesh key={side} position={[side, 0, 0]}>
+              <boxGeometry args={[0.045, 3.2, 0.08]} />
+              <meshBasicMaterial color={color} transparent opacity={0.24} toneMapped={false} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function ScenarioArenaDecor({
+  propStyle,
+  color,
+}: {
+  propStyle: ScenarioArenaPropStyle;
+  color: string;
+}) {
+  const isTracking = propStyle === 'tracking_lane';
+  const isGrid = propStyle === 'gridwall';
+  const isVertical = propStyle === 'vertical_tower';
+  const isPrecision = propStyle === 'benchmark_stage';
+  const isFortnite = propStyle === 'fortnite_box';
+
+  return (
+    <group>
+      {isTracking && <TrackingLane color={color} />}
+      {isGrid && <ScenarioWallGrid color={color} />}
+      {isVertical && <VerticalGates color={color} />}
+      {isFortnite && <FortniteBoxProps color={color} />}
+      {(isFortnite || isPrecision) && <CompassPads color={color} />}
+      {isPrecision && <PrecisionSightFrame color={color} />}
+    </group>
+  );
+}
+
 export default function Room() {
-  const { color, mapTheme } = useStore();
+  const { color, mapTheme, scenario } = useStore();
 
   const style = useMemo(() => {
     return ROOM_STYLES[mapTheme] || ROOM_STYLES.default;
   }, [mapTheme]);
+  const scenarioConfig = useMemo(() => getScenarioGameplayConfig(scenario), [scenario]);
 
   const accent = color || style.accent;
+  const brightness = scenarioConfig.arena.brightness;
 
   return (
     <group>
-      <ambientLight intensity={style.ambient} />
+      <ambientLight intensity={style.ambient * brightness} />
 
-      <hemisphereLight args={[style.hemiSky, style.hemiGround, style.hemi]} />
+      <hemisphereLight args={[style.hemiSky, style.hemiGround, style.hemi * brightness]} />
 
-      <directionalLight position={[6, 9, 4]} intensity={style.keyLight} color="#f2fbff" />
+      <directionalLight position={[6, 9, 4]} intensity={style.keyLight * brightness} color="#f2fbff" />
 
-      <directionalLight position={[-7, 5, -5]} intensity={style.fillLight} color={accent} />
+      <directionalLight position={[-7, 5, -5]} intensity={style.fillLight * brightness} color={accent} />
 
-      <pointLight position={[0, 4.5, 0]} intensity={style.topPoint} color={accent} distance={24} />
+      <pointLight position={[0, 4.5, 0]} intensity={style.topPoint * brightness} color={accent} distance={24} />
 
       <pointLight
         position={[0, 2.5, -9]}
-        intensity={style.frontPoint}
+        intensity={style.frontPoint * brightness}
         color={accent}
         distance={18}
       />
 
       <pointLight
         position={[0, 2.5, 9]}
-        intensity={style.rearPoint}
+        intensity={style.rearPoint * brightness}
         color={accent}
         distance={16}
       />
@@ -473,7 +630,7 @@ export default function Room() {
         target-position={[0, 0, -8]}
         angle={0.5}
         penumbra={0.65}
-        intensity={style.keyLight * 0.55}
+        intensity={style.keyLight * 0.72 * brightness}
         color="#ffffff"
         distance={24}
       />
@@ -517,6 +674,8 @@ export default function Room() {
       <SpawnPad x={-7.5} z={0} color={accent} opacity={style.ringOpacity * 0.4} />
       <SpawnPad x={7.5} z={0} color={accent} opacity={style.ringOpacity * 0.4} />
       <SpawnPad x={0} z={7.5} color={accent} opacity={style.ringOpacity * 0.32} />
+
+      <ScenarioArenaDecor propStyle={scenarioConfig.arena.propStyle} color={accent} />
 
       {[
         [-9.5, 0.18, -7.5, 0.24, 0.55, 4.2],

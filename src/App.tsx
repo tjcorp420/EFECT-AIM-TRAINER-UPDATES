@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PointerLockControls } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -14,10 +15,44 @@ import Gun from './components/Gun';
 import Room from './components/Room';
 import RoomBackdrop from './components/RoomBackdrop';
 import Login from './components/Login';
-import { useStore, TRACK_LIST, GAME_PROFILES } from './store/useStore';
+import { useStore, TRACK_LIST, GAME_PROFILES, unlockAudio, playUiSound } from './store/useStore';
+import { getScenarioGameplayConfig } from './store/scenarioData';
 import './App.css';
 
 const EMX_LOGO_SRC = '/emx-logo.png';
+const GHOST_RUNS_KEY = 'emx_ghost_runs_v1';
+
+type GhostRun = {
+  score: number;
+  accuracy: number;
+  hits: number;
+  headshots: number;
+  bestCombo: number;
+  hitLog: number[];
+  savedAt: string;
+};
+
+const loadGhostRuns = () => {
+  if (typeof window === 'undefined') return {} as Record<string, GhostRun>;
+
+  try {
+    return JSON.parse(window.localStorage.getItem(GHOST_RUNS_KEY) || '{}') as Record<string, GhostRun>;
+  } catch {
+    return {} as Record<string, GhostRun>;
+  }
+};
+
+const saveGhostRun = (scenario: string, run: GhostRun) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const runs = loadGhostRuns();
+    runs[scenario] = run;
+    window.localStorage.setItem(GHOST_RUNS_KEY, JSON.stringify(runs));
+  } catch {
+    // Ghost runs are a bonus analytics layer. Never block the result screen.
+  }
+};
 
 const hexToRgbString = (hex: string) => {
   const clean = hex.replace('#', '').trim();
@@ -204,9 +239,9 @@ function FloatingTextUI() {
         const isTracking = t.kind === 'tracking';
 
         const popupColor = isHeadshot
-          ? '#ffd400'
+          ? '#b967ff'
           : isBonus
-            ? '#ff4df0'
+            ? '#39ff14'
             : isTracking
               ? '#00ffcc'
               : t.color;
@@ -220,12 +255,12 @@ function FloatingTextUI() {
               left: t.x,
               color: popupColor,
               textShadow: isHeadshot
-                ? '0 0 12px #ffd400, 0 0 34px #ffd400, 0 0 62px rgba(255, 77, 240, 0.65)'
+                ? '0 0 12px #b967ff, 0 0 34px #39ff14, 0 0 62px rgba(255, 77, 240, 0.72)'
                 : isBonus
-                  ? '0 0 12px #ff4df0, 0 0 32px rgba(255, 77, 240, 0.75)'
+                  ? '0 0 12px #39ff14, 0 0 32px rgba(185, 103, 255, 0.78)'
                   : `0 0 12px ${popupColor}, 0 0 28px ${popupColor}`,
               fontWeight: 900,
-              fontSize: isHeadshot ? '3rem' : isBonus ? '1.7rem' : '2rem',
+              fontSize: isHeadshot ? '3.05rem' : isBonus ? '1.95rem' : '2rem',
               letterSpacing: isHeadshot ? '6px' : '3px',
               zIndex: 2147483000,
               fontFamily: 'Consolas, Monaco, "Courier New", monospace',
@@ -601,10 +636,26 @@ export default function App() {
     hitLog,
     hitDetails,
     weaponClass,
+    xp,
+    level,
+    xpToNextLevel,
+    totalSessions,
+    totalHitsLifetime,
+    totalHeadshotsLifetime,
+    bestScoreOverall,
+    dailyStreak,
+    badges,
+    recentSessions,
+    lastSessionXp,
+    newlyUnlockedBadges,
+    previousBestBeforeSession,
+    isSessionRecord,
   } = useStore();
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const deployGraceRef = useRef(0);
+  const audioUnlockedRef = useRef(false);
+  const countdownBeepsRef = useRef<Set<number>>(new Set());
 
   const [booted, setBooted] = useState(false);
   const [activeStreak, setActiveStreak] = useState<{ msg: string; val: number } | null>(null);
@@ -612,9 +663,10 @@ export default function App() {
   const hits = hitTrigger;
   const accuracy = shots > 0 ? Math.round((hits / shots) * 100) : 0;
   const avgReaction = hits > 0 ? Math.round((drillDuration * 1000) / hits) : 0;
-  const previousBest = highScores[scenario] || 0;
+  const storedBest = highScores[scenario] || 0;
+  const previousBest = gameState === 'gameover' ? previousBestBeforeSession : storedBest;
   const finalHitsPerSecond = drillDuration > 0 ? hits / drillDuration : 0;
-  const isNewRecord = score > 0 && score >= previousBest;
+  const isNewRecord = gameState === 'gameover' ? isSessionRecord : score > 0 && score >= storedBest;
   const finalRank = getRankInfo(score, accuracy, headshots, bestCombo);
   const performanceGrade = getPerformanceGrade(
     score,
@@ -631,13 +683,26 @@ export default function App() {
   const weaponTitle = getWeaponTitle(weaponClass);
   const scenarioTitle = getScenarioTitle(scenario);
   const lastHitLabel = getLastHitLabel(lastHitType);
+  const scenarioConfig = useMemo(() => getScenarioGameplayConfig(scenario), [scenario]);
+  const sceneBrightness = scenarioConfig.arena.brightness;
 
   const profile = GAME_PROFILES[gameProfile] || GAME_PROFILES.valorant;
   const truePointerSpeed = (gameSens / profile.multiplier) * 1.1;
 
   const headshotRate = hits > 0 ? Math.round((headshots / hits) * 100) : 0;
   const bodyHitRate = hits > 0 ? Math.round((bodyHits / hits) * 100) : 0;
-
+  const bonusShare = score > 0 ? Math.round((totalBonusPoints / score) * 100) : 0;
+  const scoreDelta = score - previousBest;
+  const avgPointsPerHit = hits > 0 ? Math.round(score / hits) : 0;
+  const missRate = shots > 0 ? Math.round((misses / shots) * 100) : 0;
+  const currentLevelStartXp = Math.pow(Math.max(1, level) - 1, 2) * 850;
+  const nextLevelTargetXp = Math.pow(Math.max(1, level), 2) * 850;
+  const levelProgressPct = Math.min(
+    100,
+    Math.round(((xp - currentLevelStartXp) / Math.max(1, nextLevelTargetXp - currentLevelStartXp)) * 100)
+  );
+  const displayBadges = badges.slice(-6).reverse();
+  const recentSessionPreview = recentSessions.slice(0, 4);
   const coachNote = getCoachNote({
     accuracy,
     misses,
@@ -661,6 +726,20 @@ export default function App() {
   }, [hitLog, drillDuration]);
 
   const maxHPS = Math.max(...chartData, 1);
+  const consistencyScore = useMemo(() => {
+    const activeBuckets = chartData.filter((value) => value > 0);
+
+    if (activeBuckets.length <= 1) return 0;
+
+    const average =
+      activeBuckets.reduce((sum, value) => sum + value, 0) / activeBuckets.length;
+    const variance =
+      activeBuckets.reduce((sum, value) => sum + Math.pow(value - average, 2), 0) /
+      activeBuckets.length;
+    const spread = Math.min(Math.sqrt(variance) / Math.max(average, 0.01), 1);
+
+    return Math.round((1 - spread) * 100);
+  }, [chartData]);
 
   const hitTypeBreakdown = useMemo(() => {
     const safeHits = Math.max(1, hits);
@@ -697,6 +776,73 @@ export default function App() {
     return [...hitDetails].slice(-6).reverse();
   }, [hitDetails]);
 
+  const sideAnalytics = useMemo(() => {
+    const left = hitDetails.filter((hit) => hit.side === 'left');
+    const right = hitDetails.filter((hit) => hit.side === 'right');
+    const center = hitDetails.filter((hit) => hit.side === 'center');
+    const average = (items: typeof hitDetails) =>
+      items.length > 0
+        ? Math.round(items.reduce((sum, hit) => sum + hit.points, 0) / items.length)
+        : 0;
+    const leftValue = average(left);
+    const rightValue = average(right);
+    const weakSide =
+      left.length === 0 && right.length === 0
+        ? 'CENTER'
+        : leftValue === rightValue
+          ? 'EVEN'
+          : leftValue < rightValue
+            ? 'LEFT'
+            : 'RIGHT';
+
+    return {
+      weakSide,
+      leftHits: left.length,
+      rightHits: right.length,
+      centerHits: center.length,
+      leftValue,
+      rightValue,
+    };
+  }, [hitDetails]);
+
+  const timingAnalytics = useMemo(() => {
+    if (hitDetails.length === 0) {
+      return {
+        openingReaction: 0,
+        averageDelay: 0,
+      };
+    }
+
+    const sorted = [...hitDetails].sort((a, b) => a.time - b.time);
+    const intervals = sorted
+      .slice(1)
+      .map((hit, index) => Math.max(0, hit.time - sorted[index].time));
+    const averageDelay =
+      intervals.length > 0
+        ? Math.round((intervals.reduce((sum, time) => sum + time, 0) / intervals.length) * 1000)
+        : Math.round(sorted[0].time * 1000);
+
+    return {
+      openingReaction: Math.round(sorted[0].time * 1000),
+      averageDelay,
+    };
+  }, [hitDetails]);
+
+  const bestGhostRun = useMemo(() => loadGhostRuns()[scenario] || null, [scenario, gameState]);
+  const ghostDelta = bestGhostRun ? score - bestGhostRun.score : 0;
+  const ghostPace =
+    bestGhostRun && bestGhostRun.hits > 0
+      ? Math.round((hits / Math.max(1, bestGhostRun.hits)) * 100)
+      : 0;
+  const percentileRank = Math.max(
+    1,
+    Math.min(
+      99,
+      Math.round((score / Math.max(1, scenarioConfig.benchmark.percentileBaseline)) * 70 + accuracy * 0.25)
+    )
+  );
+  const trackingUptime = hits > 0 ? Math.round((trackingHits / hits) * 100) : 0;
+
   const handlePointerUnlock = useCallback(() => {
     const msSinceDeploy = performance.now() - deployGraceRef.current;
 
@@ -725,6 +871,67 @@ export default function App() {
     }
   }, [gameState]);
 
+  const unlockAppAudio = useCallback(async () => {
+    if (!audioUnlockedRef.current) {
+      audioUnlockedRef.current = await unlockAudio();
+    }
+
+    if (
+      audioPlayerRef.current &&
+      isMusicPlaying &&
+      musicTrack !== 'none' &&
+      audioPlayerRef.current.paused
+    ) {
+      audioPlayerRef.current.play().catch(() => {
+        // Music will retry on the next explicit user gesture.
+      });
+    }
+  }, [isMusicPlaying, musicTrack]);
+
+  const handleAppPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      void unlockAppAudio();
+
+      if (gameState === 'playing') return;
+
+      const target = event.target as HTMLElement | null;
+      const isControl = Boolean(target?.closest('button, a, input, [role="slider"]'));
+
+      if (isControl) {
+        playUiSound('soft');
+      }
+    },
+    [gameState, unlockAppAudio]
+  );
+
+  useEffect(() => {
+    const handleUserGesture = () => {
+      void unlockAppAudio();
+    };
+
+    window.addEventListener('pointerdown', handleUserGesture, true);
+    window.addEventListener('keydown', handleUserGesture, true);
+
+    return () => {
+      window.removeEventListener('pointerdown', handleUserGesture, true);
+      window.removeEventListener('keydown', handleUserGesture, true);
+    };
+  }, [unlockAppAudio]);
+
+  useEffect(() => {
+    if (gameState !== 'gameover' || score <= 0 || !isNewRecord) return;
+
+    saveGhostRun(scenario, {
+      score,
+      accuracy,
+      hits,
+      headshots,
+      bestCombo,
+      hitLog,
+      savedAt: new Date().toISOString(),
+    });
+  }, [gameState, score, isNewRecord, scenario, accuracy, hits, headshots, bestCombo, hitLog]);
+
   useEffect(() => {
     if (combo > 0 && combo % 10 === 0) {
       setActiveStreak({
@@ -739,6 +946,19 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [combo]);
+
+  useEffect(() => {
+    if (gameState !== 'playing') {
+      countdownBeepsRef.current.clear();
+      return;
+    }
+
+    if (!hasStartedFiring || timeLeft > 3 || timeLeft <= 0) return;
+    if (countdownBeepsRef.current.has(timeLeft)) return;
+
+    countdownBeepsRef.current.add(timeLeft);
+    playUiSound('countdown');
+  }, [gameState, hasStartedFiring, timeLeft]);
 
   useEffect(() => {
     let timer: number;
@@ -774,37 +994,12 @@ export default function App() {
 
     audioPlayerRef.current.loop = true;
     audioPlayerRef.current.play().catch(() => {
-      setSettings({
-        isMusicPlaying: false,
-      });
+      // Desktop/web audio policies may require one more user gesture.
+      void unlockAppAudio();
     });
-  }, [musicTrack, musicVolume, isMusicPlaying, setSettings]);
+  }, [musicTrack, musicVolume, isMusicPlaying, unlockAppAudio]);
 
-  const getTargetAmount = () => {
-    if (scenario === 'gridshot_ultimate') return 4;
-    if (scenario === 'microflick_standard') return 6;
-    if (scenario.includes('spidershot')) return 1;
-    if (scenario.includes('react') || scenario.includes('reflex')) return 1;
-
-    if (
-      scenario.includes('tracking') ||
-      scenario.includes('glider') ||
-      scenario.includes('bounce')
-    ) {
-      return 1;
-    }
-
-    if (scenario.includes('gridshot')) return 3;
-    if (scenario.includes('pump_flick')) return 5;
-    if (scenario.includes('popcorn')) return 3;
-    if (scenario.includes('360')) return 3;
-    if (scenario.includes('motionshot')) return 3;
-    if (scenario.includes('snipershot')) return 2;
-
-    return 3;
-  };
-
-  const activeTargetAmount = getTargetAmount();
+  const activeTargetAmount = scenarioConfig.targetAmount;
 
   return (
     <div
@@ -815,6 +1010,7 @@ export default function App() {
         overflow: 'hidden',
         background: '#000',
       }}
+      onPointerDownCapture={handleAppPointerDown}
     >
       <audio ref={audioPlayerRef} />
       <WindowChrome />
@@ -1108,14 +1304,17 @@ export default function App() {
               <div className="emx-report-stat emx-report-score">
                 <div className="emx-report-label">FINAL SCORE</div>
                 <div className="emx-report-value">{score.toLocaleString()}</div>
-                <div className="emx-report-sub">BEST: {previousBest.toLocaleString()}</div>
+                <div className="emx-report-sub">
+                  BEST: {previousBest.toLocaleString()} //{' '}
+                  {scoreDelta >= 0 ? `+${scoreDelta.toLocaleString()}` : scoreDelta.toLocaleString()}
+                </div>
               </div>
 
               <div className="emx-report-stat">
                 <div className="emx-report-label">ACCURACY</div>
                 <div className="emx-report-value">{accuracy}%</div>
                 <div className="emx-report-sub">
-                  {hits} HITS // {misses} MISSES
+                  {hits} HITS // {misses} MISSES // {missRate}% MISS RATE
                 </div>
               </div>
 
@@ -1134,7 +1333,7 @@ export default function App() {
               <div className="emx-report-stat">
                 <div className="emx-report-label">BONUS SCORE</div>
                 <div className="emx-report-value">+{totalBonusPoints}</div>
-                <div className="emx-report-sub">EXTRA POINTS EARNED</div>
+                <div className="emx-report-sub">{bonusShare}% OF FINAL SCORE</div>
               </div>
 
               <div className="emx-report-stat">
@@ -1147,6 +1346,30 @@ export default function App() {
                 <div className="emx-report-label">HITS / SEC</div>
                 <div className="emx-report-value">{finalHitsPerSecond.toFixed(2)}</div>
                 <div className="emx-report-sub">SPEED OUTPUT</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">CONSISTENCY</div>
+                <div className="emx-report-value">{consistencyScore}%</div>
+                <div className="emx-report-sub">OUTPUT STABILITY</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">AVG POINTS / HIT</div>
+                <div className="emx-report-value">{avgPointsPerHit}</div>
+                <div className="emx-report-sub">VALUE PER CONFIRM</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">OPERATOR LEVEL</div>
+                <div className="emx-report-value">{level}</div>
+                <div className="emx-report-sub">{xpToNextLevel.toLocaleString()} XP TO NEXT</div>
+              </div>
+
+              <div className="emx-report-stat">
+                <div className="emx-report-label">SESSION XP</div>
+                <div className="emx-report-value">+{lastSessionXp.toLocaleString()}</div>
+                <div className="emx-report-sub">{xp.toLocaleString()} TOTAL XP</div>
               </div>
 
               <div className="emx-heatmap-panel">
@@ -1199,7 +1422,15 @@ export default function App() {
               <div>
                 <strong>HIT MIX</strong>
                 <span>
-                  HEAD {headshots} // BODY {bodyHits} // TRACK {trackingHits}
+                  HEAD {headshots} ({headshotRate}%) // BODY {bodyHits} ({bodyHitRate}%) // TRACK{' '}
+                  {trackingHits}
+                </span>
+              </div>
+
+              <div>
+                <strong>CAREER</strong>
+                <span>
+                  LVL {level} // {totalSessions} RUNS // {dailyStreak} DAY STREAK
                 </span>
               </div>
 
@@ -1208,6 +1439,241 @@ export default function App() {
                 <span>{coachNote}</span>
               </div>
             </div>
+
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                marginTop: 14,
+                padding: '14px',
+                borderRadius: 14,
+                border: '1px solid rgba(185, 103, 255, 0.34)',
+                background:
+                  'linear-gradient(135deg, rgba(185,103,255,0.14), rgba(0,255,120,0.07), rgba(0,0,0,0.48))',
+                boxShadow: `0 0 28px ${color}18, inset 0 0 34px rgba(255,255,255,0.035)`,
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  alignItems: 'center',
+                  marginBottom: 12,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      color: 'rgba(255,255,255,0.45)',
+                      fontSize: 10,
+                      letterSpacing: 4,
+                      fontWeight: 900,
+                      marginBottom: 6,
+                    }}
+                  >
+                    EMX OPERATOR PROGRESSION
+                  </div>
+
+                  <div
+                    style={{
+                      color: '#fff',
+                      fontSize: 22,
+                      fontWeight: 900,
+                      letterSpacing: 2,
+                      textShadow: `0 0 16px ${color}66`,
+                    }}
+                  >
+                    LEVEL {level} // {xp.toLocaleString()} XP
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    color: '#39ff14',
+                    fontSize: 13,
+                    fontWeight: 900,
+                    letterSpacing: 2,
+                    textAlign: 'right',
+                  }}
+                >
+                  +{lastSessionXp.toLocaleString()} XP THIS RUN
+                </div>
+              </div>
+
+              <div
+                style={{
+                  height: 10,
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.08)',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${levelProgressPct}%`,
+                    height: '100%',
+                    borderRadius: 999,
+                    background: `linear-gradient(90deg, #39ff14, ${color}, #ff4df0)`,
+                    boxShadow: `0 0 18px ${color}`,
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  gap: 10,
+                  marginTop: 12,
+                }}
+              >
+                {[
+                  ['CAREER HITS', totalHitsLifetime.toLocaleString()],
+                  ['CAREER HEADS', totalHeadshotsLifetime.toLocaleString()],
+                  ['BEST SCORE', bestScoreOverall.toLocaleString()],
+                  ['BADGES', badges.length.toLocaleString()],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      background: 'rgba(0,0,0,0.32)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: 'rgba(255,255,255,0.4)',
+                        fontSize: 9,
+                        letterSpacing: 3,
+                        fontWeight: 900,
+                      }}
+                    >
+                      {label}
+                    </div>
+                    <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 5 }}>
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {(newlyUnlockedBadges.length > 0 || displayBadges.length > 0) && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    marginTop: 12,
+                  }}
+                >
+                  {(newlyUnlockedBadges.length > 0 ? newlyUnlockedBadges : displayBadges).map(
+                    (badge) => (
+                      <span
+                        key={badge}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 999,
+                          border: newlyUnlockedBadges.includes(badge)
+                            ? '1px solid rgba(57,255,20,0.72)'
+                            : '1px solid rgba(255,255,255,0.16)',
+                          color: newlyUnlockedBadges.includes(badge) ? '#39ff14' : '#fff',
+                          background: newlyUnlockedBadges.includes(badge)
+                            ? 'rgba(57,255,20,0.11)'
+                            : 'rgba(255,255,255,0.05)',
+                          boxShadow: newlyUnlockedBadges.includes(badge)
+                            ? '0 0 18px rgba(57,255,20,0.28)'
+                            : 'none',
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          fontWeight: 900,
+                        }}
+                      >
+                        {newlyUnlockedBadges.includes(badge) ? 'UNLOCKED // ' : ''}
+                        {badge}
+                      </span>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            {recentSessionPreview.length > 1 && (
+              <div
+                style={{
+                  position: 'relative',
+                  zIndex: 2,
+                  marginTop: 14,
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(0,0,0,0.34)',
+                }}
+              >
+                <div
+                  style={{
+                    color: 'rgba(255,255,255,0.45)',
+                    fontSize: 10,
+                    letterSpacing: 4,
+                    fontWeight: 900,
+                    marginBottom: 10,
+                  }}
+                >
+                  RECENT SESSION HISTORY
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                    gap: 8,
+                  }}
+                >
+                  {recentSessionPreview.map((session) => (
+                    <div
+                      key={session.id}
+                      style={{
+                        padding: 10,
+                        borderRadius: 10,
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(255,255,255,0.035)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          color,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          fontWeight: 900,
+                        }}
+                      >
+                        {getScenarioTitle(session.scenario)}
+                      </div>
+
+                      <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 5 }}>
+                        {session.score.toLocaleString()}
+                      </div>
+
+                      <div
+                        style={{
+                          color: 'rgba(255,255,255,0.48)',
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          fontWeight: 900,
+                          marginTop: 4,
+                        }}
+                      >
+                        {session.grade} // {session.accuracy}% // +{session.xpEarned} XP
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div
               style={{
@@ -1351,6 +1817,99 @@ export default function App() {
               </div>
             )}
 
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                marginTop: 14,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                gap: 10,
+              }}
+            >
+              {[
+                {
+                  label: 'PERCENTILE',
+                  value: `${percentileRank}%`,
+                  sub: `${scenarioConfig.benchmark.playlist.toUpperCase()} BENCHMARK`,
+                  accent: '#b967ff',
+                },
+                {
+                  label: 'REACTION DELAY',
+                  value: `${timingAnalytics.averageDelay}ms`,
+                  sub: `OPEN ${timingAnalytics.openingReaction}ms`,
+                  accent: '#00ffcc',
+                },
+                {
+                  label: 'WEAK SIDE',
+                  value: sideAnalytics.weakSide,
+                  sub: `L ${sideAnalytics.leftHits} / R ${sideAnalytics.rightHits}`,
+                  accent: '#39ff14',
+                },
+                {
+                  label: 'TRACK UPTIME',
+                  value: `${trackingUptime}%`,
+                  sub: `${trackingHits} TRACK TICKS`,
+                  accent: '#ffaa00',
+                },
+                {
+                  label: 'GHOST RUN',
+                  value: bestGhostRun ? `${ghostDelta >= 0 ? '+' : ''}${ghostDelta}` : 'ARMING',
+                  sub: bestGhostRun ? `${ghostPace}% PB HIT PACE` : 'PB SAVES ON RECORD',
+                  accent: '#ff3b8a',
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    minHeight: 86,
+                    padding: '12px 13px',
+                    borderRadius: 12,
+                    border: `1px solid ${item.accent}55`,
+                    background:
+                      'linear-gradient(180deg, rgba(255,255,255,0.045), rgba(0,0,0,0.48))',
+                    boxShadow: `0 0 18px ${item.accent}12`,
+                  }}
+                >
+                  <div
+                    style={{
+                      color: 'rgba(255,255,255,0.45)',
+                      fontSize: 9,
+                      letterSpacing: 3,
+                      fontWeight: 900,
+                      marginBottom: 7,
+                    }}
+                  >
+                    {item.label}
+                  </div>
+
+                  <div
+                    style={{
+                      color: item.accent,
+                      fontSize: 21,
+                      fontWeight: 900,
+                      letterSpacing: 1,
+                      textShadow: `0 0 12px ${item.accent}77`,
+                    }}
+                  >
+                    {item.value}
+                  </div>
+
+                  <div
+                    style={{
+                      color: 'rgba(255,255,255,0.54)',
+                      fontSize: 10,
+                      letterSpacing: 1.5,
+                      marginTop: 7,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {item.sub}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="emx-session-actions">
               <button onClick={startGame} className="emx-primary-action">
                 REDEPLOY
@@ -1396,8 +1955,13 @@ export default function App() {
             </EffectComposer>
           )}
 
-          <ambientLight intensity={0.32} />
-          <directionalLight position={[5, 10, 5]} intensity={0.92} />
+          <ambientLight intensity={0.48 * sceneBrightness} />
+          <hemisphereLight
+            args={['#c9fff1', '#12051f', 0.52 * sceneBrightness]}
+          />
+          <directionalLight position={[5, 10, 5]} intensity={1.18 * sceneBrightness} />
+          <pointLight position={[0, 4, 2]} intensity={0.7 * sceneBrightness} distance={18} color={color} />
+          <pointLight position={[-5, 3, -8]} intensity={0.42 * sceneBrightness} distance={16} color="#b967ff" />
 
           <FireController />
           <PlayerMovement />

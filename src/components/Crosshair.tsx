@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
 
-type CrosshairStyle = 'compact' | 'clean' | 'micro' | 'wide' | 'dot' | 'box';
+type CrosshairStyle =
+  | 'compact'
+  | 'clean'
+  | 'micro'
+  | 'wide'
+  | 'dot'
+  | 'box'
+  | 'circle'
+  | 'diamond'
+  | 'brackets'
+  | 'plus'
+  | 'triad'
+  | 'hybrid';
 
 type Segment = {
   x: number;
@@ -10,11 +22,25 @@ type Segment = {
   h: number;
   radius?: number;
   opacity?: number;
+  rotate?: number;
 };
 
 const CROSSHAIR_STYLE_KEY = 'efect_crosshair_style';
 
-const VALID_STYLES: CrosshairStyle[] = ['compact', 'clean', 'micro', 'wide', 'dot', 'box'];
+const VALID_STYLES: CrosshairStyle[] = [
+  'compact',
+  'clean',
+  'micro',
+  'wide',
+  'dot',
+  'box',
+  'circle',
+  'diamond',
+  'brackets',
+  'plus',
+  'triad',
+  'hybrid',
+];
 
 const readCrosshairStyle = (): CrosshairStyle => {
   if (typeof window === 'undefined') return 'compact';
@@ -101,6 +127,59 @@ const buildSegments = (
       ];
     }
 
+    case 'brackets': {
+      const d = Math.max(9, g + Math.round(s * 0.72));
+      const len = Math.max(7, Math.round(s * 0.72));
+
+      return [
+        { x: -d, y: -(d + len / 2), w: t, h: len, radius: t },
+        { x: -(d + len / 2), y: -d, w: len, h: t, radius: t },
+        { x: d, y: -(d + len / 2), w: t, h: len, radius: t },
+        { x: d + len / 2, y: -d, w: len, h: t, radius: t },
+        { x: -d, y: d + len / 2, w: t, h: len, radius: t },
+        { x: -(d + len / 2), y: d, w: len, h: t, radius: t },
+        { x: d, y: d + len / 2, w: t, h: len, radius: t },
+        { x: d + len / 2, y: d, w: len, h: t, radius: t },
+      ];
+    }
+
+    case 'plus': {
+      const len = Math.max(7, Math.round(s * 0.72));
+
+      return [
+        { x: 0, y: 0, w: t, h: len, radius: t },
+        { x: 0, y: 0, w: len, h: t, radius: t },
+      ];
+    }
+
+    case 'triad': {
+      const len = Math.max(8, Math.round(s * 0.95));
+      const triGap = Math.max(5, g);
+
+      return [
+        { x: 0, y: -(triGap + len / 2), w: t, h: len, radius: t },
+        { x: -(triGap + len / 2), y: triGap * 0.72, w: len, h: t, radius: t, rotate: 28 },
+        { x: triGap + len / 2, y: triGap * 0.72, w: len, h: t, radius: t, rotate: -28 },
+      ];
+    }
+
+    case 'hybrid': {
+      const inner = Math.max(5, Math.round(s * 0.52));
+      const outer = Math.max(9, Math.round(s * 0.95));
+      const outerGap = Math.max(6, Math.round(g * 1.3));
+
+      return [
+        { x: 0, y: -(g + inner / 2), w: t, h: inner, radius: t },
+        { x: 0, y: g + inner / 2, w: t, h: inner, radius: t },
+        { x: -(g + inner / 2), y: 0, w: inner, h: t, radius: t },
+        { x: g + inner / 2, y: 0, w: inner, h: t, radius: t },
+        { x: -(outerGap + outer / 2), y: 0, w: outer, h: Math.max(1, t - 1), radius: t, opacity: 0.42 },
+        { x: outerGap + outer / 2, y: 0, w: outer, h: Math.max(1, t - 1), radius: t, opacity: 0.42 },
+      ];
+    }
+
+    case 'circle':
+    case 'diamond':
     case 'dot':
       return [];
 
@@ -123,6 +202,10 @@ function CrosshairArt({
   thickness,
   dot,
   crosshairOutline,
+  crosshairOpacity,
+  crosshairGlow,
+  crosshairDotScale,
+  crosshairHitReact,
   canvasSize,
   pulse,
 }: {
@@ -133,6 +216,10 @@ function CrosshairArt({
   thickness: number;
   dot: boolean;
   crosshairOutline: boolean;
+  crosshairOpacity: number;
+  crosshairGlow: number;
+  crosshairDotScale: number;
+  crosshairHitReact: 'off' | 'pulse' | 'burst';
   canvasSize: number;
   pulse: boolean;
 }) {
@@ -143,25 +230,31 @@ function CrosshairArt({
 
   const center = canvasSize / 2;
 
+  const glow = Math.max(0, crosshairGlow);
+  const glowA = Math.round(8 * glow);
+  const glowB = Math.round(17 * glow);
+  const glowC = Math.round(30 * glow);
+
   const outlineShadow = crosshairOutline
-    ? `0 0 0 1px rgba(0,0,0,0.98), 0 0 9px ${color}, 0 0 18px ${color}, 0 0 32px ${color}70`
-    : `0 0 8px ${color}, 0 0 16px ${color}, 0 0 28px ${color}55`;
+    ? `0 0 0 1px rgba(0,0,0,0.98), 0 0 ${glowA}px ${color}, 0 0 ${glowB}px ${color}, 0 0 ${glowC}px ${color}70`
+    : `0 0 ${glowA}px ${color}, 0 0 ${glowB}px ${color}, 0 0 ${glowC}px ${color}55`;
 
   const softGlow = crosshairOutline
-    ? `0 0 0 1px rgba(0,0,0,0.95), 0 0 13px ${color}, 0 0 28px ${color}88`
-    : `0 0 13px ${color}, 0 0 28px ${color}66`;
+    ? `0 0 0 1px rgba(0,0,0,0.95), 0 0 ${Math.round(12 * glow)}px ${color}, 0 0 ${Math.round(28 * glow)}px ${color}88`
+    : `0 0 ${Math.round(12 * glow)}px ${color}, 0 0 ${Math.round(28 * glow)}px ${color}66`;
 
   const dotSize =
     styleName === 'dot'
-      ? Math.max(5, thickness * 2.4)
+      ? Math.max(5, thickness * 2.4 * crosshairDotScale)
       : styleName === 'micro'
-        ? Math.max(2, thickness + 1)
-        : Math.max(3, thickness + 1);
+        ? Math.max(2, (thickness + 1) * crosshairDotScale)
+        : Math.max(3, (thickness + 1) * crosshairDotScale);
 
   const showDot = dot || styleName === 'dot';
 
-  const pulseScale = pulse ? 1.12 : 1;
-  const pulseOpacity = pulse ? 0.95 : 0.72;
+  const shouldReact = crosshairHitReact !== 'off' && pulse;
+  const pulseScale = shouldReact ? 1.12 : 1;
+  const pulseOpacity = shouldReact ? 0.95 : 0.72;
 
   return (
     <div
@@ -169,10 +262,28 @@ function CrosshairArt({
         position: 'relative',
         width: canvasSize,
         height: canvasSize,
+        opacity: crosshairOpacity,
         transform: `scale(${pulseScale})`,
         transition: 'transform 70ms ease-out',
       }}
     >
+      {(styleName === 'circle' || styleName === 'diamond') && (
+        <div
+          style={{
+            position: 'absolute',
+            left: center - Math.max(10, gap + size * 0.8),
+            top: center - Math.max(10, gap + size * 0.8),
+            width: Math.max(20, (gap + size * 0.8) * 2),
+            height: Math.max(20, (gap + size * 0.8) * 2),
+            borderRadius: styleName === 'circle' ? '50%' : 4,
+            border: `${Math.max(1, thickness)}px solid ${color}`,
+            opacity: styleName === 'circle' ? 0.9 : 0.84,
+            transform: styleName === 'diamond' ? 'rotate(45deg)' : 'none',
+            boxShadow: outlineShadow,
+          }}
+        />
+      )}
+
       {styleName === 'box' && (
         <div
           style={{
@@ -218,6 +329,7 @@ function CrosshairArt({
             background: color,
             opacity: seg.opacity ?? 1,
             boxShadow: outlineShadow,
+            transform: seg.rotate ? `rotate(${seg.rotate}deg)` : 'none',
           }}
         />
       ))}
@@ -237,7 +349,7 @@ function CrosshairArt({
         />
       )}
 
-      {pulse && (
+      {shouldReact && (
         <div
           style={{
             position: 'absolute',
@@ -254,6 +366,27 @@ function CrosshairArt({
           }}
         />
       )}
+
+      {crosshairHitReact === 'burst' && pulse && (
+        <>
+          {[28, 40, 54].map((ring, index) => (
+            <div
+              key={ring}
+              style={{
+                position: 'absolute',
+                left: center - ring / 2,
+                top: center - ring / 2,
+                width: ring,
+                height: ring,
+                borderRadius: '50%',
+                border: `1px solid ${index === 1 ? '#39ff14' : color}`,
+                opacity: 0.5 - index * 0.12,
+                boxShadow: `0 0 ${16 + index * 6}px ${color}88`,
+              }}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 }
@@ -266,6 +399,10 @@ export default function Crosshair() {
     thickness = 2,
     dot = true,
     crosshairOutline = true,
+    crosshairOpacity = 1,
+    crosshairGlow = 1,
+    crosshairDotScale = 1,
+    crosshairHitReact = 'pulse',
   } = useStore();
 
   const [styleName, setStyleName] = useState<CrosshairStyle>(readCrosshairStyle);
@@ -338,6 +475,10 @@ export default function Crosshair() {
         thickness={thickness}
         dot={dot}
         crosshairOutline={crosshairOutline}
+        crosshairOpacity={crosshairOpacity}
+        crosshairGlow={crosshairGlow}
+        crosshairDotScale={crosshairDotScale}
+        crosshairHitReact={crosshairHitReact}
         canvasSize={170}
         pulse={pulse}
       />

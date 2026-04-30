@@ -2184,3 +2184,202 @@ h3 {
     margin-left: 0;
   }
 }
+
+/* EMX report upgrade: glass panel, animated logo, sticky actions */
+.emx-session-shell {
+  overflow-y: auto;
+  overflow-x: hidden;
+  place-items: start center;
+  padding: 28px 28px 34px;
+  background:
+    radial-gradient(circle at 50% 3%, rgba(185, 103, 255, 0.24), transparent 30%),
+    radial-gradient(circle at 16% 86%, rgba(57, 255, 20, 0.16), transparent 28%),
+    radial-gradient(circle at 86% 82%, rgba(255, 0, 255, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(57, 255, 20, 0.045), rgba(185, 103, 255, 0.055) 48%, rgba(0, 255, 204, 0.035)),
+    rgba(0, 0, 0, 0.9);
+}
+
+.emx-session-card {
+  max-height: calc(100vh - 58px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 12px;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(57, 255, 20, 0.12), transparent 28%),
+    radial-gradient(circle at 78% 4%, rgba(185, 103, 255, 0.2), transparent 30%),
+    linear-gradient(180deg, rgba(12, 13, 18, 0.72), rgba(1, 2, 3, 0.84)),
+    radial-gradient(circle at 50% 0%, rgba(var(--theme-rgb), 0.15), transparent 46%);
+  backdrop-filter: blur(28px) saturate(1.35);
+  -webkit-backdrop-filter: blur(28px) saturate(1.35);
+  box-shadow:
+    0 0 60px rgba(0, 0, 0, 0.88),
+    0 0 44px rgba(57, 255, 20, 0.16),
+    0 0 72px rgba(185, 103, 255, 0.2),
+    inset 0 0 42px rgba(255, 255, 255, 0.045);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(185, 103, 255, 0.8) rgba(255, 255, 255, 0.06);
+}
+
+.emx-session-card::-webkit-scrollbar {
+  width: 9px;
+}
+
+.emx-session-card::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.045);
+  border-radius: 999px;
+}
+
+.emx-session-card::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #39ff14, #b967ff);
+  border-radius: 999px;
+}
+
+.emx-session-logo-wrap::before,
+.emx-session-logo-wrap::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.emx-session-logo-wrap::before {
+  inset: 12px 4px 18px;
+  border: 1px solid rgba(57, 255, 20, 0.28);
+  box-shadow:
+    0 0 22px rgba(57, 255, 20, 0.36),
+    0 0 42px rgba(185, 103, 255, 0.22),
+    inset 0 0 24px rgba(185, 103, 255, 0.18);
+  animation: emxLogoHalo 3.4s ease-in-out infinite;
+}
+
+.emx-session-logo-wrap::after {
+  width: 34px;
+  height: 170px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+  filter: blur(8px);
+  opacity: 0.36;
+  transform: rotate(62deg) translateX(-92px);
+  animation: emxLogoSweep 2.8s cubic-bezier(0.16, 0.9, 0.24, 1) infinite;
+}
+
+.emx-session-logo {
+  animation:
+    emxLogoPulse 2.2s ease-in-out infinite,
+    emxLogoGlitch 5.8s steps(1) infinite;
+}
+
+@keyframes emxLogoHalo {
+  0%, 100% {
+    transform: scale(0.96) rotate(-8deg);
+    opacity: 0.56;
+  }
+
+  50% {
+    transform: scale(1.08) rotate(8deg);
+    opacity: 1;
+  }
+}
+
+@keyframes emxLogoSweep {
+  0% {
+    transform: rotate(62deg) translateX(-118px);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0.52;
+  }
+
+  52% {
+    opacity: 0.42;
+  }
+
+  100% {
+    transform: rotate(62deg) translateX(118px);
+    opacity: 0;
+  }
+}
+
+@keyframes emxLogoGlitch {
+  0%, 92%, 100% {
+    transform: translateY(0) scale(1);
+  }
+
+  93% {
+    transform: translate(-2px, -1px) scale(1.035);
+  }
+
+  94% {
+    transform: translate(2px, 1px) scale(1.02);
+  }
+
+  95% {
+    transform: translateY(-2px) scale(1.035);
+  }
+}
+
+.emx-grade-panel,
+.emx-report-stat,
+.emx-heatmap-panel,
+.emx-report-notes div {
+  border-color: rgba(185, 103, 255, 0.34);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(57, 255, 20, 0.08), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(0, 0, 0, 0.52));
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow:
+    inset 0 0 24px rgba(255, 255, 255, 0.018),
+    0 0 24px rgba(0, 0, 0, 0.36),
+    0 0 24px rgba(185, 103, 255, 0.1);
+}
+
+.emx-report-value {
+  color: #b967ff;
+  text-shadow:
+    0 0 16px rgba(185, 103, 255, 0.88),
+    0 0 34px rgba(57, 255, 20, 0.2);
+}
+
+.emx-heatmap-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), #b967ff 42%, #39ff14);
+  box-shadow: 0 0 16px rgba(185, 103, 255, 0.28);
+}
+
+.emx-session-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 18px -10px 0;
+  padding: 16px 10px 4px;
+  border-top: 1px solid rgba(185, 103, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(1, 1, 3, 0), rgba(1, 1, 3, 0.82) 28%, rgba(1, 1, 3, 0.96));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.emx-primary-action {
+  background: linear-gradient(90deg, #39ff14, #b967ff 55%, #ff00ff);
+  box-shadow:
+    0 0 26px rgba(57, 255, 20, 0.32),
+    0 0 38px rgba(185, 103, 255, 0.28);
+}
+
+.emx-secondary-action {
+  background: linear-gradient(180deg, rgba(185, 103, 255, 0.12), rgba(57, 255, 20, 0.035));
+  border-color: rgba(185, 103, 255, 0.34);
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.025);
+}
+
+@media (max-width: 760px) {
+  .emx-session-card {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .emx-session-actions {
+    position: relative;
+    margin-inline: 0;
+  }
+}

@@ -109,6 +109,180 @@ export interface RankedBenchmark {
   ratingMultiplier: number;
 }
 
+export type ScenarioAuraStyle = 'none' | 'grid' | 'rings' | 'tracking' | 'precision' | 'vertical';
+export type ScenarioArenaPropStyle =
+  | 'standard'
+  | 'gridwall'
+  | 'tracking_lane'
+  | 'vertical_tower'
+  | 'fortnite_box'
+  | 'benchmark_stage';
+
+export interface ScenarioGameplayConfig {
+  targetAmount: number;
+  targetHp: number;
+  targetSize: number;
+  targetSpeed: number;
+  targetDistance: number;
+  scoring: {
+    baseMin: number;
+    baseMax: number;
+    decayPerSecond: number;
+    headshotBonus: number;
+    trackingTick: number;
+    perfectBonus: number;
+  };
+  botVisuals: {
+    aura: ScenarioAuraStyle;
+    humanoidScale: number;
+    ringOpacity: number;
+    showHumanoidAura: boolean;
+  };
+  arena: {
+    brightness: number;
+    propStyle: ScenarioArenaPropStyle;
+    floorMarkers: boolean;
+    accent: string;
+  };
+  benchmark: {
+    playlist: 'warmup' | 'voltaic' | 'ranked' | 'fortnite';
+    category: ScenarioCategory;
+    percentileBaseline: number;
+  };
+}
+
+const DEFAULT_GAMEPLAY_CONFIG: ScenarioGameplayConfig = {
+  targetAmount: 3,
+  targetHp: 100,
+  targetSize: 1,
+  targetSpeed: 1,
+  targetDistance: -10,
+  scoring: {
+    baseMin: 100,
+    baseMax: 1000,
+    decayPerSecond: 800,
+    headshotBonus: 250,
+    trackingTick: 10,
+    perfectBonus: 75,
+  },
+  botVisuals: {
+    aura: 'grid',
+    humanoidScale: 0.95,
+    ringOpacity: 0.12,
+    showHumanoidAura: false,
+  },
+  arena: {
+    brightness: 1.18,
+    propStyle: 'standard',
+    floorMarkers: true,
+    accent: '#39ff14',
+  },
+  benchmark: {
+    playlist: 'warmup',
+    category: 'WARMUPS',
+    percentileBaseline: 25000,
+  },
+};
+
+export const SCENARIO_GAMEPLAY_CONFIGS: Record<string, Partial<ScenarioGameplayConfig>> = {
+  efect_overdrive: {
+    targetAmount: 5,
+    targetHp: 85,
+    targetSize: 0.85,
+    targetSpeed: 2.6,
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.32, propStyle: 'benchmark_stage' },
+    benchmark: { playlist: 'ranked', category: 'BENCHMARKS', percentileBaseline: 85000 },
+  },
+  gridshot_standard: {
+    targetAmount: 3,
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, propStyle: 'gridwall' },
+    benchmark: { playlist: 'voltaic', category: 'FLICK_TRAINING', percentileBaseline: 42000 },
+  },
+  gridshot_ultimate: {
+    targetAmount: 4,
+    targetSize: 0.8,
+    targetSpeed: 1.7,
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.25, propStyle: 'gridwall' },
+    benchmark: { playlist: 'ranked', category: 'BENCHMARKS', percentileBaseline: 65000 },
+  },
+  gridshot_precision: {
+    targetAmount: 4,
+    targetSize: 0.85,
+    botVisuals: { ...DEFAULT_GAMEPLAY_CONFIG.botVisuals, aura: 'precision' },
+    benchmark: { playlist: 'voltaic', category: 'PRECISION_TRAINING', percentileBaseline: 36000 },
+  },
+  headshot_only: {
+    targetAmount: 4,
+    targetSize: 0.74,
+    scoring: { ...DEFAULT_GAMEPLAY_CONFIG.scoring, headshotBonus: 250, baseMin: 125 },
+    botVisuals: {
+      ...DEFAULT_GAMEPLAY_CONFIG.botVisuals,
+      aura: 'none',
+      humanoidScale: 1.05,
+      showHumanoidAura: false,
+    },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.34, propStyle: 'fortnite_box' },
+    benchmark: { playlist: 'fortnite', category: 'FORTNITE_TRAINING', percentileBaseline: 32000 },
+  },
+  pump_flick: {
+    targetAmount: 5,
+    targetSize: 0.9,
+    targetDistance: -8,
+    botVisuals: {
+      ...DEFAULT_GAMEPLAY_CONFIG.botVisuals,
+      aura: 'none',
+      humanoidScale: 1.08,
+      showHumanoidAura: false,
+    },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.38, propStyle: 'fortnite_box' },
+    benchmark: { playlist: 'fortnite', category: 'FORTNITE_TRAINING', percentileBaseline: 38000 },
+  },
+  tracking_dynamic: {
+    targetAmount: 1,
+    targetHp: 115,
+    botVisuals: { ...DEFAULT_GAMEPLAY_CONFIG.botVisuals, aura: 'tracking', ringOpacity: 0.2 },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.25, propStyle: 'tracking_lane' },
+    benchmark: { playlist: 'voltaic', category: 'TRACKING_TRAINING', percentileBaseline: 42000 },
+  },
+  tracking_smooth: {
+    targetAmount: 1,
+    targetHp: 130,
+    botVisuals: { ...DEFAULT_GAMEPLAY_CONFIG.botVisuals, aura: 'tracking', ringOpacity: 0.16 },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.24, propStyle: 'tracking_lane' },
+    benchmark: { playlist: 'voltaic', category: 'TRACKING_TRAINING', percentileBaseline: 39000 },
+  },
+  tracking_fast: {
+    targetAmount: 1,
+    targetHp: 95,
+    targetSpeed: 1.85,
+    botVisuals: { ...DEFAULT_GAMEPLAY_CONFIG.botVisuals, aura: 'tracking', ringOpacity: 0.18 },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.28, propStyle: 'tracking_lane' },
+    benchmark: { playlist: 'ranked', category: 'TRACKING_TRAINING', percentileBaseline: 52000 },
+  },
+  bounce_tracking: {
+    targetAmount: 1,
+    targetHp: 105,
+    botVisuals: { ...DEFAULT_GAMEPLAY_CONFIG.botVisuals, aura: 'vertical', ringOpacity: 0.18 },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.28, propStyle: 'vertical_tower' },
+    benchmark: { playlist: 'voltaic', category: 'TRACKING_TRAINING', percentileBaseline: 36000 },
+  },
+  popcorn_standard: {
+    targetAmount: 3,
+    targetSize: 0.82,
+    botVisuals: { ...DEFAULT_GAMEPLAY_CONFIG.botVisuals, aura: 'vertical', ringOpacity: 0.14 },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.26, propStyle: 'vertical_tower' },
+    benchmark: { playlist: 'warmup', category: 'WARMUPS', percentileBaseline: 28000 },
+  },
+  snipershot_standard: {
+    targetAmount: 2,
+    targetSize: 0.58,
+    targetDistance: -28,
+    botVisuals: { ...DEFAULT_GAMEPLAY_CONFIG.botVisuals, aura: 'precision', ringOpacity: 0.14 },
+    arena: { ...DEFAULT_GAMEPLAY_CONFIG.arena, brightness: 1.3, propStyle: 'benchmark_stage' },
+    benchmark: { playlist: 'ranked', category: 'PRECISION_TRAINING', percentileBaseline: 31000 },
+  },
+};
+
 const withDefaults = <T extends ScenarioData>(scenario: T): ScenarioData => ({
   rankedEnabled: scenario.difficulty === 'ELITE' || scenario.difficulty === 'EXTREME',
   benchmarkWeight:
@@ -1148,6 +1322,12 @@ export const getScenarioPreset = (id: string) => {
     targetSpeed: scenario.targetSpeedPreset,
     modelScale: scenario.targetScalePreset,
     targetDistance: scenario.targetDistancePreset,
+    targetAmount:
+      SCENARIO_GAMEPLAY_CONFIGS[scenario.id]?.targetAmount ?? (scenario.type === 'TRACKING' ? 1 : 3),
+    targetShape: 'humanoid',
+    targetSkinMode: 'original',
+    gameProfile: 'fortnite',
+    fov: 103,
   };
 };
 
@@ -1161,6 +1341,86 @@ export const getScenarioLaunchSettings = (id: string) => {
     targetSpeed: scenario.targetSpeedPreset,
     modelScale: scenario.targetScalePreset,
     targetDistance: scenario.targetDistancePreset,
+    targetAmount: SCENARIO_GAMEPLAY_CONFIGS[scenario.id]?.targetAmount ?? (scenario.type === 'TRACKING' ? 1 : 3),
+  };
+};
+
+export const getScenarioGameplayConfig = (id: string): ScenarioGameplayConfig => {
+  const scenario = getScenarioById(id);
+  const stored = SCENARIO_GAMEPLAY_CONFIGS[scenario.id] || {};
+  const isTracking = scenario.type === 'TRACKING' || scenario.id.includes('tracking');
+  const isPrecision =
+    scenario.type === 'PRECISION' ||
+    scenario.id.includes('micro') ||
+    scenario.id.includes('sixshot') ||
+    scenario.id.includes('sniper');
+  const isVertical =
+    scenario.type === 'TIMING' ||
+    scenario.id.includes('popcorn') ||
+    scenario.id.includes('bounce') ||
+    scenario.id.includes('vertical');
+  const isFortnite = scenario.fortniteRelevant || scenario.id.includes('pump');
+  const generated: ScenarioGameplayConfig = {
+    ...DEFAULT_GAMEPLAY_CONFIG,
+    targetAmount: isTracking ? 1 : scenario.id.includes('gridshot_ultimate') ? 4 : 3,
+    targetHp: isTracking ? 115 : 100,
+    targetSize: scenario.targetScalePreset,
+    targetSpeed: scenario.targetSpeedPreset,
+    targetDistance: scenario.targetDistancePreset,
+    botVisuals: {
+      ...DEFAULT_GAMEPLAY_CONFIG.botVisuals,
+      aura: isTracking
+        ? 'tracking'
+        : isVertical
+          ? 'vertical'
+          : isPrecision
+            ? 'precision'
+            : 'grid',
+      humanoidScale: isFortnite ? 1 : DEFAULT_GAMEPLAY_CONFIG.botVisuals.humanoidScale,
+      ringOpacity: isTracking ? 0.18 : isPrecision ? 0.1 : 0.12,
+      showHumanoidAura: false,
+    },
+    arena: {
+      ...DEFAULT_GAMEPLAY_CONFIG.arena,
+      brightness:
+        scenario.difficulty === 'EXTREME' || scenario.difficulty === 'ELITE' ? 1.32 : 1.22,
+      propStyle: isTracking
+        ? 'tracking_lane'
+        : isVertical
+          ? 'vertical_tower'
+          : isFortnite
+            ? 'fortnite_box'
+            : isPrecision
+              ? 'benchmark_stage'
+              : 'gridwall',
+      accent: typeColor(scenario.type),
+    },
+    benchmark: {
+      playlist: scenario.rankedEnabled ? 'ranked' : isFortnite ? 'fortnite' : 'warmup',
+      category: scenario.category || 'WARMUPS',
+      percentileBaseline: Math.round(22000 * (scenario.benchmarkWeight || 1)),
+    },
+  };
+
+  return {
+    ...generated,
+    ...stored,
+    scoring: {
+      ...generated.scoring,
+      ...(stored.scoring || {}),
+    },
+    botVisuals: {
+      ...generated.botVisuals,
+      ...(stored.botVisuals || {}),
+    },
+    arena: {
+      ...generated.arena,
+      ...(stored.arena || {}),
+    },
+    benchmark: {
+      ...generated.benchmark,
+      ...(stored.benchmark || {}),
+    },
   };
 };
 

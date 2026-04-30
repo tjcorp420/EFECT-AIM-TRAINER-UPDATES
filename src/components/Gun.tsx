@@ -198,11 +198,14 @@ export default function Gun() {
   const rawWeaponClass = useStore((state) => state.weaponClass) as string;
   const color = useStore((state) => state.color);
   const shots = useStore((state) => state.shots);
+  const weaponMode = useStore((state) => state.weaponMode);
+  const bulletEffect = useStore((state) => state.bulletEffect);
 
   const { camera } = useThree();
 
   const gunContainerRef = useRef<THREE.Group>(null);
   const gunModelRef = useRef<THREE.Group>(null);
+  const slideRef = useRef<THREE.Group>(null);
   const muzzleFlashRef = useRef<THREE.Group>(null);
   const muzzleFlashMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
 
@@ -296,9 +299,19 @@ export default function Gun() {
     muzzleFlash.current = THREE.MathUtils.lerp(muzzleFlash.current, 0, dt * 18);
 
     if (muzzleFlashRef.current) {
-      muzzleFlashRef.current.visible = muzzleFlash.current > 0.025;
-      muzzleFlashRef.current.scale.setScalar(0.65 + muzzleFlash.current * 0.75);
+      muzzleFlashRef.current.visible =
+        muzzleFlash.current > 0.025 && weaponMode !== 'stealth' && bulletEffect !== 'none';
+      muzzleFlashRef.current.scale.setScalar(0.65 + muzzleFlash.current * 0.9);
       muzzleFlashRef.current.rotation.z += dt * 18;
+    }
+
+    if (slideRef.current) {
+      slideRef.current.position.set(
+        0,
+        0.107 + muzzleFlash.current * 0.012,
+        -0.02 + muzzleFlash.current * 0.095
+      );
+      slideRef.current.rotation.x = -muzzleFlash.current * 0.055;
     }
 
     if (muzzleFlashMaterialRef.current) {
@@ -320,12 +333,51 @@ export default function Gun() {
           />
         </Suspense>
 
+        <group ref={slideRef} raycast={null as any}>
+          <mesh>
+            <boxGeometry args={[0.112, 0.022, profile.targetLength * 0.58]} />
+            <meshStandardMaterial
+              color="#13181b"
+              emissive={color}
+              emissiveIntensity={muzzleFlash.current > 0.04 ? 0.9 : 0.28}
+              metalness={0.75}
+              roughness={0.26}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh position={[0, 0.014, -profile.targetLength * 0.14]}>
+            <boxGeometry args={[0.012, 0.006, profile.targetLength * 0.36]} />
+            <meshBasicMaterial color={color} transparent opacity={0.82} toneMapped={false} />
+          </mesh>
+        </group>
+
         <group ref={muzzleFlashRef} position={profile.muzzlePosition} visible={false}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <coneGeometry args={[0.085, 0.2, 7]} />
+          <mesh
+            rotation={[
+              bulletEffect === 'rail' ? Math.PI / 2 : Math.PI / 2,
+              0,
+              bulletEffect === 'spark' ? Math.PI / 7 : 0,
+            ]}
+            position={[0, 0, bulletEffect === 'rail' ? -0.34 : bulletEffect === 'tracer' ? -0.18 : 0]}
+          >
+            {bulletEffect === 'rail' ? (
+              <cylinderGeometry args={[0.014, 0.014, 0.78, 16]} />
+            ) : bulletEffect === 'plasma' ? (
+              <sphereGeometry args={[0.09, 18, 18]} />
+            ) : bulletEffect === 'spark' ? (
+              <octahedronGeometry args={[0.11, 0]} />
+            ) : (
+              <coneGeometry args={[0.085, 0.26, 7]} />
+            )}
             <meshBasicMaterial
               ref={muzzleFlashMaterialRef}
-              color={color}
+              color={
+                bulletEffect === 'spark'
+                  ? '#ffffff'
+                  : bulletEffect === 'plasma'
+                    ? '#b967ff'
+                    : color
+              }
               transparent
               opacity={0}
               depthWrite={false}

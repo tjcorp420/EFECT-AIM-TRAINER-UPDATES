@@ -1,11 +1,12 @@
-﻿{
-    "platforms":  {
-                      "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUMFBnQzVxbU9WM2Y0QzI2Q2FPS04yQzFFejJnclNrTnN1Q1ErRlR4TjQ4VzRrL1VMSDBycTZPRlVNMEd1eXVGdGRzOGxsS2hGVGVPQ0toUzFtbXlvSjVydlhsQ093NmdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2OTk5ODA0CWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4yLjlfeDY0LXNldHVwLmV4ZQpjbURWUnJYemVncm53YWFBT0czakZUTVl1a0wxeHpTQUdGNU53d2xRTjYyTU5JaVJmaC9KY2xINEhNYnJHeE1LM2p4d3lCS0ExUVpMM2pQNXM4cWNBZz09Cg==",
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.2.9/efect-aim-trainer_0.2.9_x64-setup.exe"
-                                         }
-                  },
-    "pub_date":  "2026-04-24T03:03:24Z",
-    "version":  "0.2.9",
-    "notes":  "Automated EFECT v0.2.9 Deployment"
+{
+  "version": "0.3.0",
+  "notes": "EMX Aim Trainer v0.3.0 production polish update.",
+  "pub_date": "2026-04-30T09:48:48Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRMlUyNDVmcFE5UVpKMnUzdk1xMEkwK01USWZ0ZWs5dmpKVnAyOGhJR3VDU1FFOTlYNGhJTzBvSU9ONkJrVmkyc0cweUQ2Zm5TUHdBNVFONEs5S3Zya2pMMzM4Q1VGdVFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc3NTQyNDc5CWZpbGU6ZWZlY3QtYWltLXRyYWluZXJfMC4zLjBfeDY0LXNldHVwLmV4ZQpHZ3NPWlp0Qng1RkkxTDFrTU5FeTRiWi9mWlhweEh3T0JDeHdCT1hub0E2Y004L3NXdFRuQktVekJkVkxueFhBOFphOUxYSXgvbVRyVTU3aml0SVRCQT09Cg==",
+      "url": "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.0/efect-aim-trainer_0.3.0_x64-setup.exe",
+      "format": "nsis"
+    }
+  }
 }

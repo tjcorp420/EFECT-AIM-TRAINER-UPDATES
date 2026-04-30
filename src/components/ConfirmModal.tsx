@@ -1,4 +1,3 @@
-import React from 'react';
 import EFECTButton from './EFECTButton';
 
 interface ConfirmModalProps {

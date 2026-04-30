@@ -3,9 +3,25 @@ import { useStore } from '../store/useStore';
 import { fetchTopScores } from '../firebase';
 
 export default function Leaderboard() {
-  const { color, setSettings, scenario, username } = useStore();
+  const { color, setSettings, scenario, username, highScores, recentSessions } = useStore();
   const [topScores, setTopScores] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const localBest = highScores[scenario] || 0;
+  const scenarioRuns = recentSessions.filter((session) => session.scenario === scenario);
+  const localPercentile =
+    scenarioRuns.length > 0
+      ? Math.max(
+          1,
+          Math.min(
+            99,
+            Math.round(
+              (scenarioRuns.filter((session) => session.score <= localBest).length /
+                Math.max(1, scenarioRuns.length)) *
+                100
+            )
+          )
+        )
+      : 0;
 
   // Fetch live scores from the global database on mount
   useEffect(() => {
@@ -20,6 +36,14 @@ export default function Leaderboard() {
     <div style={{ position: 'absolute', inset: 0, background: 'rgba(5,5,5,0.98)', backdropFilter: 'blur(10px)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace' }}>
       <h1 style={{ color, fontSize: '3rem', letterSpacing: '8px', textShadow: `0 0 20px ${color}`, margin: '0 0 10px 0', textTransform: 'uppercase' }}>GLOBAL TOP 100</h1>
       <h3 style={{ color: '#888', letterSpacing: '4px', margin: '0 0 40px 0', textTransform: 'uppercase' }}>MODULE: {scenario.replace('_', ' ')}</h3>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 22, color: '#fff', letterSpacing: 2, fontWeight: 900 }}>
+        <span style={{ padding: '10px 14px', border: `1px solid ${color}66`, borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
+          LOCAL BEST: {localBest.toLocaleString()}
+        </span>
+        <span style={{ padding: '10px 14px', border: '1px solid rgba(185,103,255,0.5)', borderRadius: 8, background: 'rgba(185,103,255,0.08)' }}>
+          LOCAL PERCENTILE: {localPercentile || '--'}%
+        </span>
+      </div>
       
       <div style={{ width: '90%', maxWidth: '900px', background: 'rgba(15,15,15,0.9)', border: `1px solid ${color}`, borderRadius: '12px', padding: '30px', boxShadow: `0 0 40px ${color}15`, minHeight: '400px', maxHeight: '60vh', overflowY: 'auto' }}>
         

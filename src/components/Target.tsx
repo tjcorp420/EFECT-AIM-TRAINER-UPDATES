@@ -2,6 +2,7 @@ import { useRef, Suspense, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { useStore, playHitSound } from '../store/useStore';
+import { getScenarioGameplayConfig, type ScenarioGameplayConfig } from '../store/scenarioData';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 
@@ -17,9 +18,9 @@ const easeOutCubic = (value: number) => {
   return 1 - Math.pow(1 - t, 3);
 };
 
-const HEADSHOT_BONUS = 150;
-const HEADSHOT_TEXT_COLOR = '#ffd400';
-const HEADSHOT_BONUS_COLOR = '#ff4df0';
+const HEADSHOT_TEXT_COLOR = '#b967ff';
+const HEADSHOT_BONUS_COLOR = '#39ff14';
+const BODY_TEXT_COLOR = '#39ff14';
 
 const isHumanoidHeadshot = (worldPoint: THREE.Vector3, hitObject: THREE.Object3D) => {
   const localPoint = hitObject.worldToLocal(worldPoint.clone());
@@ -78,6 +79,94 @@ function FortniteSkin({ color, skinMode }: { color: string; skinMode: string }) 
       scale={[0.018, 0.018, 0.018]}
       position={[0, -1.2, 0]}
     />
+  );
+}
+
+function ScenarioBotAura({
+  color,
+  targetShape,
+  config,
+}: {
+  color: string;
+  targetShape: string;
+  config: ScenarioGameplayConfig;
+}) {
+  const aura = config.botVisuals.aura;
+  const auraOpacity = config.botVisuals.ringOpacity;
+  const isTracking = aura === 'tracking';
+  const isGrid = aura === 'grid';
+  const isVertical = aura === 'vertical';
+  const isPrecision = aura === 'precision';
+
+  if (aura === 'none' || (targetShape === 'humanoid' && !config.botVisuals.showHumanoidAura)) {
+    return null;
+  }
+
+  return (
+    <group raycast={NO_RAYCAST}>
+      {isTracking && (
+        <>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[1.18, 0.025, 10, 72]} />
+            <meshBasicMaterial color="#00ffcc" transparent opacity={auraOpacity} toneMapped={false} />
+          </mesh>
+          <mesh rotation={[0, Math.PI / 2, 0]}>
+            <torusGeometry args={[1.02, 0.018, 8, 64]} />
+            <meshBasicMaterial color={color} transparent opacity={auraOpacity * 0.72} toneMapped={false} />
+          </mesh>
+        </>
+      )}
+
+      {isGrid && targetShape !== 'humanoid' && (
+        <mesh>
+          <boxGeometry
+            args={[
+              targetShape === 'cube' ? 1.85 : 2.05,
+              targetShape === 'cube' ? 1.85 : 2.05,
+              0.025,
+            ]}
+          />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={auraOpacity}
+            wireframe
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+
+      {isVertical && (
+        <>
+          <mesh position={[0, 0, -0.02]}>
+            <torusGeometry args={[1.38, 0.022, 10, 72]} />
+            <meshBasicMaterial color="#b967ff" transparent opacity={auraOpacity} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 0, -0.02]}>
+            <boxGeometry args={[0.03, 2.85, 0.03]} />
+            <meshBasicMaterial color="#b967ff" transparent opacity={auraOpacity * 0.7} toneMapped={false} />
+          </mesh>
+        </>
+      )}
+
+      {isPrecision && (
+        <>
+          <mesh>
+            <torusGeometry args={[0.72, 0.014, 8, 64]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={auraOpacity} toneMapped={false} />
+          </mesh>
+          <mesh rotation={[0, 0, Math.PI / 4]}>
+            <boxGeometry args={[1.72, 0.025, 0.025]} />
+            <meshBasicMaterial color={color} transparent opacity={auraOpacity * 0.9} toneMapped={false} />
+          </mesh>
+          <mesh rotation={[0, 0, -Math.PI / 4]}>
+            <boxGeometry args={[1.72, 0.025, 0.025]} />
+            <meshBasicMaterial color={color} transparent opacity={auraOpacity * 0.9} toneMapped={false} />
+          </mesh>
+        </>
+      )}
+    </group>
   );
 }
 
@@ -203,26 +292,47 @@ export default function Target() {
     });
   }, []);
 
+  const scenarioConfig = useMemo(() => getScenarioGameplayConfig(scenario), [scenario]);
+
   const isPrecision =
     scenario.includes('micro') ||
     scenario.includes('precision') ||
     scenario.includes('small') ||
+    scenario.includes('mini') ||
+    scenario.includes('sixshot') ||
+    scenario.includes('microshot') ||
+    scenario.includes('headshot') ||
     scenario.includes('snipershot');
+  const isLargeTile = scenario.includes('tile_frenzy') && !scenario.includes('mini');
+
+  const tunedModelScale =
+    targetShape === 'humanoid' ? Math.max(modelScale, 0.95) : modelScale;
+  const humanoidScaleFactor =
+    targetShape === 'humanoid' ? scenarioConfig.botVisuals.humanoidScale : 1;
+  const precisionScale = targetShape === 'humanoid' ? 1.08 : 0.52;
 
   const activeScale = isPrecision
-    ? modelScale * 0.35
+    ? tunedModelScale * precisionScale * humanoidScaleFactor
+    : isLargeTile
+      ? tunedModelScale * 1.25 * humanoidScaleFactor
     : scenario.includes('gridshot_ultimate')
-      ? modelScale * 0.8
-      : modelScale;
+      ? tunedModelScale * 0.95 * humanoidScaleFactor
+      : tunedModelScale * humanoidScaleFactor;
 
   const isTrackingMode = scenario.includes('tracking') && !scenario.includes('flick360');
   const isPopcorn = scenario.includes('popcorn');
   const isBounce = scenario.includes('bounce');
   const isGlider = scenario.includes('glider');
   const isMotionshot = scenario.includes('motionshot');
+  const isPasu = scenario.includes('pasu');
+  const isSwitchTrack = scenario.includes('switchtrack');
   const is360 = scenario.includes('360');
   const isReact =
-    scenario.includes('react') || scenario.includes('reflex') || scenario.includes('rapid');
+    scenario.includes('react') ||
+    scenario.includes('reflex') ||
+    scenario.includes('rapid') ||
+    scenario.includes('microshot') ||
+    scenario.includes('reactive_switch');
 
   useEffect(() => {
     const mats = [
@@ -291,12 +401,23 @@ export default function Target() {
       spidershotCenter = !spidershotCenter;
     } else if (
       scenario.includes('gridshot') ||
+      scenario.includes('sixshot') ||
+      scenario.includes('tile_frenzy') ||
+      scenario.includes('multishot') ||
+      scenario.includes('microshot') ||
+      scenario.includes('headshot') ||
       scenario.includes('pump_flick') ||
+      scenario.includes('reactive_switch') ||
+      scenario.includes('vertical_switch') ||
       scenario === 'microflick_standard'
     ) {
       const isPump = scenario.includes('pump_flick');
-      const cols = isPump ? 5 : 5;
-      const maxSlots = isPump ? 15 : 20;
+      const isSixshot = scenario.includes('sixshot');
+      const isTile = scenario.includes('tile_frenzy');
+      const isMulti = scenario.includes('multishot');
+      const isVertical = scenario.includes('vertical_switch');
+      const cols = isSixshot ? 3 : isTile || isMulti ? 6 : isPump ? 5 : 5;
+      const maxSlots = isSixshot ? 6 : isTile || isMulti ? 24 : isPump ? 15 : isVertical ? 10 : 20;
 
       let picked = Math.floor(Math.random() * maxSlots);
 
@@ -316,6 +437,24 @@ export default function Target() {
         x = col * spacing;
         y = row * spacing + 0.5 + modelScale;
         z = targetDistance + 12;
+      } else if (isTile || isMulti) {
+        const spacing = isTile ? 2.9 * modelScale : 2.25 * modelScale;
+
+        x = col * spacing;
+        y = row * spacing + 1 + modelScale;
+        z = targetDistance + (isTile ? 4 : 0);
+      } else if (isSixshot) {
+        const spacing = 2.35 * modelScale;
+
+        x = col * spacing;
+        y = row * spacing + 2.3;
+        z = targetDistance;
+      } else if (isVertical) {
+        const spacing = 2.6 * modelScale;
+
+        x = col * spacing;
+        y = (row % 2 === 0 ? 1.4 : 5.8) + Math.random() * 0.8;
+        z = targetDistance + (Math.random() * 4 - 2);
       } else {
         const spacing = 2.5 * modelScale;
 
@@ -347,6 +486,12 @@ export default function Target() {
       y = 1.0;
       z = targetDistance + (Math.random() * 6 - 3);
       velocityY.current = 18 + Math.random() * 6;
+    } else if (isPasu) {
+      x = (Math.random() - 0.5) * 15;
+      y = 1.2 + Math.random() * 2;
+      z = targetDistance + (Math.random() * 6 - 3);
+      velocityY.current = 14 + Math.random() * 9;
+      motionDrift.current.set((Math.random() - 0.5) * 7, 0, 0);
     } else if (scenario.includes('cluster')) {
       x = (Math.random() - 0.5) * 4;
       y = Math.random() * 3 + 2;
@@ -376,12 +521,15 @@ export default function Target() {
     if (!isGlider && !isMotionshot) {
       strafeDirection.current = Math.random() > 0.5 ? 1 : -1;
 
-      if (scenario.includes('tracking_smooth')) {
+      if (scenario.includes('tracking_smooth') || scenario.includes('tracking_long_strafe')) {
         strafeSpeed.current = 3 + Math.random() * 2;
         nextDirChange.current = Math.random() * 3 + 2;
-      } else if (scenario.includes('tracking_fast')) {
+      } else if (scenario.includes('tracking_fast') || scenario.includes('tracking_dodge')) {
         strafeSpeed.current = 8 + Math.random() * 4;
         nextDirChange.current = Math.random() * 0.5 + 0.2;
+      } else if (isSwitchTrack) {
+        strafeSpeed.current = 5 + Math.random() * 3;
+        nextDirChange.current = Math.random() * 1.0 + 0.35;
       } else {
         strafeSpeed.current = 4 + Math.random() * 4;
         nextDirChange.current = Math.random() * 1.5 + 0.5;
@@ -393,7 +541,7 @@ export default function Target() {
       baseY.current = y;
     }
 
-    health.current = 100;
+    health.current = scenarioConfig.targetHp;
     isHovered.current = false;
     isAlive.current = true;
     isExploding.current = false;
@@ -444,85 +592,119 @@ export default function Target() {
   }, [gameState]);
 
   const onHit = ({ headshot = false }: { headshot?: boolean } = {}) => {
-  if (!isAlive.current || useStore.getState().shots === 0) return;
+    if (!isAlive.current) return;
 
-  isAlive.current = false;
-  triggerDetachedBurst();
+    isAlive.current = false;
+    triggerDetachedBurst();
 
-  let basePoints = 100;
+    let basePoints = 100;
 
-  if (!isTrackingMode) {
-    basePoints = Math.max(100, Math.floor(1000 - age.current * 800));
-  } else {
-    basePoints = 10;
-  }
-
-  const bonusPoints = headshot && !isTrackingMode ? HEADSHOT_BONUS : 0;
-  const totalPoints = basePoints + bonusPoints;
-
-  registerHit(totalPoints);
-  window.dispatchEvent(new CustomEvent('hit-marker'));
-
-  const storeState = useStore.getState();
-  const textX = window.innerWidth / 2 + (Math.random() * 40 - 20);
-  const textY = window.innerHeight / 2 + (Math.random() * 40 - 20);
-
-  if (!isTrackingMode || storeState.combo % 10 === 0) {
-    const displayTxt = isTrackingMode ? 'TRACKING' : `+${totalPoints}`;
-
-    window.dispatchEvent(
-      new CustomEvent('floating-text', {
-        detail: {
-          text: displayTxt,
-          x: textX,
-          y: textY,
-          color: storeState.color,
-        },
-      })
-    );
-  }
-
-  if (headshot && !isTrackingMode) {
-    window.dispatchEvent(
-      new CustomEvent('floating-text', {
-        detail: {
-          text: 'HEADSHOT!',
-          x: textX,
-          y: textY - 38,
-          color: HEADSHOT_TEXT_COLOR,
-        },
-      })
-    );
-
-    window.dispatchEvent(
-      new CustomEvent('floating-text', {
-        detail: {
-          text: `BONUS +${HEADSHOT_BONUS}`,
-          x: textX + 18,
-          y: textY + 28,
-          color: HEADSHOT_BONUS_COLOR,
-        },
-      })
-    );
-  }
-
-  if (!isTrackingMode && !isPopcorn && !isBounce) {
-    respawn();
-  } else {
-    isExploding.current = true;
-    explosionAge.current = 0;
-    explosionMat.current.opacity = 0.9;
-
-    if (modelGroup.current) {
-      modelGroup.current.visible = false;
+    if (!isTrackingMode) {
+      basePoints = Math.max(
+        scenarioConfig.scoring.baseMin,
+        Math.floor(
+          scenarioConfig.scoring.baseMax - age.current * scenarioConfig.scoring.decayPerSecond
+        )
+      );
+    } else {
+      basePoints = scenarioConfig.scoring.trackingTick;
     }
 
-    if (explosionGroup.current) {
-      explosionGroup.current.visible = true;
-      explosionGroup.current.scale.setScalar(activeScale * 0.55);
+    const isHeadshot = headshot && !isTrackingMode;
+    const bonusPoints = isHeadshot ? scenarioConfig.scoring.headshotBonus : 0;
+    const totalPoints = basePoints + bonusPoints;
+    const targetX = targetGroup.current?.position.x || 0;
+    const hitSide = targetX < -1.4 ? 'left' : targetX > 1.4 ? 'right' : 'center';
+
+    registerHit(totalPoints, {
+      type: isHeadshot ? 'headshot' : isTrackingMode ? 'tracking' : 'body',
+      headshot: isHeadshot,
+      basePoints,
+      bonusPoints,
+      side: hitSide,
+    });
+    window.dispatchEvent(new CustomEvent('hit-marker'));
+
+    const storeState = useStore.getState();
+    const textX = window.innerWidth / 2 + (Math.random() * 44 - 22);
+    const textY = window.innerHeight / 2 + (Math.random() * 44 - 22);
+
+    if (isTrackingMode) {
+      window.dispatchEvent(
+        new CustomEvent('floating-text', {
+          detail: {
+            text: `TRACKING +${basePoints}`,
+            x: textX,
+            y: textY,
+            color: '#00ffcc',
+          },
+        })
+      );
+
+      if (storeState.combo % 10 === 0) {
+        window.dispatchEvent(
+          new CustomEvent('floating-text', {
+            detail: {
+              text: `CHAIN BONUS x${storeState.combo}`,
+              x: textX + 18,
+              y: textY + 24,
+              color: '#b967ff',
+            },
+          })
+        );
+      }
+    } else if (isHeadshot) {
+      window.dispatchEvent(
+        new CustomEvent('floating-text', {
+          detail: {
+            text: `HEADSHOT +${totalPoints}`,
+            x: textX,
+            y: textY - 40,
+            color: HEADSHOT_TEXT_COLOR,
+          },
+        })
+      );
+
+      window.dispatchEvent(
+        new CustomEvent('floating-text', {
+          detail: {
+            text: `BONUS +${scenarioConfig.scoring.headshotBonus}`,
+            x: textX + 18,
+            y: textY + 22,
+            color: HEADSHOT_BONUS_COLOR,
+          },
+        })
+      );
+    } else {
+      window.dispatchEvent(
+        new CustomEvent('floating-text', {
+          detail: {
+            text: `+${basePoints}`,
+            x: textX,
+            y: textY,
+            color: BODY_TEXT_COLOR,
+          },
+        })
+      );
     }
-  }
-};
+
+    if (!isTrackingMode && !isPopcorn && !isBounce) {
+      respawn();
+    } else {
+      isExploding.current = true;
+      explosionAge.current = 0;
+      explosionMat.current.opacity = 0.9;
+
+      if (modelGroup.current) {
+        modelGroup.current.visible = false;
+      }
+
+      if (explosionGroup.current) {
+        explosionGroup.current.visible = true;
+        explosionGroup.current.scale.setScalar(activeScale * 0.55);
+      }
+    }
+  };
 
   const updateDetachedBurst = (dt: number) => {
     if (!detachedBurstGroup.current || !detachedBurstGroup.current.visible) return;
@@ -656,7 +838,7 @@ export default function Target() {
     }
 
     if (isReact) {
-      const timeLimit = scenario.includes('micro') ? 0.7 : 1.1;
+      const timeLimit = scenario.includes('micro') || scenario.includes('microshot') ? 0.7 : 1.1;
 
       if (age.current > timeLimit) {
         respawn(true);
@@ -664,11 +846,19 @@ export default function Target() {
       }
     }
 
-    if (isPopcorn || isBounce) {
+    if (isPopcorn || isBounce || isPasu) {
       const grav = scenario.includes('heavy') ? 50 : 35;
 
       velocityY.current -= adjustedDt * grav;
       targetGroup.current.position.y += velocityY.current * adjustedDt;
+
+      if (isPasu) {
+        targetGroup.current.position.addScaledVector(motionDrift.current, adjustedDt);
+
+        if (Math.abs(targetGroup.current.position.x) > 16) {
+          motionDrift.current.x *= -1;
+        }
+      }
     }
 
     if (isMotionshot) {
@@ -690,6 +880,11 @@ export default function Target() {
 
     if (scenario.includes('strafe') || (isTrackingMode && !isGlider && !isBounce && !is360)) {
       targetGroup.current.position.x += strafeDirection.current * strafeSpeed.current * adjustedDt;
+
+      if (scenario.includes('tracking_sphere')) {
+        targetGroup.current.position.y =
+          baseY.current + Math.sin(age.current * 2.4) * 1.25 + Math.sin(age.current * 5.1) * 0.28;
+      }
 
       if (age.current > nextDirChange.current) {
         strafeDirection.current *= -1;
@@ -729,7 +924,7 @@ export default function Target() {
       const isFiring = useStore.getState().isFiring;
 
       if (isHovered.current && isFiring) {
-        health.current -= dt * 50;
+        health.current -= dt * (scenarioConfig.targetHp / 2);
 
         if (age.current - lastTickTime.current > 0.1) {
           playHitSound(useStore.getState().hitSound);
@@ -738,17 +933,17 @@ export default function Target() {
         }
 
         if (healthBarRef.current) {
-          healthBarRef.current.scale.x = Math.max(0.001, health.current / 100);
+          healthBarRef.current.scale.x = Math.max(0.001, health.current / scenarioConfig.targetHp);
         }
 
         if (health.current <= 0) {
           onHit();
         }
       } else if (health.current < 100) {
-        health.current = Math.min(100, health.current + dt * 20);
+        health.current = Math.min(scenarioConfig.targetHp, health.current + dt * 20);
 
         if (healthBarRef.current) {
-          healthBarRef.current.scale.x = Math.max(0.001, health.current / 100);
+          healthBarRef.current.scale.x = Math.max(0.001, health.current / scenarioConfig.targetHp);
         }
       }
     }
@@ -824,6 +1019,26 @@ export default function Target() {
             </group>
           )}
 
+          {targetShape === 'humanoid' && !isTrackingMode && (
+            <mesh
+              position={[0, 1.22, 0]}
+              onClick={(e: any) => {
+                e.stopPropagation();
+                onHit({ headshot: true });
+              }}
+              onPointerOver={(e: any) => {
+                e.stopPropagation();
+                isHovered.current = true;
+              }}
+              onPointerOut={() => {
+                isHovered.current = false;
+              }}
+            >
+              <sphereGeometry args={[0.34, 18, 18]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+          )}
+
           <mesh
   position={targetShape === 'humanoid' ? [0, 0.18, 0] : [0, 0, 0]}
   onClick={(e: any) => {
@@ -860,6 +1075,8 @@ export default function Target() {
           
 
 <group raycast={NO_RAYCAST}>
+  <ScenarioBotAura color={targetColor} targetShape={targetShape} config={scenarioConfig} />
+
   {targetShape === 'humanoid' ? (
     <Suspense fallback={null}>
       <FortniteSkin color={targetColor} skinMode={targetSkinMode} />

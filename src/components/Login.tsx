@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { useStore } from '../store/useStore';
 import { auth, fetchCloudArmory } from '../firebase';
 import {
@@ -17,10 +17,7 @@ const cleanDisplayName = (value: string) => {
   const trimmed = value.trim();
 
   if (!trimmed) return '';
-
-  if (OLD_DEFAULT_NAMES.includes(trimmed.toLowerCase())) {
-    return '';
-  }
+  if (OLD_DEFAULT_NAMES.includes(trimmed.toLowerCase())) return '';
 
   return trimmed.substring(0, 16);
 };
@@ -75,13 +72,12 @@ const saveRememberedLogin = (payload: RememberPayload) => {
       })
     );
   } catch {
-    // no-op
+    // Remember-me is optional.
   }
 };
 
 export default function Login() {
   const { color, setSettings } = useStore();
-
   const remembered = useMemo(() => readRememberedLogin(), []);
 
   const [isRegistering, setIsRegistering] = useState(false);
@@ -114,32 +110,64 @@ export default function Login() {
   };
 
   const handleAuth = async (e: FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (isProcessing) return;
+    if (isProcessing) return;
 
-  setErrorMsg('');
-  setIsProcessing(true);
+    setErrorMsg('');
+    setIsProcessing(true);
 
-  try {
-    const cleanUsername = cleanDisplayName(username);
+    try {
+      const cleanUsername = cleanDisplayName(username);
 
-    if (isRegistering && cleanUsername.length < 3) {
-      throw new Error('Callsign must be at least 3 characters.');
-    }
+      if (isRegistering && cleanUsername.length < 3) {
+        throw new Error('Callsign must be at least 3 characters.');
+      }
 
-    if (isRegistering) {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      if (isRegistering) {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      await updateProfile(userCredential.user, {
-        displayName: cleanUsername,
-      });
+        await updateProfile(userCredential.user, {
+          displayName: cleanUsername,
+        });
+
+        if (rememberMe) {
+          saveRememberedLogin({
+            remember: true,
+            email,
+            username: cleanUsername,
+          });
+        } else {
+          saveRememberedLogin({
+            remember: false,
+            email: '',
+            username: '',
+          });
+        }
+
+        setSettings({
+          username: cleanUsername,
+          gameState: 'scenarioSelect',
+        });
+
+        return;
+      }
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const chosenDisplayName =
+        cleanUsername || userCredential.user.displayName || DEFAULT_DISPLAY_NAME;
+
+      if (cleanUsername && userCredential.user.displayName !== cleanUsername) {
+        await updateProfile(userCredential.user, {
+          displayName: cleanUsername,
+        });
+      }
 
       if (rememberMe) {
         saveRememberedLogin({
           remember: true,
           email,
-          username: cleanUsername,
+          username: chosenDisplayName,
         });
       } else {
         saveRememberedLogin({
@@ -149,319 +177,137 @@ export default function Login() {
         });
       }
 
-      setSettings({
-        username: cleanUsername,
-        gameState: 'scenarioSelect',
-      });
+      const cloudSettings = await fetchCloudArmory(userCredential.user.uid);
 
-      return;
+      if (cloudSettings) {
+        console.log('Cloud Armory Loaded Successfully.');
+
+        setSettings({
+          ...cloudSettings,
+          username: chosenDisplayName,
+          gameState: 'scenarioSelect',
+        });
+      } else {
+        setSettings({
+          username: chosenDisplayName,
+          gameState: 'scenarioSelect',
+        });
+      }
+    } catch (error: any) {
+      const cleanError = cleanFirebaseError(error?.message || 'AUTHENTICATION FAILED');
+      setErrorMsg(cleanError);
+      setIsProcessing(false);
     }
+  };
 
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
-    const chosenDisplayName =
-      cleanUsername || userCredential.user.displayName || DEFAULT_DISPLAY_NAME;
-
-    if (cleanUsername && userCredential.user.displayName !== cleanUsername) {
-      await updateProfile(userCredential.user, {
-        displayName: cleanUsername,
-      });
-    }
-
-    if (rememberMe) {
-      saveRememberedLogin({
-        remember: true,
-        email,
-        username: chosenDisplayName,
-      });
-    } else {
-      saveRememberedLogin({
-        remember: false,
-        email: '',
-        username: '',
-      });
-    }
-
-    const cloudSettings = await fetchCloudArmory(userCredential.user.uid);
-
-    if (cloudSettings) {
-      console.log('Cloud Armory Loaded Successfully.');
-
-      setSettings({
-        ...cloudSettings,
-        username: chosenDisplayName,
-        gameState: 'scenarioSelect',
-      });
-    } else {
-      setSettings({
-        username: chosenDisplayName,
-        gameState: 'scenarioSelect',
-      });
-    }
-  } catch (error: any) {
-    const cleanError = cleanFirebaseError(error?.message || 'AUTHENTICATION FAILED');
-    setErrorMsg(cleanError);
-    setIsProcessing(false);
-  }
-};
-
-const canSubmit = isRegistering
-  ? email.trim().length > 0 && password.trim().length >= 6 && cleanDisplayName(username).length >= 3
-  : email.trim().length > 0 && password.trim().length >= 6;
+  const canSubmit = isRegistering
+    ? email.trim().length > 0 && password.trim().length >= 6 && cleanDisplayName(username).length >= 3
+    : email.trim().length > 0 && password.trim().length >= 6;
 
   return (
     <div
       style={{
         position: 'absolute',
         inset: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#030305',
-        backgroundImage: `
-          radial-gradient(circle at 50% 18%, ${color}20 0%, transparent 32%),
-          radial-gradient(circle at 18% 76%, rgba(57,255,20,0.12) 0%, transparent 28%),
-          radial-gradient(circle at 84% 72%, rgba(185,103,255,0.18) 0%, transparent 30%),
-          linear-gradient(rgba(255,255,255,0.026) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.026) 1px, transparent 1px),
-          radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.96) 82%)
-        `,
-        backgroundSize: '100% 100%, 100% 100%, 100% 100%, 52px 52px, 52px 52px, 100% 100%',
-        animation: 'emxLoginGrid 22s linear infinite',
         zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-        color: '#fff',
+        display: 'grid',
+        placeItems: 'center',
         overflow: 'hidden',
+        color: '#fff',
+        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+        background:
+          'radial-gradient(circle at 50% 22%, rgba(185,103,255,0.28), transparent 34%), radial-gradient(circle at 12% 82%, rgba(57,255,20,0.16), transparent 30%), linear-gradient(135deg, #020203, #05060a 44%, #000)',
       }}
     >
       <style>{`
-        @keyframes emxLoginGrid {
-          0% { background-position: center, center, center, 0 0, 0 0, center; }
-          100% { background-position: center, center, center, 0 52px, 52px 0, center; }
+        @keyframes emxAuthGrid {
+          from { transform: translate3d(0, 0, 0); }
+          to { transform: translate3d(56px, 56px, 0); }
         }
 
-        @keyframes emxLoginScanline {
-          0% { transform: translateY(-115vh); opacity: 0; }
-          10% { opacity: 0.48; }
-          90% { opacity: 0.48; }
-          100% { transform: translateY(115vh); opacity: 0; }
+        @keyframes emxAuthScan {
+          0% { transform: translateY(-120vh); opacity: 0; }
+          12% { opacity: 0.65; }
+          100% { transform: translateY(120vh); opacity: 0; }
         }
 
-        @keyframes emxLoginPanelRise {
-          from {
-            opacity: 0;
-            transform: translateY(26px) scale(0.975);
-            filter: blur(10px);
-          }
+        @keyframes emxAuthPanelIn {
+          from { opacity: 0; transform: translateY(20px) scale(0.98); filter: blur(10px); }
+          to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
 
-          to {
-            opacity: 1;
+        @keyframes emxAuthLogo {
+          0%, 100% {
             transform: translateY(0) scale(1);
-            filter: blur(0);
-          }
-        }
-
-        @keyframes emxLogoFloatBounce {
-          0%, 100% {
-            transform: translateY(0) rotate(-1deg) scale(1);
-          }
-
-          24% {
-            transform: translateY(-16px) rotate(1.5deg) scale(1.05);
-          }
-
-          46% {
-            transform: translateY(-6px) rotate(-0.5deg) scale(1.025);
-          }
-
-          68% {
-            transform: translateY(-11px) rotate(0.75deg) scale(1.04);
-          }
-        }
-
-        @keyframes emxLogoPulseGlow {
-          0%, 100% {
             filter:
-              drop-shadow(0 0 18px rgba(57,255,20,0.76))
-              drop-shadow(0 0 30px rgba(185,103,255,0.62))
-              drop-shadow(0 0 52px rgba(255,0,255,0.26));
+              drop-shadow(0 0 24px rgba(57,255,20,0.9))
+              drop-shadow(0 0 52px rgba(185,103,255,0.78));
           }
-
           50% {
+            transform: translateY(-10px) scale(1.055);
             filter:
-              drop-shadow(0 0 32px rgba(57,255,20,1))
-              drop-shadow(0 0 52px rgba(185,103,255,0.9))
-              drop-shadow(0 0 82px rgba(255,0,255,0.48));
+              drop-shadow(0 0 38px rgba(57,255,20,1))
+              drop-shadow(0 0 78px rgba(185,103,255,1));
           }
         }
 
-        @keyframes emxLogoOrbit {
-          0% {
-            transform: translate(-50%, -50%) rotate(-14deg) scale(1);
-            opacity: 0.5;
-          }
-
-          50% {
-            transform: translate(-50%, -50%) rotate(166deg) scale(1.08);
-            opacity: 1;
-          }
-
-          100% {
-            transform: translate(-50%, -50%) rotate(346deg) scale(1);
-            opacity: 0.5;
-          }
+        @keyframes emxAuthOrbit {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
         }
 
-        @keyframes emxLogoOrbitReverse {
-          0% {
-            transform: translate(-50%, -50%) rotate(18deg) scale(1.04);
-            opacity: 0.35;
-          }
-
-          50% {
-            transform: translate(-50%, -50%) rotate(-162deg) scale(1);
-            opacity: 0.78;
-          }
-
-          100% {
-            transform: translate(-50%, -50%) rotate(-342deg) scale(1.04);
-            opacity: 0.35;
-          }
+        @keyframes emxAuthOrbitReverse {
+          from { transform: translate(-50%, -50%) rotate(360deg); }
+          to { transform: translate(-50%, -50%) rotate(0deg); }
         }
 
-        @keyframes emxLogoSweep {
-          0% { transform: translateX(-135%) skewX(-18deg); opacity: 0; }
-          22% { opacity: 0.95; }
-          100% { transform: translateX(135%) skewX(-18deg); opacity: 0; }
+        @keyframes emxAuthSheen {
+          0% { transform: translateX(-145%) skewX(-22deg); opacity: 0; }
+          26% { opacity: 0.82; }
+          100% { transform: translateX(170%) skewX(-22deg); opacity: 0; }
         }
 
-        @keyframes emxCardSheen {
-          0% { transform: translateX(-130%) skewX(-24deg); opacity: 0; }
-          28% { opacity: 0.65; }
-          100% { transform: translateX(220%) skewX(-24deg); opacity: 0; }
+        @keyframes emxAuthPulse {
+          0%, 100% { opacity: 0.5; transform: scaleX(0.34); }
+          50% { opacity: 1; transform: scaleX(1); }
         }
 
-        @keyframes emxTerminalBlink {
+        @keyframes emxAuthBlink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
         }
 
-        @keyframes emxMiniFloat {
-          0%, 100% { transform: translate3d(0, 0, 0); }
-          50% { transform: translate3d(0, -8px, 0); }
-        }
-
-        @keyframes emxBootBar {
-          0%, 100% { transform: scaleX(0.22); opacity: 0.35; }
-          50% { transform: scaleX(1); opacity: 1; }
-        }
-
-        @keyframes emxNoiseShift {
-          0% { transform: translate3d(0, 0, 0); }
-          100% { transform: translate3d(0, 6px, 0); }
-        }
-
-        @keyframes emxFallbackGlow {
-          0%, 100% {
-            letter-spacing: 14px;
-            transform: translateY(0) scale(1);
-            text-shadow:
-              0 0 18px ${color}66,
-              0 0 48px rgba(185,103,255,0.38);
-          }
-
-          50% {
-            letter-spacing: 18px;
-            transform: translateY(-10px) scale(1.05);
-            text-shadow:
-              0 0 28px #ffffffcc,
-              0 0 70px ${color},
-              0 0 105px rgba(185,103,255,0.62);
-          }
-        }
-
-        @keyframes emxFeatureCardIn {
-          from {
-            opacity: 0;
-            transform: translateY(14px);
-          }
-
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .emx-auth-input::placeholder {
+        .emx-auth-field::placeholder {
           color: rgba(255,255,255,0.28);
           letter-spacing: 2px;
         }
 
-        .emx-auth-input:focus {
+        .emx-auth-field:focus {
           border-color: ${color} !important;
-          background: rgba(0,0,0,0.72) !important;
-          box-shadow:
-            0 0 0 1px ${color}55,
-            0 0 24px ${color}38,
-            inset 0 0 22px rgba(255,255,255,0.035) !important;
+          box-shadow: 0 0 0 1px ${color}55, 0 0 26px ${color}44, inset 0 0 20px rgba(255,255,255,0.035) !important;
         }
 
-        .emx-auth-tab:hover {
-          border-color: ${color} !important;
-          color: ${color} !important;
-          box-shadow: 0 0 18px ${color}30 !important;
-        }
-
-        .emx-password-btn:hover {
-          color: #000 !important;
-          background: ${color} !important;
-          box-shadow: 0 0 20px ${color}66 !important;
-        }
-
-        .emx-auth-submit:not(:disabled):hover {
+        .emx-auth-action:not(:disabled):hover {
           transform: translateY(-2px);
           color: #000 !important;
-          background: linear-gradient(90deg, ${color}, #b967ff) !important;
-          box-shadow:
-            0 0 28px ${color}70,
-            0 0 48px rgba(185,103,255,0.42) !important;
+          background: linear-gradient(90deg, #39ff14, ${color}, #b967ff) !important;
+          box-shadow: 0 0 34px ${color}70, 0 0 64px rgba(57,255,20,0.24) !important;
         }
 
-        .emx-auth-link:hover {
-          color: ${color} !important;
-          text-shadow: 0 0 14px ${color}AA;
-        }
-
-        .emx-remember-toggle:hover {
+        .emx-auth-ghost:hover {
           border-color: ${color} !important;
-          box-shadow: 0 0 18px ${color}35 !important;
+          color: ${color} !important;
+          box-shadow: 0 0 22px ${color}33 !important;
         }
 
-        @media (max-width: 980px) {
-          .emx-login-shell {
+        @media (max-width: 1040px) {
+          .emx-auth-shell {
             grid-template-columns: 1fr !important;
-            width: min(520px, 92vw) !important;
-            gap: 18px !important;
+            width: min(500px, 92vw) !important;
           }
 
-          .emx-login-left {
+          .emx-auth-showcase {
             display: none !important;
-          }
-
-          .emx-login-panel {
-            padding: 28px !important;
-          }
-        }
-
-        @media (max-height: 760px) {
-          .emx-login-logo-zone {
-            margin-bottom: 8px !important;
-          }
-
-          .emx-login-panel {
-            padding: 24px !important;
           }
         }
       `}</style>
@@ -469,148 +315,167 @@ const canSubmit = isRegistering
       <div
         style={{
           position: 'absolute',
+          inset: '-80px',
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+          opacity: 0.34,
+          animation: 'emxAuthGrid 18s linear infinite',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div
+        style={{
+          position: 'absolute',
           inset: 0,
-          pointerEvents: 'none',
           background:
-            'linear-gradient(rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.24) 50%)',
-          backgroundSize: '100% 4px',
+            'repeating-linear-gradient(to bottom, rgba(255,255,255,0.042) 0px, rgba(255,255,255,0.042) 1px, transparent 3px, transparent 6px)',
+          opacity: 0.08,
           mixBlendMode: 'screen',
-          opacity: 0.28,
-          animation: 'emxNoiseShift 1.8s linear infinite',
-          zIndex: 1,
+          pointerEvents: 'none',
         }}
       />
 
       <div
         style={{
           position: 'absolute',
-          top: 0,
           left: 0,
-          width: '100%',
-          height: 150,
-          background: `linear-gradient(to bottom, transparent, ${color}18, rgba(185,103,255,0.42), transparent)`,
-          animation: 'emxLoginScanline 8s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+          right: 0,
+          top: 0,
+          height: 220,
+          background: `linear-gradient(to bottom, transparent, ${color}22, rgba(57,255,20,0.08), transparent)`,
+          animation: 'emxAuthScan 7s linear infinite',
           pointerEvents: 'none',
-          zIndex: 1,
         }}
       />
 
       <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: 900,
-          height: 900,
-          transform: 'translate(-50%, -50%)',
-          background: `radial-gradient(circle, ${color}12 0%, rgba(185,103,255,0.08) 34%, transparent 68%)`,
-          pointerEvents: 'none',
-          zIndex: 1,
-        }}
-      />
-
-      <div
-        className="emx-login-shell"
+        className="emx-auth-shell"
         style={{
           position: 'relative',
           zIndex: 2,
-          width: 'min(1160px, 92vw)',
+          width: 'min(1180px, 92vw)',
           display: 'grid',
-          gridTemplateColumns: '1fr 448px',
-          gap: 42,
-          alignItems: 'center',
-          animation: 'emxLoginPanelRise 0.62s cubic-bezier(0.18, 0.9, 0.2, 1) both',
+          gridTemplateColumns: '1fr 455px',
+          gap: 34,
+          alignItems: 'stretch',
+          animation: 'emxAuthPanelIn 0.58s cubic-bezier(0.18, 0.9, 0.2, 1) both',
         }}
       >
-        <div
-          className="emx-login-left"
+        <section
+          className="emx-auth-showcase"
           style={{
-            minHeight: 560,
-            padding: '44px 0',
+            position: 'relative',
+            minHeight: 650,
+            borderRadius: 26,
+            border: '1px solid rgba(255,255,255,0.11)',
+            background:
+              'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.66)), radial-gradient(circle at 28% 18%, rgba(57,255,20,0.13), transparent 34%), radial-gradient(circle at 72% 70%, rgba(185,103,255,0.18), transparent 38%)',
+            boxShadow:
+              '0 30px 90px rgba(0,0,0,0.62), inset 0 0 0 1px rgba(255,255,255,0.035)',
+            overflow: 'hidden',
+            padding: 42,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
-            animation: 'emxMiniFloat 6s ease-in-out infinite',
+            justifyContent: 'space-between',
           }}
         >
           <div
             style={{
-              color,
-              letterSpacing: 9,
-              fontSize: 13,
-              fontWeight: 900,
-              marginBottom: 18,
-              textShadow: `0 0 18px ${color}`,
+              position: 'absolute',
+              inset: 0,
+              background:
+                'linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)',
+              backgroundSize: '42px 42px',
+              pointerEvents: 'none',
             }}
-          >
-            EMX PERFORMANCE TERMINAL
-          </div>
+          />
 
           <div
             style={{
-              position: 'relative',
-              display: 'inline-grid',
-              placeItems: 'center',
-              width: 430,
-              height: 205,
-              marginBottom: 6,
-              overflow: 'visible',
+              position: 'absolute',
+              inset: 0,
+              background:
+                'linear-gradient(105deg, transparent 0%, transparent 42%, rgba(255,255,255,0.16) 50%, transparent 58%, transparent 100%)',
+              animation: 'emxAuthSheen 4.4s ease-in-out infinite',
+              pointerEvents: 'none',
             }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                width: 360,
-                height: 160,
-                borderRadius: '50%',
-                border: `1px solid ${color}55`,
-                boxShadow: `0 0 28px ${color}33, inset 0 0 22px rgba(185,103,255,0.14)`,
-                animation: 'emxLogoOrbit 6s linear infinite',
-              }}
-            />
+          />
 
+          <div style={{ position: 'relative', zIndex: 2 }}>
             <div
               style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                width: 440,
-                height: 200,
-                borderRadius: '50%',
-                border: '1px dashed rgba(185,103,255,0.34)',
-                animation: 'emxLogoOrbitReverse 9s linear infinite',
+                color,
+                fontSize: 12,
+                letterSpacing: 9,
+                fontWeight: 900,
+                textShadow: `0 0 18px ${color}`,
+                marginBottom: 32,
               }}
-            />
+            >
+              EMX PERFORMANCE TERMINAL
+            </div>
 
             <div
               style={{
                 position: 'relative',
-                zIndex: 2,
-                animation: 'emxLogoFloatBounce 2.2s ease-in-out infinite',
+                width: 460,
+                maxWidth: '100%',
+                height: 220,
+                display: 'grid',
+                placeItems: 'center',
+                marginBottom: 16,
               }}
             >
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  width: 420,
+                  height: 180,
+                  borderRadius: '50%',
+                  border: `1px solid ${color}55`,
+                  boxShadow: `0 0 35px ${color}26, inset 0 0 26px rgba(185,103,255,0.18)`,
+                  animation: 'emxAuthOrbit 7s linear infinite',
+                }}
+              />
+
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  width: 520,
+                  height: 230,
+                  borderRadius: '50%',
+                  border: '1px dashed rgba(57,255,20,0.35)',
+                  animation: 'emxAuthOrbitReverse 11s linear infinite',
+                }}
+              />
+
               {!logoFailed ? (
                 <img
                   src={EMX_LOGO_SRC}
                   alt="EMX"
                   onError={() => setLogoFailed(true)}
                   style={{
-                    width: 356,
-                    maxHeight: 188,
+                    width: 390,
+                    maxWidth: '92%',
+                    maxHeight: 200,
                     objectFit: 'contain',
-                    animation: 'emxLogoPulseGlow 1.7s ease-in-out infinite',
+                    animation: 'emxAuthLogo 2.15s ease-in-out infinite',
                   }}
                 />
               ) : (
                 <div
                   style={{
                     color: '#fff',
-                    fontSize: '4.8rem',
+                    fontSize: 86,
                     fontWeight: 900,
-                    letterSpacing: 14,
-                    animation: 'emxFallbackGlow 2.25s ease-in-out infinite',
+                    letterSpacing: 18,
+                    textShadow: `0 0 40px ${color}`,
                   }}
                 >
                   EMX
@@ -618,85 +483,56 @@ const canSubmit = isRegistering
               )}
             </div>
 
+            <h1
+              style={{
+                margin: 0,
+                color: '#fff',
+                fontSize: 'clamp(3.3rem, 5vw, 6rem)',
+                lineHeight: 0.92,
+                letterSpacing: 10,
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                textShadow: `0 0 34px ${color}70, 0 0 90px rgba(185,103,255,0.28)`,
+              }}
+            >
+              Elite Aim
+              <br />
+              Control
+            </h1>
+
             <div
               style={{
-                position: 'absolute',
-                inset: '18px -30px',
-                background: `linear-gradient(90deg, transparent, ${color}24, rgba(255,255,255,0.42), rgba(185,103,255,0.28), transparent)`,
-                mixBlendMode: 'screen',
-                animation: 'emxLogoSweep 2.45s ease-in-out infinite',
-                pointerEvents: 'none',
+                width: 'min(560px, 100%)',
+                height: 1,
+                margin: '28px 0',
+                background: `linear-gradient(90deg, ${color}, #39ff14, transparent)`,
+                boxShadow: `0 0 18px ${color}`,
               }}
             />
-          </div>
 
-          <h1
-            style={{
-              color: '#fff',
-              fontSize: 'clamp(3.1rem, 5.3vw, 6.2rem)',
-              letterSpacing: 'clamp(4px, 0.55vw, 12px)',
-              lineHeight: 0.93,
-              margin: 0,
-              textTransform: 'uppercase',
-              fontWeight: 900,
-              textShadow: `0 0 30px ${color}6F, 0 0 90px rgba(185,103,255,0.28)`,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            EMX AIM
-            <br />
-            TRAINER
-          </h1>
-
-          <div
-            style={{
-              width: 500,
-              maxWidth: '88%',
-              height: 1,
-              margin: '24px 0',
-              background: `linear-gradient(90deg, ${color}, rgba(185,103,255,0.55), transparent)`,
-              boxShadow: `0 0 22px ${color}`,
-            }}
-          />
-
-          <div
-            style={{
-              color: '#fff',
-              fontSize: 22,
-              lineHeight: 1.25,
-              letterSpacing: 3,
-              maxWidth: 640,
-              textTransform: 'uppercase',
-              fontWeight: 900,
-              textShadow: `0 0 20px ${color}38`,
-              marginBottom: 16,
-            }}
-          >
-            Train sharper. React faster. Lock every shot.
+            <p
+              style={{
+                margin: 0,
+                maxWidth: 640,
+                color: 'rgba(255,255,255,0.72)',
+                fontSize: 14,
+                lineHeight: 1.8,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+              }}
+            >
+              Precision flicks, smooth tracking, reactive switching, custom reticles,
+              performance reports, XP progression, and competitive drill flow.
+            </p>
           </div>
 
           <div
             style={{
-              color: 'rgba(255,255,255,0.72)',
-              fontSize: 14,
-              lineHeight: 1.85,
-              letterSpacing: 2,
-              maxWidth: 650,
-              textTransform: 'uppercase',
-            }}
-          >
-            EMX Aim Trainer is built for serious mouse control: precision flicks,
-            smooth tracking, reaction drills, weapon profiles, custom crosshairs,
-            performance reports, and 360 training arenas tuned for competitive aim.
-          </div>
-
-          <div
-            style={{
+              position: 'relative',
+              zIndex: 2,
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
               gap: 10,
-              marginTop: 28,
-              maxWidth: 690,
             }}
           >
             {[
@@ -709,53 +545,30 @@ const canSubmit = isRegistering
                 key={label}
                 style={{
                   padding: '13px 14px',
-                  border: `1px solid ${color}34`,
-                  borderLeft: `4px solid ${index % 2 === 0 ? color : '#b967ff'}`,
-                  background:
-                    'linear-gradient(180deg, rgba(255,255,255,0.045), rgba(0,0,0,0.44))',
-                  backdropFilter: 'blur(18px)',
-                  WebkitBackdropFilter: 'blur(18px)',
+                  minHeight: 62,
                   borderRadius: 12,
-                  boxShadow: `0 0 18px ${color}12, inset 0 0 18px rgba(255,255,255,0.025)`,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  animation: `emxFeatureCardIn 0.52s ease both`,
-                  animationDelay: `${index * 90}ms`,
+                  border: `1px solid ${index % 2 === 0 ? color : '#39ff14'}55`,
+                  background: 'rgba(0,0,0,0.38)',
+                  boxShadow: `0 0 18px ${index % 2 === 0 ? color : '#39ff14'}14`,
                 }}
               >
                 <div
                   style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 2,
-                    background: `linear-gradient(90deg, ${color}, #b967ff)`,
-                    transformOrigin: 'left',
-                    animation: `emxBootBar ${1.8 + index * 0.24}s ease-in-out infinite`,
-                    boxShadow: `0 0 16px ${color}`,
-                  }}
-                />
-
-                <div
-                  style={{
-                    color: 'rgba(255,255,255,0.44)',
+                    color: 'rgba(255,255,255,0.4)',
                     fontSize: 10,
                     letterSpacing: 3,
-                    marginBottom: 8,
                     fontWeight: 900,
+                    marginBottom: 7,
                   }}
                 >
                   {label}
                 </div>
-
                 <div
                   style={{
-                    color: index % 2 === 0 ? color : '#b967ff',
-                    fontSize: 13,
-                    fontWeight: 900,
+                    color: index % 2 === 0 ? color : '#39ff14',
+                    fontSize: 12,
                     letterSpacing: 2,
-                    textShadow: `0 0 12px ${index % 2 === 0 ? color : '#b967ff'}`,
+                    fontWeight: 900,
                   }}
                 >
                   {value}
@@ -763,41 +576,26 @@ const canSubmit = isRegistering
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div
-          className="emx-login-panel"
+        <section
           style={{
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.58) 24%, rgba(0,0,0,0.82))',
-            backdropFilter: 'blur(28px) saturate(1.24)',
-            WebkitBackdropFilter: 'blur(28px) saturate(1.24)',
-            border: '1px solid rgba(255, 255, 255, 0.13)',
-            borderTop: `2px solid ${color}`,
-            borderRadius: 20,
-            padding: 34,
-            boxShadow: `
-              0 28px 70px rgba(0,0,0,0.68),
-              0 0 42px ${color}18,
-              0 0 58px rgba(185,103,255,0.14),
-              inset 0 0 0 1px rgba(255,255,255,0.045),
-              inset 0 0 42px ${color}0F
-            `,
-            width: '100%',
             position: 'relative',
+            borderRadius: 26,
+            border: '1px solid rgba(255,255,255,0.13)',
+            borderTop: `2px solid ${color}`,
+            background:
+              'linear-gradient(180deg, rgba(255,255,255,0.11), rgba(0,0,0,0.72) 22%, rgba(0,0,0,0.9))',
+            boxShadow: `0 30px 90px rgba(0,0,0,0.68), 0 0 54px ${color}18, inset 0 0 0 1px rgba(255,255,255,0.045)`,
             overflow: 'hidden',
+            padding: 32,
           }}
         >
           <div
             style={{
               position: 'absolute',
-              top: -80,
-              left: '50%',
-              width: 360,
-              height: 180,
-              transform: 'translateX(-50%)',
-              background: `radial-gradient(circle, ${color}32, transparent 68%)`,
-              filter: 'blur(16px)',
+              inset: 0,
+              background: `radial-gradient(circle at 50% 0%, ${color}24, transparent 48%)`,
               pointerEvents: 'none',
             }}
           />
@@ -807,196 +605,119 @@ const canSubmit = isRegistering
               position: 'absolute',
               top: 0,
               bottom: 0,
-              width: 90,
-              background: `linear-gradient(90deg, transparent, ${color}1E, rgba(255,255,255,0.18), transparent)`,
-              animation: 'emxCardSheen 3.4s ease-in-out infinite',
+              width: 110,
+              background: `linear-gradient(90deg, transparent, ${color}22, rgba(255,255,255,0.18), transparent)`,
+              animation: 'emxAuthSheen 3.7s ease-in-out infinite',
               pointerEvents: 'none',
             }}
           />
 
-          <div style={{ position: 'absolute', top: -2, left: -2, width: 28, height: 28, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}`, borderRadius: '20px 0 0 0' }} />
-          <div style={{ position: 'absolute', top: -2, right: -2, width: 28, height: 28, borderTop: `2px solid #b967ff`, borderRight: `2px solid #b967ff`, borderRadius: '0 20px 0 0' }} />
-          <div style={{ position: 'absolute', bottom: -2, left: -2, width: 28, height: 28, borderBottom: `2px solid #b967ff`, borderLeft: `2px solid #b967ff`, borderRadius: '0 0 0 20px' }} />
-          <div style={{ position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}`, borderRadius: '0 0 20px 0' }} />
-
           <div style={{ position: 'relative', zIndex: 2 }}>
             <div
-              className="emx-login-logo-zone"
               style={{
                 display: 'grid',
                 justifyItems: 'center',
-                marginBottom: 22,
+                marginBottom: 20,
               }}
             >
-              <div
-                style={{
-                  position: 'relative',
-                  width: 188,
-                  height: 100,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <div
+              {!logoFailed ? (
+                <img
+                  src={EMX_LOGO_SRC}
+                  alt="EMX"
+                  onError={() => setLogoFailed(true)}
                   style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    width: 158,
-                    height: 72,
-                    borderRadius: '50%',
-                    border: `1px solid ${color}50`,
-                    boxShadow: `0 0 20px ${color}24, inset 0 0 16px rgba(185,103,255,0.18)`,
-                    animation: 'emxLogoOrbit 5.4s linear infinite',
+                    width: 185,
+                    maxHeight: 105,
+                    objectFit: 'contain',
+                    animation: 'emxAuthLogo 2.15s ease-in-out infinite',
                   }}
                 />
-
-                <div
-                  style={{
-                    position: 'relative',
-                    zIndex: 2,
-                    animation: 'emxLogoFloatBounce 2.2s ease-in-out infinite',
-                  }}
-                >
-                  {!logoFailed ? (
-                    <img
-                      src={EMX_LOGO_SRC}
-                      alt="EMX"
-                      onError={() => setLogoFailed(true)}
-                      style={{
-                        width: 162,
-                        maxHeight: 96,
-                        objectFit: 'contain',
-                        animation: 'emxLogoPulseGlow 1.7s ease-in-out infinite',
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        color: '#fff',
-                        fontSize: '2.7rem',
-                        fontWeight: 900,
-                        letterSpacing: 9,
-                        animation: 'emxFallbackGlow 2.35s ease-in-out infinite',
-                      }}
-                    >
-                      EMX
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: '18px -20px',
-                    background: `linear-gradient(90deg, transparent, ${color}25, rgba(255,255,255,0.34), rgba(185,103,255,0.24), transparent)`,
-                    mixBlendMode: 'screen',
-                    animation: 'emxLogoSweep 2.45s ease-in-out infinite',
-                    pointerEvents: 'none',
-                  }}
-                />
-              </div>
+              ) : (
+                <div style={{ color: '#fff', fontSize: 42, fontWeight: 900 }}>EMX</div>
+              )}
 
               <div
                 style={{
                   color,
                   fontSize: 10,
-                  fontWeight: 900,
                   letterSpacing: 5,
-                  textShadow: `0 0 14px ${color}`,
-                  textTransform: 'uppercase',
+                  fontWeight: 900,
+                  textShadow: `0 0 16px ${color}`,
+                  marginTop: 4,
                 }}
               >
-                EMX ACCESS PORTAL
+                SECURE ACCESS PORTAL
               </div>
             </div>
 
             <div
               style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
                 gap: 8,
-                marginBottom: 24,
                 padding: 5,
-                background: 'rgba(0,0,0,0.38)',
+                background: 'rgba(0,0,0,0.46)',
                 border: '1px solid rgba(255,255,255,0.09)',
-                borderRadius: 13,
+                borderRadius: 14,
+                marginBottom: 22,
               }}
             >
-              <button
-                type="button"
-                className="emx-auth-tab"
-                onClick={() => {
-                  setIsRegistering(false);
-                  setErrorMsg('');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px 10px',
-                  border: isRegistering ? '1px solid transparent' : `1px solid ${color}`,
-                  borderRadius: 9,
-                  background: isRegistering
-                    ? 'rgba(255,255,255,0.025)'
-                    : `linear-gradient(90deg, ${color}, #b967ff)`,
-                  color: isRegistering ? 'rgba(255,255,255,0.62)' : '#000',
-                  cursor: 'pointer',
-                  fontWeight: 900,
-                  letterSpacing: 3,
-                  transition: 'all 0.2s',
-                }}
-              >
-                LOGIN
-              </button>
+              {([
+                [false, 'LOGIN'],
+                [true, 'REGISTER'],
+              ] as const).map(([mode, label]) => {
+                const active = isRegistering === mode;
 
-              <button
-                type="button"
-                className="emx-auth-tab"
-                onClick={() => {
-                  setIsRegistering(true);
-                  setErrorMsg('');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px 10px',
-                  border: isRegistering ? `1px solid ${color}` : '1px solid transparent',
-                  borderRadius: 9,
-                  background: isRegistering
-                    ? `linear-gradient(90deg, ${color}, #b967ff)`
-                    : 'rgba(255,255,255,0.025)',
-                  color: isRegistering ? '#000' : 'rgba(255,255,255,0.62)',
-                  cursor: 'pointer',
-                  fontWeight: 900,
-                  letterSpacing: 3,
-                  transition: 'all 0.2s',
-                }}
-              >
-                REGISTER
-              </button>
+                return (
+                  <button
+                    key={label as string}
+                    type="button"
+                    onClick={() => {
+                      setIsRegistering(Boolean(mode));
+                      setErrorMsg('');
+                    }}
+                    className="emx-auth-ghost"
+                    style={{
+                      padding: '13px 10px',
+                      borderRadius: 10,
+                      border: `1px solid ${active ? color : 'transparent'}`,
+                      background: active
+                        ? `linear-gradient(90deg, ${color}, #b967ff)`
+                        : 'rgba(255,255,255,0.025)',
+                      color: active ? '#000' : 'rgba(255,255,255,0.62)',
+                      cursor: 'pointer',
+                      fontWeight: 900,
+                      letterSpacing: 3,
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
 
             <h2
               style={{
-                margin: '0 0 22px 0',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                margin: '0 0 20px',
                 paddingBottom: 15,
-                letterSpacing: 4,
-                fontSize: '1.02rem',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
                 color: '#fff',
+                fontSize: 16,
+                letterSpacing: 4,
                 display: 'flex',
                 alignItems: 'center',
-                textShadow: '0 0 18px rgba(255,255,255,0.24)',
+                gap: 9,
               }}
             >
-              <span style={{ color, marginRight: 10 }}>&gt;</span>
-              {isRegistering ? 'INIT_NEW_OPERATIVE' : 'DECRYPT_CREDENTIALS'}
+              <span style={{ color }}>{'>'}</span>
+              {isRegistering ? 'CREATE_OPERATIVE' : 'DECRYPT_CREDENTIALS'}
               <span
                 style={{
-                  display: 'inline-block',
                   width: 8,
                   height: 18,
                   background: color,
-                  marginLeft: 8,
-                  animation: 'emxTerminalBlink 1s step-end infinite',
                   boxShadow: `0 0 16px ${color}`,
+                  animation: 'emxAuthBlink 1s step-end infinite',
                 }}
               />
             </h2>
@@ -1004,168 +725,108 @@ const canSubmit = isRegistering
             {errorMsg && (
               <div
                 style={{
-                  background: 'rgba(255, 0, 85, 0.15)',
-                  border: '1px solid rgba(255, 0, 85, 0.44)',
+                  padding: 13,
+                  marginBottom: 16,
+                  borderRadius: 10,
+                  border: '1px solid rgba(255,0,85,0.48)',
                   borderLeft: '4px solid #ff0055',
-                  color: '#ffb4c5',
-                  padding: 14,
-                  marginBottom: 20,
-                  fontSize: '0.78rem',
-                  textTransform: 'uppercase',
+                  background: 'rgba(255,0,85,0.14)',
+                  color: '#ffbed0',
+                  fontSize: 12,
                   letterSpacing: 1,
-                  borderRadius: 9,
-                  textShadow: '0 0 10px rgba(255,0,85,0.48)',
+                  textTransform: 'uppercase',
                 }}
               >
                 [ERROR] {errorMsg}
               </div>
             )}
 
-            <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div style={{ position: 'relative' }}>
-  <label
-    style={{
-      display: 'block',
-      marginBottom: 9,
-      color: 'rgba(255,255,255,0.58)',
-      fontSize: '0.7rem',
-      letterSpacing: 3,
-      fontWeight: 900,
-    }}
-  >
-    {isRegistering ? 'CREATE DISPLAY NAME' : 'DISPLAY NAME'}
-  </label>
+            <form onSubmit={handleAuth} style={{ display: 'grid', gap: 16 }}>
+              <AuthField label={isRegistering ? 'CREATE DISPLAY NAME' : 'DISPLAY NAME'}>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  maxLength={16}
+                  placeholder={isRegistering ? 'Enter callsign...' : 'Optional callsign...'}
+                  required={isRegistering}
+                  className="emx-auth-field"
+                  autoComplete="nickname"
+                  style={fieldStyle(color, true)}
+                />
+                <div
+                  style={{
+                    marginTop: 7,
+                    color: 'rgba(255,255,255,0.35)',
+                    fontSize: 10,
+                    letterSpacing: 2,
+                    lineHeight: 1.45,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {isRegistering
+                    ? 'This name appears on your EMX profile.'
+                    : 'Optional. Blank uses your saved profile name.'}
+                </div>
+              </AuthField>
 
-  <input
-    type="text"
-    value={username}
-    onChange={(e) => setUsername(e.target.value)}
-    maxLength={16}
-    placeholder={isRegistering ? 'Enter Gamertag...' : 'Optional Display Name...'}
-    required={isRegistering}
-    className="emx-auth-input"
-    autoComplete="nickname"
-    style={{
-      width: '100%',
-      padding: 16,
-      background: 'rgba(0,0,0,0.48)',
-      color,
-      border: '1px solid rgba(255,255,255,0.14)',
-      borderRadius: 10,
-      outline: 'none',
-      fontFamily: 'inherit',
-      fontSize: '1.04rem',
-      transition: 'all 0.24s',
-      fontWeight: 900,
-      letterSpacing: 1,
-      boxShadow: 'inset 0 0 20px rgba(0,0,0,0.62)',
-    }}
-  />
-
-  <div
-    style={{
-      marginTop: 8,
-      color: 'rgba(255,255,255,0.34)',
-      fontSize: '0.68rem',
-      letterSpacing: 2,
-      lineHeight: 1.45,
-      textTransform: 'uppercase',
-    }}
-  >
-    {isRegistering
-      ? 'This name will show on your EMX profile.'
-      : 'Optional. Leave blank to use your saved profile name.'}
-  </div>
-</div>
-
-              <div style={{ position: 'relative' }}>
-                <label style={{ display: 'block', marginBottom: 9, color: 'rgba(255,255,255,0.58)', fontSize: '0.7rem', letterSpacing: 3, fontWeight: 900 }}>
-                  NETWORK EMAIL
-                </label>
-
+              <AuthField label="NETWORK EMAIL">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="agent@network.com"
                   required
-                  className="emx-auth-input"
+                  className="emx-auth-field"
                   autoComplete="email"
-                  style={{
-                    width: '100%',
-                    padding: 16,
-                    background: 'rgba(0,0,0,0.48)',
-                    color: '#fff',
-                    border: '1px solid rgba(255,255,255,0.14)',
-                    borderRadius: 10,
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                    fontSize: '1rem',
-                    transition: 'all 0.24s',
-                    boxShadow: 'inset 0 0 20px rgba(0,0,0,0.62)',
-                  }}
+                  style={fieldStyle(color)}
                 />
-              </div>
+              </AuthField>
 
-              <div style={{ position: 'relative' }}>
-                <label style={{ display: 'block', marginBottom: 9, color: 'rgba(255,255,255,0.58)', fontSize: '0.7rem', letterSpacing: 3, fontWeight: 900 }}>
-                  ACCESS KEY
-                </label>
-
+              <AuthField label="ACCESS KEY">
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="********"
                     required
-                    className="emx-auth-input"
+                    className="emx-auth-field"
                     autoComplete={isRegistering ? 'new-password' : 'current-password'}
                     style={{
-                      width: '100%',
-                      padding: '16px 94px 16px 16px',
-                      background: 'rgba(0,0,0,0.48)',
-                      color,
-                      border: '1px solid rgba(255,255,255,0.14)',
-                      borderRadius: 10,
-                      outline: 'none',
-                      fontFamily: 'inherit',
-                      fontSize: '1.04rem',
-                      transition: 'all 0.24s',
+                      ...fieldStyle(color, true),
+                      paddingRight: 90,
                       letterSpacing: showPassword ? 1 : 5,
-                      boxShadow: 'inset 0 0 20px rgba(0,0,0,0.62)',
                     }}
                   />
 
                   <button
                     type="button"
-                    className="emx-password-btn"
                     onClick={() => setShowPassword((prev) => !prev)}
+                    className="emx-auth-ghost"
                     style={{
                       position: 'absolute',
-                      right: 9,
+                      right: 8,
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      padding: '8px 12px',
-                      border: `1px solid ${color}55`,
+                      padding: '8px 11px',
                       borderRadius: 8,
-                      background: 'rgba(0,0,0,0.72)',
+                      border: `1px solid ${color}55`,
+                      background: 'rgba(0,0,0,0.66)',
                       color,
                       cursor: 'pointer',
                       fontWeight: 900,
                       letterSpacing: 2,
                       fontSize: 11,
-                      transition: 'all 0.18s ease',
                     }}
                   >
                     {showPassword ? 'HIDE' : 'SHOW'}
                   </button>
                 </div>
-              </div>
+              </AuthField>
 
               <button
                 type="button"
-                className="emx-remember-toggle"
                 onClick={() => {
                   const next = !rememberMe;
                   setRememberMe(next);
@@ -1178,33 +839,30 @@ const canSubmit = isRegistering
                     });
                   }
                 }}
+                className="emx-auth-ghost"
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 14,
-                  padding: '12px 14px',
-                  border: `1px solid ${rememberMe ? color : 'rgba(255,255,255,0.16)'}`,
-                  borderRadius: 10,
-                  background: rememberMe ? `${color}12` : 'rgba(0,0,0,0.32)',
+                  alignItems: 'center',
+                  padding: '13px 14px',
+                  borderRadius: 11,
+                  border: `1px solid ${rememberMe ? color : 'rgba(255,255,255,0.14)'}`,
+                  background: rememberMe ? `${color}13` : 'rgba(0,0,0,0.36)',
                   color: rememberMe ? color : 'rgba(255,255,255,0.62)',
                   cursor: 'pointer',
                   fontWeight: 900,
                   letterSpacing: 2,
-                  transition: 'all 0.18s ease',
                 }}
               >
                 <span>REMEMBER ME</span>
-
                 <span
                   style={{
                     width: 44,
                     height: 22,
                     borderRadius: 999,
-                    border: `1px solid ${rememberMe ? color : 'rgba(255,255,255,0.22)'}`,
-                    background: rememberMe ? `${color}22` : 'rgba(0,0,0,0.65)',
+                    border: `1px solid ${rememberMe ? color : 'rgba(255,255,255,0.2)'}`,
+                    background: rememberMe ? `${color}24` : 'rgba(0,0,0,0.65)',
                     position: 'relative',
-                    boxShadow: rememberMe ? `0 0 16px ${color}55` : 'none',
                   }}
                 >
                   <span
@@ -1215,8 +873,8 @@ const canSubmit = isRegistering
                       width: 14,
                       height: 14,
                       borderRadius: '50%',
-                      background: rememberMe ? color : 'rgba(255,255,255,0.45)',
-                      boxShadow: rememberMe ? `0 0 12px ${color}` : 'none',
+                      background: rememberMe ? color : 'rgba(255,255,255,0.46)',
+                      boxShadow: rememberMe ? `0 0 14px ${color}` : 'none',
                       transition: 'left 0.18s ease',
                     }}
                   />
@@ -1225,32 +883,32 @@ const canSubmit = isRegistering
 
               <button
                 type="submit"
-                className="emx-auth-submit"
                 disabled={isProcessing || !canSubmit}
+                className="emx-auth-action"
                 style={{
-                  marginTop: 7,
+                  marginTop: 4,
                   padding: 18,
+                  borderRadius: 12,
+                  border: `1px solid ${isProcessing || !canSubmit ? 'rgba(255,255,255,0.1)' : color}`,
                   background:
                     isProcessing || !canSubmit
                       ? 'rgba(255,255,255,0.035)'
-                      : `linear-gradient(45deg, ${color}24, rgba(185,103,255,0.18))`,
-                  border: `1px solid ${isProcessing || !canSubmit ? 'rgba(255,255,255,0.10)' : color}`,
-                  borderRadius: 10,
+                      : `linear-gradient(90deg, ${color}22, rgba(57,255,20,0.12), rgba(185,103,255,0.18))`,
                   color: isProcessing || !canSubmit ? 'rgba(255,255,255,0.28)' : color,
-                  fontWeight: 900,
-                  fontSize: '1rem',
                   cursor: isProcessing || !canSubmit ? 'not-allowed' : 'pointer',
+                  fontWeight: 900,
+                  fontSize: 15,
                   letterSpacing: 4,
-                  transition: 'all 0.24s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                  boxShadow: isProcessing || !canSubmit ? 'none' : `0 0 20px ${color}22`,
                   textTransform: 'uppercase',
+                  boxShadow: isProcessing || !canSubmit ? 'none' : `0 0 24px ${color}22`,
+                  transition: 'all 0.22s ease',
                 }}
               >
                 {isProcessing
                   ? 'CONNECTING...'
                   : isRegistering
                     ? 'INITIALIZE ACCOUNT'
-                    : 'DECRYPT & ENTER'}
+                    : 'DECRYPT AND ENTER'}
               </button>
             </form>
 
@@ -1258,34 +916,71 @@ const canSubmit = isRegistering
               style={{
                 marginTop: 24,
                 textAlign: 'center',
-                fontSize: '0.78rem',
-                color: 'rgba(255,255,255,0.38)',
-                letterSpacing: 1,
+                color: 'rgba(255,255,255,0.42)',
+                fontSize: 12,
+                letterSpacing: 2,
               }}
             >
               {isRegistering ? 'ALREADY AN OPERATIVE?' : 'NEED A CALLSIGN?'}
-
-              <span
-                className="emx-auth-link"
+              <button
+                type="button"
                 onClick={() => {
                   setIsRegistering(!isRegistering);
                   setErrorMsg('');
                 }}
+                className="emx-auth-ghost"
                 style={{
-                  color: '#fff',
-                  marginLeft: 12,
-                  cursor: 'pointer',
-                  fontWeight: 900,
-                  transition: 'all 0.2s',
+                  marginLeft: 10,
+                  border: 0,
                   borderBottom: `1px dashed ${color}`,
+                  background: 'transparent',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  fontWeight: 900,
+                  letterSpacing: 2,
                 }}
               >
                 {isRegistering ? 'LOGIN' : 'REGISTER'}
-              </span>
+              </button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
 }
+
+function AuthField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label style={{ display: 'grid', gap: 8 }}>
+      <span
+        style={{
+          color: 'rgba(255,255,255,0.55)',
+          fontSize: 11,
+          letterSpacing: 3,
+          fontWeight: 900,
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const fieldStyle = (color: string, accent = false): CSSProperties => ({
+  width: '100%',
+  padding: 15,
+  borderRadius: 11,
+  border: '1px solid rgba(255,255,255,0.14)',
+  background: 'rgba(0,0,0,0.52)',
+  color: accent ? color : '#fff',
+  outline: 'none',
+  fontFamily: 'inherit',
+  fontSize: 15,
+  fontWeight: accent ? 900 : 700,
+  letterSpacing: 1,
+  boxShadow: 'inset 0 0 20px rgba(0,0,0,0.62)',
+  transition: 'all 0.2s ease',
+});

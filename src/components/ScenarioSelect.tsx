@@ -1,7 +1,8 @@
-import { useStore } from '../store/useStore';
+import { useStore, playUiSound, unlockAudio } from '../store/useStore';
 import { useState, useEffect, useMemo } from 'react';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { TRAINING_ROUTINES, getScenarioLaunchSettings } from '../store/scenarioData';
 
 const EMX_LOGO_SRC = '/emx-logo.png';
 
@@ -10,24 +11,41 @@ const SCENARIOS = [
   { id: 'gridshot_standard', name: 'WALL GRIDSHOT', desc: 'Standard 3-target flicking.', type: 'FLICK' },
   { id: 'gridshot_ultimate', name: 'GRIDSHOT ULTIMATE', desc: 'Faster spawns, more targets.', type: 'FLICK' },
   { id: 'gridshot_precision', name: 'GRIDSHOT PRECISION', desc: 'Tiny targets for micro-flicks.', type: 'PRECISION' },
+  { id: 'sixshot_precision', name: 'SIXSHOT PRECISION', desc: 'Six tiny targets for clean click timing.', type: 'PRECISION' },
+  { id: 'tile_frenzy', name: 'TILE FRENZY', desc: 'Large high-speed wall targets for raw speed.', type: 'FLICK' },
+  { id: 'tile_frenzy_mini', name: 'TILE FRENZY MINI', desc: 'Smaller tile field for speed plus accuracy.', type: 'PRECISION' },
+  { id: 'multishot_speed', name: 'MULTISHOT SPEED', desc: 'Dense target field with fast confirmation rhythm.', type: 'FLICK' },
   { id: 'microflick_standard', name: 'MICROFLICK', desc: 'Clustered precision focus.', type: 'PRECISION' },
   { id: 'microflick_react', name: 'MICROFLICK REACT', desc: 'Tiny targets that vanish quickly.', type: 'REACTION' },
   { id: 'microflick_track', name: 'MICROFLICK TRACK', desc: 'Tiny moving targets.', type: 'PRECISION' },
+  { id: 'microshot_speed', name: 'MICROSHOT SPEED', desc: 'Rapid small-target confirmations.', type: 'PRECISION' },
+  { id: 'headshot_only', name: 'HEADSHOT ONLY', desc: 'Humanoid precision drill built around head conversion.', type: 'PRECISION' },
   { id: 'tracking_dynamic', name: 'DYNAMIC TRACKING', desc: 'Evasive strafing AI.', type: 'TRACKING' },
   { id: 'tracking_smooth', name: 'SMOOTH TRACKING', desc: 'Long, predictable strafes.', type: 'TRACKING' },
   { id: 'tracking_fast', name: 'FAST TRACKING', desc: 'Aggressive, rapid direction changes.', type: 'TRACKING' },
+  { id: 'tracking_long_strafe', name: 'LONG STRAFE TRACK', desc: 'Wide predictable strafes for smooth mouse control.', type: 'TRACKING' },
+  { id: 'tracking_dodge', name: 'DODGE TRACKING', desc: 'Targets dodge with short unpredictable bursts.', type: 'TRACKING' },
+  { id: 'tracking_sphere', name: 'SPHERE TRACKING', desc: 'Floating target with mixed horizontal and vertical motion.', type: 'TRACKING' },
+  { id: 'switchtrack_standard', name: 'SWITCHTRACK', desc: 'Swap between multiple moving targets cleanly.', type: 'TRACKING' },
+  { id: 'switchtrack_micro', name: 'MICRO SWITCHTRACK', desc: 'Small moving targets for fast tracking swaps.', type: 'TRACKING' },
   { id: 'popcorn_standard', name: 'POPCORN', desc: 'Vertical gravity arcs.', type: 'TIMING' },
   { id: 'popcorn_small', name: 'POPCORN PRECISION', desc: 'Tiny vertical arcs.', type: 'PRECISION' },
   { id: 'popcorn_heavy', name: 'POPCORN HEAVY', desc: 'Fast fall rate gravity.', type: 'TIMING' },
+  { id: 'pasu_standard', name: 'PASU JUMP', desc: 'Airborne targets with lateral drift and vertical timing.', type: 'DYNAMIC' },
+  { id: 'vertical_switch', name: 'VERTICAL SWITCH', desc: 'High-low target swaps for elevation control.', type: 'DYNAMIC' },
   { id: 'flick360_standard', name: '360 AWARENESS', desc: 'Targets spawn all around you.', type: 'FLICK' },
   { id: 'flick360_react', name: '360 REACT', desc: 'Fast disappearing surround targets.', type: 'REACTION' },
   { id: 'flick360_tracking', name: '360 TRACKING', desc: 'Moving targets behind you.', type: 'TRACKING' },
+  { id: 'flick360_precision', name: '360 PRECISION', desc: 'Small surround targets for controlled turns.', type: 'PRECISION' },
   { id: 'spidershot_standard', name: 'SPIDERSHOT', desc: 'Center-return flicking.', type: 'FLICK' },
   { id: 'spidershot_180', name: 'SPIDERSHOT 180', desc: 'Wide angle center returns.', type: 'FLICK' },
   { id: 'spidershot_rapid', name: 'SPIDERSHOT RAPID', desc: 'Fast paced center returns.', type: 'REACTION' },
+  { id: 'spidershot_precision', name: 'SPIDERSHOT PRECISION', desc: 'Tiny center-return flicks.', type: 'PRECISION' },
   { id: 'motionshot_standard', name: 'MOTIONSHOT', desc: 'Targets drift after spawning.', type: 'DYNAMIC' },
   { id: 'motionshot_fast', name: 'MOTIONSHOT FAST', desc: 'High speed linear drift.', type: 'DYNAMIC' },
   { id: 'motionshot_small', name: 'MOTIONSHOT PRECISION', desc: 'Tiny drifting targets.', type: 'PRECISION' },
+  { id: 'reactive_switch', name: 'REACTIVE SWITCH', desc: 'Targets appear in quick alternating lanes.', type: 'REACTION' },
+  { id: 'close_strafe_flick', name: 'CLOSE STRAFE FLICK', desc: 'Close targets with lateral motion and fast scoring.', type: 'FLICK' },
   { id: 'snipershot_standard', name: 'SNIPERSHOT', desc: 'Long distance, high penalty.', type: 'PRECISION' },
   { id: 'snipershot_moving', name: 'SNIPERSHOT MOVING', desc: 'Distant moving targets.', type: 'PRECISION' },
   { id: 'snipershot_react', name: 'SNIPERSHOT REACT', desc: 'Distant targets vanish quickly.', type: 'REACTION' },
@@ -65,36 +83,75 @@ const getTypeAccent = (type: string, color: string) => {
 
 export default function ScenarioSelect() {
   const store = useStore();
-  const { color, setSettings, goToCustomizer, username } = store;
+  const {
+    color,
+    setSettings,
+    goToCustomizer,
+    username,
+    xp,
+    level,
+    xpToNextLevel,
+    totalSessions,
+    totalHitsLifetime,
+    totalHeadshotsLifetime,
+    bestScoreOverall,
+    dailyStreak,
+    badges,
+    recentSessions,
+  } = store;
 
   const [copied, setCopied] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState<any>(null);
   const [isInstalling, setIsInstalling] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [updateTone, setUpdateTone] = useState<'idle' | 'success' | 'error' | 'progress'>('idle');
   const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     check()
       .then((update) => {
-        if (update) setPendingUpdate(update);
+        if (update) {
+          setPendingUpdate(update);
+          setUpdateTone('progress');
+          setUpdateMessage(`Update v${update.version} ready to install.`);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Auto-check should never block the command center.
+      });
   }, []);
 
   const handleManualCheck = async () => {
+    await unlockAudio();
+    playUiSound('soft');
     setIsChecking(true);
+    setUpdateProgress(0);
+    setUpdateTone('progress');
+    setUpdateMessage('Scanning GitHub update channel...');
 
     try {
       const update = await check();
 
       if (update) {
         setPendingUpdate(update);
+        setUpdateProgress(100);
+        setUpdateTone('success');
+        setUpdateMessage(`Update v${update.version} found. Ready to download and install.`);
+        playUiSound('confirm');
       } else {
-        alert('System is currently up to date. No new version found on server.');
+        setUpdateProgress(100);
+        setUpdateTone('success');
+        setUpdateMessage('System is already up to date.');
+        playUiSound('confirm');
       }
     } catch (err) {
-      alert('Network Error: Could not reach update server.');
+      setUpdateProgress(0);
+      setUpdateTone('error');
+      setUpdateMessage('Update check failed. Confirm network access or GitHub release metadata.');
+      playUiSound('error');
     } finally {
       setIsChecking(false);
     }
@@ -104,14 +161,59 @@ export default function ScenarioSelect() {
     if (!pendingUpdate) return;
 
     try {
+      await unlockAudio();
+      playUiSound('confirm');
       setIsInstalling(true);
-      await pendingUpdate.downloadAndInstall();
-      await relaunch();
+      setUpdateProgress(0);
+      setUpdateTone('progress');
+      setUpdateMessage('Downloading secure EMX update package...');
+
+      let downloaded = 0;
+      let contentLength = 0;
+
+      await pendingUpdate.downloadAndInstall((event: any) => {
+        if (event.event === 'Started') {
+          downloaded = 0;
+          contentLength = event.data?.contentLength || 0;
+          setUpdateProgress(contentLength > 0 ? 2 : 12);
+          setUpdateMessage('Download started. Verifying package stream...');
+        }
+
+        if (event.event === 'Progress') {
+          downloaded += event.data?.chunkLength || 0;
+          const percent = contentLength > 0 ? Math.round((downloaded / contentLength) * 92) : 48;
+
+          setUpdateProgress(Math.max(5, Math.min(92, percent)));
+          setUpdateMessage('Installing latest EMX trainer files...');
+        }
+
+        if (event.event === 'Finished') {
+          setUpdateProgress(100);
+          setUpdateMessage('Install complete. Restarting app...');
+        }
+      });
+
+      setUpdateProgress(100);
+      setUpdateTone('success');
+      setUpdateMessage('Update installed. Restarting EMX Aim Trainer...');
+      playUiSound('confirm');
+
+      try {
+        await relaunch();
+      } catch {
+        setIsInstalling(false);
+        setUpdateTone('error');
+        setUpdateMessage('Update installed, but automatic restart failed. Restart the app manually.');
+        playUiSound('error');
+      }
     } catch (error) {
       console.error('Install failed:', error);
       setIsInstalling(false);
       setPendingUpdate(null);
-      alert('Update installation failed. Check network connection.');
+      setUpdateProgress(0);
+      setUpdateTone('error');
+      setUpdateMessage('Update install failed. No files were applied. Try again from a stable connection.');
+      playUiSound('error');
     }
   };
 
@@ -151,6 +253,14 @@ const visibleModules = filteredScenarios.length;
 const DEFAULT_DISPLAY_NAME = 'EMX TWEAKS';
 
 const displayUsername = username?.trim() || DEFAULT_DISPLAY_NAME;
+const currentLevelStartXp = Math.pow(Math.max(1, level) - 1, 2) * 850;
+const nextLevelTargetXp = Math.pow(Math.max(1, level), 2) * 850;
+const levelProgressPct = Math.min(
+  100,
+  Math.round(((xp - currentLevelStartXp) / Math.max(1, nextLevelTargetXp - currentLevelStartXp)) * 100)
+);
+const featuredBadges = badges.slice(-4).reverse();
+const recentSessionPreview = recentSessions.slice(0, 3);
 
 return (
     <div
@@ -635,6 +745,74 @@ return (
             </button>
           )}
 
+          {updateMessage && (
+            <div
+              style={{
+                width: 'min(920px, 86vw)',
+                margin: pendingUpdate ? '-8px auto 0' : '0 auto',
+                padding: '12px 14px',
+                borderRadius: 10,
+                border:
+                  updateTone === 'error'
+                    ? '1px solid rgba(255,0,85,0.62)'
+                    : updateTone === 'success'
+                      ? `1px solid ${color}88`
+                      : '1px solid rgba(0,255,204,0.42)',
+                background:
+                  updateTone === 'error'
+                    ? 'rgba(255,0,85,0.08)'
+                    : 'linear-gradient(135deg, rgba(0,0,0,0.68), rgba(185,103,255,0.1))',
+                boxShadow:
+                  updateTone === 'error'
+                    ? '0 0 22px rgba(255,0,85,0.16)'
+                    : `0 0 22px ${color}18`,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 16,
+                  color: updateTone === 'error' ? '#ff0055' : color,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  fontWeight: 900,
+                }}
+              >
+                <span>UPDATER_STATUS // {updateMessage}</span>
+                <span>{updateProgress}%</span>
+              </div>
+
+              <div
+                style={{
+                  height: 5,
+                  marginTop: 8,
+                  borderRadius: 999,
+                  overflow: 'hidden',
+                  background: 'rgba(255,255,255,0.1)',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${updateProgress}%`,
+                    height: '100%',
+                    borderRadius: 999,
+                    background:
+                      updateTone === 'error'
+                        ? '#ff0055'
+                        : `linear-gradient(90deg, ${color}, #b967ff)`,
+                    boxShadow:
+                      updateTone === 'error'
+                        ? '0 0 12px rgba(255,0,85,0.8)'
+                        : `0 0 12px ${color}`,
+                    transition: 'width 0.18s ease',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <div
             style={{
               display: 'grid',
@@ -648,12 +826,16 @@ return (
                 border: `1px solid ${color}55`,
                 borderLeft: `4px solid ${color}`,
                 borderRadius: 10,
-                background: 'rgba(0,0,0,0.62)',
-                boxShadow: `0 0 18px ${color}18`,
+                background:
+                  'linear-gradient(135deg, rgba(185,103,255,0.16), rgba(0,0,0,0.68))',
+                boxShadow: `0 0 22px ${color}22`,
               }}
             >
-              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>TOTAL_MODULES</div>
-              <div style={{ color: '#fff', fontSize: 22, fontWeight: 900 }}>{totalModules}</div>
+              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>OPERATOR_LEVEL</div>
+              <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>{level}</div>
+              <div style={{ color, fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
+                {xpToNextLevel.toLocaleString()} XP TO NEXT
+              </div>
             </div>
 
             <div
@@ -666,8 +848,11 @@ return (
                 boxShadow: `0 0 18px ${color}18`,
               }}
             >
-              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>MODULES_VISIBLE</div>
-              <div style={{ color: '#fff', fontSize: 22, fontWeight: 900 }}>{visibleModules}</div>
+              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>CAREER_RUNS</div>
+              <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>{totalSessions}</div>
+              <div style={{ color: '#39ff14', fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
+                {dailyStreak} DAY STREAK
+              </div>
             </div>
 
             <div
@@ -680,8 +865,13 @@ return (
                 boxShadow: `0 0 18px ${color}18`,
               }}
             >
-              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>ACTIVE_AGENT</div>
-              <div style={{ color, fontSize: 18, fontWeight: 900 }}>{displayUsername}</div>
+              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>CAREER_HITS</div>
+              <div style={{ color, fontSize: 24, fontWeight: 900 }}>
+                {totalHitsLifetime.toLocaleString()}
+              </div>
+              <div style={{ color: '#ff4df0', fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
+                {totalHeadshotsLifetime.toLocaleString()} HEADSHOTS
+              </div>
             </div>
 
             <div
@@ -694,9 +884,213 @@ return (
                 boxShadow: `0 0 18px ${color}18`,
               }}
             >
-              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>BUILD_CHANNEL</div>
-              <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>EMX_SAFE_REBUILD</div>
+              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>BEST_SCORE</div>
+              <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>
+                {bestScoreOverall.toLocaleString()}
+              </div>
+              <div style={{ color: '#ffd400', fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
+                {visibleModules}/{totalModules} MODULES VISIBLE
+              </div>
             </div>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 1fr',
+              gap: 12,
+              alignItems: 'stretch',
+            }}
+          >
+            <div
+              style={{
+                padding: 16,
+                border: '1px solid rgba(185,103,255,0.36)',
+                borderRadius: 12,
+                background:
+                  'linear-gradient(135deg, rgba(185,103,255,0.14), rgba(0,255,120,0.06), rgba(0,0,0,0.62))',
+                boxShadow: `0 0 28px ${color}18, inset 0 0 30px rgba(255,255,255,0.035)`,
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  alignItems: 'center',
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ color: '#777', fontSize: 11, letterSpacing: 4, fontWeight: 900 }}>
+                  XP_CORE // {xp.toLocaleString()} TOTAL XP
+                </div>
+
+                <div style={{ color, fontSize: 11, letterSpacing: 3, fontWeight: 900 }}>
+                  {levelProgressPct}% SYNCED
+                </div>
+              </div>
+
+              <div
+                style={{
+                  height: 10,
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.08)',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${levelProgressPct}%`,
+                    height: '100%',
+                    borderRadius: 999,
+                    background: `linear-gradient(90deg, #39ff14, ${color}, #ff4df0)`,
+                    boxShadow: `0 0 18px ${color}`,
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                  marginTop: 12,
+                }}
+              >
+                {(featuredBadges.length > 0 ? featuredBadges : ['FIRST DEPLOY']).map((badge) => (
+                  <span
+                    key={badge}
+                    style={{
+                      padding: '7px 10px',
+                      borderRadius: 999,
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      background: 'rgba(255,255,255,0.045)',
+                      color: '#fff',
+                      fontSize: 10,
+                      letterSpacing: 2,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                border: '1px solid rgba(57,255,20,0.25)',
+                borderRadius: 12,
+                background: 'rgba(0,0,0,0.56)',
+                boxShadow: 'inset 0 0 28px rgba(255,255,255,0.028)',
+              }}
+            >
+              <div style={{ color: '#777', fontSize: 11, letterSpacing: 4, fontWeight: 900 }}>
+                RECENT_RUN_STREAM
+              </div>
+
+              <div style={{ display: 'grid', gap: 7, marginTop: 10 }}>
+                {(recentSessionPreview.length > 0
+                  ? recentSessionPreview
+                  : [
+                      {
+                        id: 'empty',
+                        scenario: 'NO RUN LOGGED',
+                        score: 0,
+                        grade: '--',
+                        accuracy: 0,
+                        xpEarned: 0,
+                      },
+                    ]
+                ).map((session) => (
+                  <div
+                    key={session.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto',
+                      gap: 10,
+                      alignItems: 'center',
+                      color: 'rgba(255,255,255,0.76)',
+                      fontSize: 11,
+                      letterSpacing: 2,
+                      fontWeight: 900,
+                    }}
+                  >
+                    <span>{session.scenario.replace(/efect/gi, 'emx').replace(/_/g, ' ')}</span>
+                    <span style={{ color }}>
+                      {session.grade} // {session.score.toLocaleString()} // +{session.xpEarned} XP
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 12,
+            }}
+          >
+            {TRAINING_ROUTINES.slice(0, 3).map((routine) => {
+              const firstStep = routine.steps[0];
+
+              return (
+                <button
+                  key={routine.id}
+                  type="button"
+                  onClick={() => {
+                    setSettings({
+                      ...getScenarioLaunchSettings(firstStep.scenarioId),
+                      drillDuration: firstStep.duration,
+                    });
+                    goToCustomizer();
+                  }}
+                  style={{
+                    minHeight: 104,
+                    padding: 16,
+                    textAlign: 'left',
+                    borderRadius: 14,
+                    border: `1px solid ${color}44`,
+                    borderLeft: `4px solid ${color}`,
+                    background:
+                      'linear-gradient(135deg, rgba(185,103,255,0.16), rgba(0,0,0,0.72))',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    boxShadow: `0 0 24px ${color}12`,
+                  }}
+                >
+                  <div style={{ color, fontSize: 10, letterSpacing: 3, fontWeight: 900 }}>
+                    BENCHMARK_PLAYLIST // {routine.estimatedMinutes} MIN
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 16,
+                      letterSpacing: 3,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {routine.name}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      color: 'rgba(255,255,255,0.58)',
+                      fontSize: 11,
+                      letterSpacing: 1.4,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {firstStep.label}: {firstStep.note}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           <div
@@ -769,7 +1163,7 @@ return (
                     key={scen.id}
                     className="emx-module-card"
                     onClick={() => {
-                      setSettings({ scenario: scen.id });
+                      setSettings(getScenarioLaunchSettings(scen.id));
                       goToCustomizer();
                     }}
                     style={{
