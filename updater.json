@@ -1,7 +1,7 @@
-﻿{
+{
     "platforms":  {
                       "windows-x86_64":  {
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.0/EMX%20Aim%20Trainer_0.3.0_x64-setup.exe",
+                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.0/EMX.Aim.Trainer_0.3.0_x64-setup.exe",
                                              "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVh1ZGtFUFNIU1ZYMk9Cb2lwTjBDT25UTlROM1NPc2pJTDJZYm5XVVFwNDhhTjd0KzJLRUxhZ0txL1R3STdHWUFCSVdKUXpFOGVqd0RqRnZaOGN3N1FVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5MjMwMjYxCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy4wX3g2NC1zZXR1cC5leGUKdDQ2ejQvOXFCaXhzUUxXb1N3OU9zaTdDT1lETVNDTmozYkZ6NUthZlNZNWRCWktWc3Q1MHFKWmNLOFdzendUdXlWYnhFdFBGRWRGdy9wZjlCSEwxQlE9PQo=",
                                              "format":  "nsis"
                                          }

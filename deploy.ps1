@@ -117,6 +117,8 @@ npm run tauri build
 $exeName = "$($config.productName)_$($version)_x64-setup.exe"
 $exePath = ".\src-tauri\target\release\bundle\nsis\$exeName"
 $sigPath = "$exePath.sig"
+$releaseAssetName = $exeName -replace "\s+", "."
+$releaseSigAssetName = "$releaseAssetName.sig"
 
 if (-not (Test-Path $exePath)) {
     throw "Installer not found at $exePath"
@@ -130,7 +132,7 @@ $sig = (Get-Content $sigPath -Raw).Trim()
 Write-Host "Signature generated: $($sig.Substring(0, [Math]::Min(20, $sig.Length)))..." -ForegroundColor Green
 
 Write-Host ">>> Updating updater manifest..." -ForegroundColor Yellow
-$assetName = [System.Uri]::EscapeDataString($exeName)
+$assetName = [System.Uri]::EscapeDataString($releaseAssetName)
 $url = "https://github.com/$repo/releases/download/v$version/$assetName"
 $updater = @{
     version = $version
@@ -145,7 +147,9 @@ $updater = @{
     }
 }
 
-$updater | ConvertTo-Json -Depth 5 | Out-File "updater.json" -Encoding utf8
+$updaterJson = $updater | ConvertTo-Json -Depth 5
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText((Resolve-Path "updater.json"), $updaterJson + [Environment]::NewLine, $utf8NoBom)
 
 Write-Host ">>> Syncing manifest with GitHub..." -ForegroundColor Yellow
 git add updater.json src-tauri/tauri.conf.json
@@ -168,7 +172,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Release v$version already exists. Uploading installer with --clobber." -ForegroundColor DarkYellow
 }
 
-gh release upload "v$version" $exePath --clobber
-gh release upload "v$version" $sigPath --clobber
+gh release upload "v$version" "$exePath#$releaseAssetName" --clobber
+gh release upload "v$version" "$sigPath#$releaseSigAssetName" --clobber
 
 Write-Host "Deployment successful. v$version is live." -ForegroundColor Green
