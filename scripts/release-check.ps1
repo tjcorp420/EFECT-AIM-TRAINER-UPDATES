@@ -69,7 +69,8 @@ if (-not $config.plugins.updater.endpoints -or $config.plugins.updater.endpoints
 if (-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PATH)) {
     if (Test-Path $env:TAURI_SIGNING_PRIVATE_KEY_PATH) {
         Add-Pass "Signing private key path exists"
-        Remove-Item Env:\TAURI_SIGNING_PRIVATE_KEY -ErrorAction SilentlyContinue
+        $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $env:TAURI_SIGNING_PRIVATE_KEY_PATH -Raw).Trim()
+        Remove-Item Env:\TAURI_SIGNING_PRIVATE_KEY_PATH -ErrorAction SilentlyContinue
     } else {
         Add-Failure "TAURI_SIGNING_PRIVATE_KEY_PATH does not exist"
     }
@@ -85,8 +86,7 @@ if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)) {
     Add-Pass "Signing password env var is set"
 }
 
-if ((-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PATH) -or
-    -not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) -and
+if (-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY) -and
     -not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)) {
     $probePath = Join-Path $env:TEMP "emx-updater-sign-probe-$PID.txt"
     Set-Content -LiteralPath $probePath -Value "emx updater signing probe" -Encoding ascii
