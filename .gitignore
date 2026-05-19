@@ -11,6 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+*.key
+*.private
+.release-secrets/
+release-secrets/
+release-artifacts/
 
 # Editor directories and files
 .vscode/*

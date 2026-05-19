@@ -1,0 +1,165 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function optionalString(field, maxLength) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is string &&
+          request.resource.data[field].size() <= maxLength);
+    }
+
+    function optionalNumber(field, minValue, maxValue) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is number &&
+          request.resource.data[field] >= minValue &&
+          request.resource.data[field] <= maxValue);
+    }
+
+    function optionalBool(field) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] is bool;
+    }
+
+    function optionalEnum(field, allowedValues) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] in allowedValues;
+    }
+
+    function validStrictLeaderboardCreate() {
+      return request.resource.data.keys().hasOnly([
+          'uid',
+          'scenario',
+          'username',
+          'score',
+          'accuracy',
+          'timestamp'
+        ]) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.scenario is string &&
+        request.resource.data.scenario.matches('^[a-z0-9_]{1,80}$') &&
+        request.resource.data.username is string &&
+        request.resource.data.username.size() >= 1 &&
+        request.resource.data.username.size() <= 16 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= 10000000 &&
+        request.resource.data.accuracy is int &&
+        request.resource.data.accuracy >= 0 &&
+        request.resource.data.accuracy <= 100 &&
+        request.resource.data.timestamp == request.time;
+    }
+
+    function validLegacyLeaderboardCreate() {
+      return request.resource.data.keys().hasOnly([
+          'scenario',
+          'username',
+          'score',
+          'accuracy',
+          'timestamp'
+        ]) &&
+        request.resource.data.scenario is string &&
+        request.resource.data.scenario.matches('^[a-z0-9_]{1,80}$') &&
+        request.resource.data.username is string &&
+        request.resource.data.username.size() >= 1 &&
+        request.resource.data.username.size() <= 16 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= 10000000 &&
+        request.resource.data.accuracy is int &&
+        request.resource.data.accuracy >= 0 &&
+        request.resource.data.accuracy <= 100 &&
+        request.resource.data.timestamp is timestamp;
+    }
+
+    function validLeaderboardCreate() {
+      return validStrictLeaderboardCreate() || validLegacyLeaderboardCreate();
+    }
+
+    function validArmoryWrite(userId) {
+      return request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly([
+          'color',
+          'size',
+          'thickness',
+          'gap',
+          'dot',
+          'crosshairOutline',
+          'crosshairOpacity',
+          'crosshairGlow',
+          'crosshairDotScale',
+          'crosshairHitReact',
+          'skipClickToBegin',
+          'targetColor',
+          'targetShape',
+          'targetSkinMode',
+          'hitSound',
+          'weaponMode',
+          'bulletEffect',
+          'weaponClass',
+          'targetSpeed',
+          'modelScale',
+          'targetAmount',
+          'targetDistance',
+          'mapTheme',
+          'graphicsQuality',
+          'drillDuration',
+          'musicTrack',
+          'musicVolume',
+          'gameProfile',
+          'gameSens',
+          'fov'
+        ]) &&
+        optionalString('color', 16) &&
+        optionalString('targetColor', 16) &&
+        optionalString('musicTrack', 80) &&
+        optionalEnum('crosshairHitReact', ['off', 'pulse', 'burst']) &&
+        optionalEnum('targetShape', ['sphere', 'cube', 'humanoid']) &&
+        optionalEnum('targetSkinMode', ['custom', 'original']) &&
+        optionalEnum('hitSound', ['tick', 'pop', 'ding', 'crit', 'arcade', 'none']) &&
+        optionalEnum('weaponMode', ['stealth', 'laser']) &&
+        optionalEnum('bulletEffect', ['none', 'tracer', 'plasma', 'spark', 'rail']) &&
+        optionalEnum('weaponClass', ['pistol', 'smg', 'sniper', 'nerf']) &&
+        optionalEnum('graphicsQuality', ['high', 'performance']) &&
+        optionalString('mapTheme', 80) &&
+        optionalString('gameProfile', 40) &&
+        optionalNumber('size', 1, 80) &&
+        optionalNumber('thickness', 1, 30) &&
+        optionalNumber('gap', 0, 80) &&
+        optionalNumber('crosshairOpacity', 0.25, 1) &&
+        optionalNumber('crosshairGlow', 0, 2.5) &&
+        optionalNumber('crosshairDotScale', 0.45, 3.5) &&
+        optionalNumber('targetSpeed', 0.1, 5) &&
+        optionalNumber('modelScale', 0.1, 5) &&
+        optionalNumber('targetAmount', 1, 50) &&
+        optionalNumber('targetDistance', -80, 80) &&
+        optionalNumber('drillDuration', 10, 600) &&
+        optionalNumber('musicVolume', 0, 1) &&
+        optionalNumber('gameSens', 0.01, 100) &&
+        optionalNumber('fov', 60, 130) &&
+        optionalBool('dot') &&
+        optionalBool('crosshairOutline') &&
+        optionalBool('skipClickToBegin');
+    }
+
+    match /leaderboards/{scoreId} {
+      allow get: if true;
+      allow list: if request.query.limit != null && request.query.limit <= 100;
+      allow create: if signedIn() && validLeaderboardCreate();
+      allow update, delete: if false;
+    }
+
+    match /armory/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn() && validArmoryWrite(userId);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -693,6 +693,75 @@ export const playHitSound = (type: string, hitType: HitType = 'normal') => {
   }
 };
 
+export const playWeaponFireSound = (weaponClass: WeaponClass = 'pistol') => {
+  try {
+    const ctx = getAudioContext();
+
+    if (!ctx) return;
+
+    const play = () => {
+      const now = ctx.currentTime;
+      const profile =
+        weaponClass === 'sniper'
+          ? { start: 150, end: 58, duration: 0.16, toneGain: 0.13, noiseGain: 0.08, filter: 520 }
+          : weaponClass === 'smg'
+            ? { start: 230, end: 96, duration: 0.055, toneGain: 0.065, noiseGain: 0.04, filter: 900 }
+            : weaponClass === 'nerf'
+              ? { start: 440, end: 190, duration: 0.075, toneGain: 0.052, noiseGain: 0.024, filter: 1320 }
+              : { start: 260, end: 92, duration: 0.09, toneGain: 0.085, noiseGain: 0.052, filter: 760 };
+
+      const osc = ctx.createOscillator();
+      const toneGain = ctx.createGain();
+      const noiseGain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      const noiseLength = Math.max(1, Math.floor(ctx.sampleRate * profile.duration));
+      const noiseBuffer = ctx.createBuffer(1, noiseLength, ctx.sampleRate);
+      const channel = noiseBuffer.getChannelData(0);
+
+      for (let i = 0; i < noiseLength; i += 1) {
+        channel[i] = (Math.random() * 2 - 1) * (1 - i / noiseLength);
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      osc.type = weaponClass === 'nerf' ? 'triangle' : 'sawtooth';
+      osc.frequency.setValueAtTime(profile.start, now);
+      osc.frequency.exponentialRampToValueAtTime(profile.end, now + profile.duration);
+
+      toneGain.gain.setValueAtTime(profile.toneGain, now);
+      toneGain.gain.exponentialRampToValueAtTime(0.001, now + profile.duration);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(profile.filter, now);
+      filter.Q.setValueAtTime(0.8, now);
+
+      noiseGain.gain.setValueAtTime(profile.noiseGain, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + profile.duration);
+
+      osc.connect(toneGain);
+      toneGain.connect(ctx.destination);
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + profile.duration + 0.01);
+      noise.start(now);
+      noise.stop(now + profile.duration + 0.01);
+    };
+
+    if (ctx.state === 'suspended') {
+      void ctx.resume().then(play).catch(() => null);
+      return;
+    }
+
+    play();
+  } catch {
+    // Weapon fire audio is a cosmetic effect.
+  }
+};
+
 const normalizeSettings = (settings: Partial<GameState>): Partial<GameState> => {
   const next: Partial<GameState> = { ...settings };
 
@@ -1154,6 +1223,7 @@ export const useStore = create<GameState>((set, get) => ({
 
     const ctx = getAudioContext();
     if (ctx?.state === 'suspended') void ctx.resume();
+    playWeaponFireSound(state.weaponClass);
 
     set((current) => {
       const nextShots = current.shots + 1;

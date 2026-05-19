@@ -2372,6 +2372,184 @@ h3 {
   box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.025);
 }
 
+.emx-screen-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(57, 255, 20, 0.10), transparent 32%),
+    rgba(0, 0, 0, 0.92);
+  color: #fff;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  letter-spacing: 4px;
+}
+
+.emx-screen-fallback-mark {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 48px;
+  margin-inline: auto;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 900;
+  text-shadow: 0 0 18px currentColor;
+  box-shadow:
+    0 0 24px currentColor,
+    inset 0 0 24px rgba(255, 255, 255, 0.06);
+  animation: emxFallbackPulse 1.2s ease-in-out infinite;
+}
+
+.emx-screen-fallback-label {
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 0 14px currentColor;
+}
+
+@keyframes emxFallbackPulse {
+  0%, 100% {
+    opacity: 0.58;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* Compact desktop report layout. Keeps the rich report, but shows more at once. */
+.emx-session-shell {
+  padding: 18px 28px 24px;
+}
+
+.emx-session-card {
+  max-height: calc(100vh - 36px);
+  padding: 18px 20px 8px;
+  border-radius: 18px;
+}
+
+.emx-session-header {
+  margin-bottom: 12px;
+}
+
+.emx-session-logo-wrap {
+  width: 150px;
+  height: 88px;
+  margin-bottom: -4px;
+}
+
+.emx-session-logo {
+  width: 136px;
+  max-height: 82px;
+}
+
+.emx-session-kicker {
+  font-size: 10px;
+  letter-spacing: 7px;
+}
+
+.emx-session-title {
+  margin-top: 6px;
+  font-size: clamp(30px, 4vw, 48px);
+  letter-spacing: 10px;
+}
+
+.emx-record-banner {
+  margin-top: 9px;
+  padding: 7px 14px;
+  font-size: 10px;
+}
+
+.emx-report-grid,
+.emx-report-notes {
+  gap: 10px;
+}
+
+.emx-grade-panel,
+.emx-report-score,
+.emx-heatmap-panel {
+  min-height: 190px;
+}
+
+.emx-grade-panel,
+.emx-heatmap-panel {
+  padding: 14px 16px;
+}
+
+.emx-report-stat {
+  min-height: 92px;
+  padding: 13px 15px;
+}
+
+.emx-grade-letter {
+  font-size: clamp(54px, 6.5vw, 86px);
+}
+
+.emx-grade-title {
+  margin-top: 10px;
+  font-size: 15px;
+}
+
+.emx-grade-rank-chip {
+  margin-top: 12px;
+  padding: 8px 14px;
+}
+
+.emx-grade-rank-chip span {
+  font-size: 22px;
+}
+
+.emx-report-value {
+  margin-top: 7px;
+  font-size: clamp(28px, 3vw, 48px);
+}
+
+.emx-report-sub {
+  margin-top: 8px;
+  font-size: 10px;
+}
+
+.emx-heatmap-top {
+  margin-bottom: 8px;
+  font-size: 10px;
+}
+
+.emx-heatmap-bars {
+  min-height: 108px;
+  gap: 6px;
+  padding: 10px 0 8px;
+}
+
+.emx-report-notes {
+  margin-top: 10px;
+}
+
+.emx-report-notes div {
+  padding: 10px 12px;
+  border-radius: 11px;
+}
+
+.emx-session-actions {
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 10px;
+  margin: 12px -10px 0;
+  padding: 12px 10px 4px;
+}
+
+.emx-primary-action,
+.emx-secondary-action {
+  min-height: 52px;
+  border-radius: 10px;
+  font-size: 13px;
+  letter-spacing: 3px;
+}
+
 @media (max-width: 760px) {
   .emx-session-card {
     max-height: none;

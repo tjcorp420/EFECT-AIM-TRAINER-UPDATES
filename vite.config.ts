@@ -29,4 +29,25 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("firebase")) return "vendor-firebase";
+          if (
+            id.includes("three") ||
+            id.includes("@react-three") ||
+            id.includes("postprocessing") ||
+            id.includes("react") ||
+            id.includes("scheduler")
+          ) {
+            return "vendor-render";
+          }
+
+          return undefined;
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1300,
+  },
 }));

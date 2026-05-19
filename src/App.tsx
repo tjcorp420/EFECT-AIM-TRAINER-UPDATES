@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import { Suspense, lazy, useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PointerLockControls } from '@react-three/drei';
@@ -7,20 +7,20 @@ import * as THREE from 'three';
 
 import BootSplash from './components/BootSplash';
 import Crosshair from './components/Crosshair';
-import Customizer from './components/Customizer';
-import ScenarioSelect from './components/ScenarioSelect';
-import Leaderboard from './components/Leaderboard';
 import Target from './components/Target';
 import Gun from './components/Gun';
 import Room from './components/Room';
 import RoomBackdrop from './components/RoomBackdrop';
-import Login from './components/Login';
 import { useStore, TRACK_LIST, GAME_PROFILES, unlockAudio, playUiSound } from './store/useStore';
 import { getScenarioGameplayConfig } from './store/scenarioData';
 import './App.css';
 
 const EMX_LOGO_SRC = '/emx-logo.png';
 const GHOST_RUNS_KEY = 'emx_ghost_runs_v1';
+const Login = lazy(() => import('./components/Login'));
+const ScenarioSelect = lazy(() => import('./components/ScenarioSelect'));
+const Customizer = lazy(() => import('./components/Customizer'));
+const Leaderboard = lazy(() => import('./components/Leaderboard'));
 
 type GhostRun = {
   score: number;
@@ -104,6 +104,15 @@ const closeAppWindow = async () => {
   }
 
   await win.close();
+};
+
+const openExternalUrl = async (url: string) => {
+  try {
+    const { openUrl } = await import('@tauri-apps/plugin-opener');
+    await openUrl(url);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 };
 
 function FloatingTextUI() {
@@ -598,6 +607,21 @@ function WindowChrome() {
   );
 }
 
+function ScreenFallback({ label = 'LOADING MODULE' }: { label?: string }) {
+  const color = useStore((state) => state.color);
+
+  return (
+    <div className="emx-screen-fallback">
+      <div className="emx-screen-fallback-mark" style={{ borderColor: color, color }}>
+        EMX
+      </div>
+      <div className="emx-screen-fallback-label" style={{ color }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const {
     score,
@@ -1077,6 +1101,7 @@ export default function App() {
 
       {gameState !== 'playing' &&
         gameState !== 'leaderboard' &&
+        gameState !== 'scenarioSelect' &&
         gameState !== 'login' &&
         gameState !== 'customizer' &&
         gameState !== 'gameover' && (
@@ -1173,11 +1198,27 @@ export default function App() {
           </div>
         )}
 
-      {gameState === 'login' && <Login />}
+      {gameState === 'login' && (
+        <Suspense fallback={<ScreenFallback label="LOADING AUTH" />}>
+          <Login />
+        </Suspense>
+      )}
       {gameState === 'playing' && <Crosshair />}
-      {gameState === 'scenarioSelect' && <ScenarioSelect />}
-      {gameState === 'customizer' && <Customizer />}
-      {gameState === 'leaderboard' && <Leaderboard />}
+      {gameState === 'scenarioSelect' && (
+        <Suspense fallback={<ScreenFallback label="LOADING HUB" />}>
+          <ScenarioSelect />
+        </Suspense>
+      )}
+      {gameState === 'customizer' && (
+        <Suspense fallback={<ScreenFallback label="LOADING ARMORY" />}>
+          <Customizer />
+        </Suspense>
+      )}
+      {gameState === 'leaderboard' && (
+        <Suspense fallback={<ScreenFallback label="LOADING LEADERBOARD" />}>
+          <Leaderboard />
+        </Suspense>
+      )}
 
       {gameState === 'playing' && (
         <div className="efect-game-hud">
@@ -1922,6 +1963,20 @@ export default function App() {
               <button onClick={goToScenarios} className="emx-secondary-action">
                 HUB
               </button>
+
+              <button
+                onClick={() => void openExternalUrl('https://efect-macros-x-tweaks.vercel.app/links')}
+                className="emx-secondary-action"
+              >
+                EMX OFFICIAL
+              </button>
+
+              <button
+                onClick={() => void openExternalUrl('https://discord.gg/puaZFNfNKW')}
+                className="emx-secondary-action"
+              >
+                JOIN DISCORD
+              </button>
             </div>
           </div>
         </div>
@@ -1930,6 +1985,11 @@ export default function App() {
       {gameState === 'playing' && (
         <Canvas
           camera={{ position: [0, 1.5, 0], fov }}
+          dpr={graphicsQuality === 'performance' ? [0.75, 1] : [1, 1.5]}
+          gl={{
+            antialias: graphicsQuality === 'high',
+            powerPreference: 'high-performance',
+          }}
           style={{
             position: 'absolute',
             inset: 0,

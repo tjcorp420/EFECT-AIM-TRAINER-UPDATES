@@ -2,60 +2,11 @@ import { useStore, playUiSound, unlockAudio } from '../store/useStore';
 import { useState, useEffect, useMemo } from 'react';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { TRAINING_ROUTINES, getScenarioLaunchSettings } from '../store/scenarioData';
+import { SCENARIOS, TRAINING_ROUTINES, getScenarioLaunchSettings } from '../store/scenarioData';
 
 const EMX_LOGO_SRC = '/emx-logo.png';
-
-const SCENARIOS = [
-  { id: 'efect_overdrive', name: 'EMX OVERDRIVE', desc: 'Maximum speed, zero delay tracking & flicking.', type: 'SPECIAL' },
-  { id: 'gridshot_standard', name: 'WALL GRIDSHOT', desc: 'Standard 3-target flicking.', type: 'FLICK' },
-  { id: 'gridshot_ultimate', name: 'GRIDSHOT ULTIMATE', desc: 'Faster spawns, more targets.', type: 'FLICK' },
-  { id: 'gridshot_precision', name: 'GRIDSHOT PRECISION', desc: 'Tiny targets for micro-flicks.', type: 'PRECISION' },
-  { id: 'sixshot_precision', name: 'SIXSHOT PRECISION', desc: 'Six tiny targets for clean click timing.', type: 'PRECISION' },
-  { id: 'tile_frenzy', name: 'TILE FRENZY', desc: 'Large high-speed wall targets for raw speed.', type: 'FLICK' },
-  { id: 'tile_frenzy_mini', name: 'TILE FRENZY MINI', desc: 'Smaller tile field for speed plus accuracy.', type: 'PRECISION' },
-  { id: 'multishot_speed', name: 'MULTISHOT SPEED', desc: 'Dense target field with fast confirmation rhythm.', type: 'FLICK' },
-  { id: 'microflick_standard', name: 'MICROFLICK', desc: 'Clustered precision focus.', type: 'PRECISION' },
-  { id: 'microflick_react', name: 'MICROFLICK REACT', desc: 'Tiny targets that vanish quickly.', type: 'REACTION' },
-  { id: 'microflick_track', name: 'MICROFLICK TRACK', desc: 'Tiny moving targets.', type: 'PRECISION' },
-  { id: 'microshot_speed', name: 'MICROSHOT SPEED', desc: 'Rapid small-target confirmations.', type: 'PRECISION' },
-  { id: 'headshot_only', name: 'HEADSHOT ONLY', desc: 'Humanoid precision drill built around head conversion.', type: 'PRECISION' },
-  { id: 'tracking_dynamic', name: 'DYNAMIC TRACKING', desc: 'Evasive strafing AI.', type: 'TRACKING' },
-  { id: 'tracking_smooth', name: 'SMOOTH TRACKING', desc: 'Long, predictable strafes.', type: 'TRACKING' },
-  { id: 'tracking_fast', name: 'FAST TRACKING', desc: 'Aggressive, rapid direction changes.', type: 'TRACKING' },
-  { id: 'tracking_long_strafe', name: 'LONG STRAFE TRACK', desc: 'Wide predictable strafes for smooth mouse control.', type: 'TRACKING' },
-  { id: 'tracking_dodge', name: 'DODGE TRACKING', desc: 'Targets dodge with short unpredictable bursts.', type: 'TRACKING' },
-  { id: 'tracking_sphere', name: 'SPHERE TRACKING', desc: 'Floating target with mixed horizontal and vertical motion.', type: 'TRACKING' },
-  { id: 'switchtrack_standard', name: 'SWITCHTRACK', desc: 'Swap between multiple moving targets cleanly.', type: 'TRACKING' },
-  { id: 'switchtrack_micro', name: 'MICRO SWITCHTRACK', desc: 'Small moving targets for fast tracking swaps.', type: 'TRACKING' },
-  { id: 'popcorn_standard', name: 'POPCORN', desc: 'Vertical gravity arcs.', type: 'TIMING' },
-  { id: 'popcorn_small', name: 'POPCORN PRECISION', desc: 'Tiny vertical arcs.', type: 'PRECISION' },
-  { id: 'popcorn_heavy', name: 'POPCORN HEAVY', desc: 'Fast fall rate gravity.', type: 'TIMING' },
-  { id: 'pasu_standard', name: 'PASU JUMP', desc: 'Airborne targets with lateral drift and vertical timing.', type: 'DYNAMIC' },
-  { id: 'vertical_switch', name: 'VERTICAL SWITCH', desc: 'High-low target swaps for elevation control.', type: 'DYNAMIC' },
-  { id: 'flick360_standard', name: '360 AWARENESS', desc: 'Targets spawn all around you.', type: 'FLICK' },
-  { id: 'flick360_react', name: '360 REACT', desc: 'Fast disappearing surround targets.', type: 'REACTION' },
-  { id: 'flick360_tracking', name: '360 TRACKING', desc: 'Moving targets behind you.', type: 'TRACKING' },
-  { id: 'flick360_precision', name: '360 PRECISION', desc: 'Small surround targets for controlled turns.', type: 'PRECISION' },
-  { id: 'spidershot_standard', name: 'SPIDERSHOT', desc: 'Center-return flicking.', type: 'FLICK' },
-  { id: 'spidershot_180', name: 'SPIDERSHOT 180', desc: 'Wide angle center returns.', type: 'FLICK' },
-  { id: 'spidershot_rapid', name: 'SPIDERSHOT RAPID', desc: 'Fast paced center returns.', type: 'REACTION' },
-  { id: 'spidershot_precision', name: 'SPIDERSHOT PRECISION', desc: 'Tiny center-return flicks.', type: 'PRECISION' },
-  { id: 'motionshot_standard', name: 'MOTIONSHOT', desc: 'Targets drift after spawning.', type: 'DYNAMIC' },
-  { id: 'motionshot_fast', name: 'MOTIONSHOT FAST', desc: 'High speed linear drift.', type: 'DYNAMIC' },
-  { id: 'motionshot_small', name: 'MOTIONSHOT PRECISION', desc: 'Tiny drifting targets.', type: 'PRECISION' },
-  { id: 'reactive_switch', name: 'REACTIVE SWITCH', desc: 'Targets appear in quick alternating lanes.', type: 'REACTION' },
-  { id: 'close_strafe_flick', name: 'CLOSE STRAFE FLICK', desc: 'Close targets with lateral motion and fast scoring.', type: 'FLICK' },
-  { id: 'snipershot_standard', name: 'SNIPERSHOT', desc: 'Long distance, high penalty.', type: 'PRECISION' },
-  { id: 'snipershot_moving', name: 'SNIPERSHOT MOVING', desc: 'Distant moving targets.', type: 'PRECISION' },
-  { id: 'snipershot_react', name: 'SNIPERSHOT REACT', desc: 'Distant targets vanish quickly.', type: 'REACTION' },
-  { id: 'reflex_standard', name: 'REFLEX SHOT', desc: 'Targets disappear instantly.', type: 'REACTION' },
-  { id: 'reflex_micro', name: 'REFLEX MICRO', desc: 'Tiny whack-a-mole targets.', type: 'PRECISION' },
-  { id: 'reflex_cluster', name: 'REFLEX CLUSTER', desc: 'Tightly grouped reflex training.', type: 'REACTION' },
-  { id: 'glider_tracking', name: 'GLIDER TRACKING', desc: 'Smooth diagonal descent tracking.', type: 'TRACKING' },
-  { id: 'bounce_tracking', name: 'BOUNCE TRACKING', desc: 'Vertical gravity bounce tracking.', type: 'TRACKING' },
-  { id: 'pump_flick', name: 'PUMP FLICK', desc: 'Close-range wide wall flicks.', type: 'FLICK' },
-] as const;
+const OFFICIAL_HUB_URL = 'https://efect-macros-x-tweaks.vercel.app/links';
+const DISCORD_INVITE_URL = 'https://discord.gg/puaZFNfNKW';
 
 const FILTERS = [
   'ALL',
@@ -79,6 +30,15 @@ const getTypeAccent = (type: string, color: string) => {
   if (type === 'TIMING') return '#ff3b8a';
   if (type === 'DYNAMIC') return '#00ffaa';
   return color;
+};
+
+const openExternalUrl = async (url: string) => {
+  try {
+    const { openUrl } = await import('@tauri-apps/plugin-opener');
+    await openUrl(url);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 };
 
 export default function ScenarioSelect() {
@@ -384,9 +344,9 @@ return (
 
         .emx-logo-glass-frame {
           position: relative;
-          width: 190px;
-          height: 132px;
-          margin: 0 auto 10px;
+          width: 154px;
+          height: 98px;
+          margin: 0 auto 6px;
           display: grid;
           place-items: center;
           border-radius: 30px;
@@ -408,8 +368,8 @@ return (
         .emx-logo-glass-frame::before {
           content: "";
           position: absolute;
-          width: 210px;
-          height: 210px;
+          width: 176px;
+          height: 176px;
           background:
             conic-gradient(
               from 0deg,
@@ -438,8 +398,8 @@ return (
         .emx-logo-ring {
           position: absolute;
           z-index: 2;
-          width: 154px;
-          height: 82px;
+          width: 124px;
+          height: 64px;
           border-radius: 50%;
           border: 1px solid ${color}88;
           box-shadow:
@@ -464,8 +424,8 @@ return (
         .emx-main-logo {
           position: relative;
           z-index: 3;
-          width: 150px;
-          max-height: 96px;
+          width: 122px;
+          max-height: 72px;
           object-fit: contain;
           animation: emxLogoFloat 2.8s ease-in-out infinite;
         }
@@ -537,10 +497,10 @@ return (
             position: 'relative',
             zIndex: 2,
             height: '100%',
-            padding: '26px 28px 24px',
+            padding: '18px 28px 18px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 18,
+            gap: 12,
             animation: 'commandFadeUp 0.55s ease both',
           }}
         >
@@ -562,7 +522,7 @@ return (
                   boxShadow: `0 0 26px ${color}22`,
                   letterSpacing: 2,
                   fontWeight: 900,
-                  fontSize: 13,
+                  fontSize: 12,
                 }}
               >
                 USER_ID:{' '}
@@ -575,7 +535,7 @@ return (
                 className="emx-top-btn"
                 onClick={exportConfig}
                 style={{
-                  padding: '12px 18px',
+                  padding: '11px 16px',
                   minWidth: 150,
                   border: '1px solid rgba(255,255,255,0.22)',
                   background: 'rgba(0,0,0,0.65)',
@@ -586,7 +546,7 @@ return (
                   transition: 'all 0.18s ease',
                 }}
               >
-                {copied ? '✓ COPIED' : '⎘ EXPORT'}
+                {copied ? 'COPIED' : 'EXPORT'}
               </button>
 
               <button
@@ -594,7 +554,7 @@ return (
                 onClick={handleManualCheck}
                 disabled={isChecking || pendingUpdate !== null}
                 style={{
-                  padding: '12px 18px',
+                  padding: '11px 16px',
                   minWidth: 210,
                   border: '1px solid rgba(255,255,255,0.22)',
                   background: 'rgba(0,0,0,0.65)',
@@ -605,7 +565,7 @@ return (
                   transition: 'all 0.18s ease',
                 }}
               >
-                {isChecking ? 'SCANNING...' : '⟳ CHECK FOR PATCH'}
+                {isChecking ? 'SCANNING...' : 'CHECK FOR PATCH'}
               </button>
             </div>
 
@@ -626,8 +586,8 @@ return (
               <div
                 style={{
                   color,
-                  letterSpacing: 10,
-                  fontSize: 12,
+                  letterSpacing: 8,
+                  fontSize: 11,
                   fontWeight: 900,
                   textShadow: `0 0 16px ${color}`,
                   marginBottom: 8,
@@ -639,9 +599,9 @@ return (
               <div
                 style={{
                   color: '#fff',
-                  fontSize: 48,
+                  fontSize: 38,
                   lineHeight: 0.95,
-                  letterSpacing: 15,
+                  letterSpacing: 11,
                   fontWeight: 900,
                   textShadow: `0 0 22px ${color}88, 0 0 55px ${color}44`,
                 }}
@@ -656,7 +616,7 @@ return (
                   width: 420,
                   maxWidth: '38vw',
                   height: 1,
-                  margin: '18px auto 0',
+                  margin: '12px auto 0',
                   transformOrigin: 'center',
                   background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
                   boxShadow: `0 0 18px ${color}`,
@@ -681,7 +641,7 @@ return (
                 style={{
                   width: 280,
                   maxWidth: '30vw',
-                  padding: '14px 18px',
+                  padding: '12px 16px',
                   border: '1px solid rgba(255,255,255,0.14)',
                   background: 'rgba(0,0,0,0.72)',
                   color: '#fff',
@@ -691,26 +651,47 @@ return (
                 }}
               />
 
-              <a
-                href="https://efect-macros-x-tweaks.vercel.app/"
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => void openExternalUrl(OFFICIAL_HUB_URL)}
                 style={{
                   color: '#000',
                   backgroundColor: color,
-                  textDecoration: 'none',
+                  border: 'none',
                   fontWeight: 900,
-                  fontSize: '0.9rem',
-                  padding: '14px 22px',
+                  fontSize: '0.82rem',
+                  padding: '12px 18px',
                   borderRadius: 6,
                   boxShadow: `0 0 26px ${color}88`,
                   transition: 'all 0.2s',
                   letterSpacing: 2,
                   whiteSpace: 'nowrap',
+                  cursor: 'pointer',
                 }}
               >
-                EMX TWEAKS
-              </a>
+                EMX OFFICIAL
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void openExternalUrl(DISCORD_INVITE_URL)}
+                style={{
+                  color: '#fff',
+                  backgroundColor: 'rgba(88,101,242,0.22)',
+                  border: '1px solid rgba(88,101,242,0.72)',
+                  fontWeight: 900,
+                  fontSize: '0.82rem',
+                  padding: '12px 18px',
+                  borderRadius: 6,
+                  boxShadow: '0 0 22px rgba(88,101,242,0.35)',
+                  transition: 'all 0.2s',
+                  letterSpacing: 2,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
+              >
+                JOIN DISCORD
+              </button>
             </div>
           </div>
 
@@ -739,7 +720,7 @@ return (
               <span>
                 {isInstalling
                   ? 'DOWNLOADING CORE FILES...'
-                  : `⚠ SYSTEM UPDATE DETECTED (v${pendingUpdate.version})`}
+                  : `SYSTEM UPDATE DETECTED (v${pendingUpdate.version})`}
               </span>
               <span>{isInstalling ? 'PLEASE WAIT' : 'CLICK TO INSTALL & RESTART'}</span>
             </button>
@@ -822,7 +803,7 @@ return (
           >
             <div
               style={{
-                padding: 16,
+                padding: 12,
                 border: `1px solid ${color}55`,
                 borderLeft: `4px solid ${color}`,
                 borderRadius: 10,
@@ -832,7 +813,7 @@ return (
               }}
             >
               <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>OPERATOR_LEVEL</div>
-              <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>{level}</div>
+              <div style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>{level}</div>
               <div style={{ color, fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
                 {xpToNextLevel.toLocaleString()} XP TO NEXT
               </div>
@@ -840,7 +821,7 @@ return (
 
             <div
               style={{
-                padding: 16,
+                padding: 12,
                 border: `1px solid ${color}55`,
                 borderLeft: '4px solid #39ff14',
                 borderRadius: 10,
@@ -849,7 +830,7 @@ return (
               }}
             >
               <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>CAREER_RUNS</div>
-              <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>{totalSessions}</div>
+              <div style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>{totalSessions}</div>
               <div style={{ color: '#39ff14', fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
                 {dailyStreak} DAY STREAK
               </div>
@@ -857,7 +838,7 @@ return (
 
             <div
               style={{
-                padding: 16,
+                padding: 12,
                 border: `1px solid ${color}55`,
                 borderLeft: '4px solid #ff0055',
                 borderRadius: 10,
@@ -866,7 +847,7 @@ return (
               }}
             >
               <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>CAREER_HITS</div>
-              <div style={{ color, fontSize: 24, fontWeight: 900 }}>
+              <div style={{ color, fontSize: 20, fontWeight: 900 }}>
                 {totalHitsLifetime.toLocaleString()}
               </div>
               <div style={{ color: '#ff4df0', fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
@@ -876,7 +857,7 @@ return (
 
             <div
               style={{
-                padding: 16,
+                padding: 12,
                 border: `1px solid ${color}55`,
                 borderLeft: '4px solid #ffd400',
                 borderRadius: 10,
@@ -885,7 +866,7 @@ return (
               }}
             >
               <div style={{ color: '#777', fontSize: 11, letterSpacing: 4 }}>BEST_SCORE</div>
-              <div style={{ color: '#fff', fontSize: 24, fontWeight: 900 }}>
+              <div style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>
                 {bestScoreOverall.toLocaleString()}
               </div>
               <div style={{ color: '#ffd400', fontSize: 10, letterSpacing: 2, fontWeight: 900 }}>
@@ -904,7 +885,7 @@ return (
           >
             <div
               style={{
-                padding: 16,
+                padding: 12,
                 border: '1px solid rgba(185,103,255,0.36)',
                 borderRadius: 12,
                 background:
@@ -919,7 +900,7 @@ return (
                   justifyContent: 'space-between',
                   gap: 16,
                   alignItems: 'center',
-                  marginBottom: 10,
+                  marginBottom: 8,
                 }}
               >
                 <div style={{ color: '#777', fontSize: 11, letterSpacing: 4, fontWeight: 900 }}>
@@ -933,7 +914,7 @@ return (
 
               <div
                 style={{
-                  height: 10,
+                  height: 8,
                   borderRadius: 999,
                   background: 'rgba(255,255,255,0.08)',
                   overflow: 'hidden',
@@ -956,7 +937,7 @@ return (
                   display: 'flex',
                   gap: 8,
                   flexWrap: 'wrap',
-                  marginTop: 12,
+                  marginTop: 9,
                 }}
               >
                 {(featuredBadges.length > 0 ? featuredBadges : ['FIRST DEPLOY']).map((badge) => (
@@ -981,7 +962,7 @@ return (
 
             <div
               style={{
-                padding: 16,
+                padding: 12,
                 border: '1px solid rgba(57,255,20,0.25)',
                 borderRadius: 12,
                 background: 'rgba(0,0,0,0.56)',
@@ -992,7 +973,7 @@ return (
                 RECENT_RUN_STREAM
               </div>
 
-              <div style={{ display: 'grid', gap: 7, marginTop: 10 }}>
+              <div style={{ display: 'grid', gap: 5, marginTop: 8 }}>
                 {(recentSessionPreview.length > 0
                   ? recentSessionPreview
                   : [
@@ -1051,8 +1032,8 @@ return (
                     goToCustomizer();
                   }}
                   style={{
-                    minHeight: 104,
-                    padding: 16,
+                    minHeight: 78,
+                    padding: 12,
                     textAlign: 'left',
                     borderRadius: 14,
                     border: `1px solid ${color}44`,
@@ -1069,9 +1050,9 @@ return (
                   </div>
                   <div
                     style={{
-                      marginTop: 8,
-                      fontSize: 16,
-                      letterSpacing: 3,
+                      marginTop: 6,
+                      fontSize: 14,
+                      letterSpacing: 2,
                       fontWeight: 900,
                     }}
                   >
@@ -1079,11 +1060,11 @@ return (
                   </div>
                   <div
                     style={{
-                      marginTop: 8,
+                      marginTop: 6,
                       color: 'rgba(255,255,255,0.58)',
-                      fontSize: 11,
+                      fontSize: 10,
                       letterSpacing: 1.4,
-                      lineHeight: 1.45,
+                      lineHeight: 1.3,
                     }}
                   >
                     {firstStep.label}: {firstStep.note}
@@ -1110,7 +1091,7 @@ return (
                   className="emx-filter-btn"
                   onClick={() => setActiveFilter(filter)}
                   style={{
-                    padding: '12px 18px',
+                    padding: '10px 14px',
                     border: active
                       ? `1px solid ${color}`
                       : '1px solid rgba(255,255,255,0.18)',
@@ -1126,7 +1107,7 @@ return (
                     boxShadow: active ? `0 0 22px ${color}66` : 'none',
                   }}
                 >
-                  {filter === 'FEATURED' ? '⚡ FEATURED' : filter}
+                  {filter === 'FEATURED' ? 'FEATURED' : filter}
                 </button>
               );
             })}
@@ -1135,12 +1116,12 @@ return (
           <div
             style={{
               flex: 1,
-              minHeight: 0,
+              minHeight: 'clamp(320px, 42vh, 560px)',
               overflowY: 'auto',
-              padding: 18,
+              padding: 14,
               border: '1px solid rgba(255,255,255,0.1)',
               borderTop: `2px solid ${color}`,
-              borderRadius: 18,
+              borderRadius: 14,
               background:
                 'linear-gradient(180deg, rgba(12,14,14,0.74), rgba(0,0,0,0.88))',
               boxShadow: `0 0 40px rgba(0,0,0,0.65), inset 0 0 70px ${color}08`,
@@ -1150,13 +1131,14 @@ return (
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: 18,
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gap: 12,
               }}
             >
               {filteredScenarios.map((scen, index) => {
                 const accent = getTypeAccent(scen.type, color);
                 const isSpecial = scen.type === 'SPECIAL';
+                const displayName = scen.name.replace(/efect/gi, 'EMX');
 
                 return (
                   <div
@@ -1167,11 +1149,11 @@ return (
                       goToCustomizer();
                     }}
                     style={{
-                      minHeight: 190,
+                      minHeight: 142,
                       position: 'relative',
                       overflow: 'hidden',
-                      padding: 22,
-                      borderRadius: 14,
+                      padding: 16,
+                      borderRadius: 12,
                       border: `1px solid ${isSpecial ? '#ff0055aa' : 'rgba(255,255,255,0.16)'}`,
                       borderLeft: `4px solid ${accent}`,
                       background: isSpecial
@@ -1217,7 +1199,7 @@ return (
                         right: 16,
                         top: 14,
                         color: 'rgba(255,255,255,0.12)',
-                        fontSize: 54,
+                        fontSize: 42,
                         fontWeight: 900,
                         letterSpacing: 2,
                       }}
@@ -1232,13 +1214,13 @@ return (
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: 18,
+                        marginBottom: 12,
                       }}
                     >
                       <div
                         style={{
                           color: accent,
-                          fontSize: 11,
+                          fontSize: 10,
                           letterSpacing: 3,
                           fontWeight: 900,
                           textShadow: `0 0 14px ${accent}`,
@@ -1268,15 +1250,15 @@ return (
                       style={{
                         position: 'relative',
                         zIndex: 2,
-                        margin: '0 0 12px',
+                        margin: '0 0 9px',
                         color: '#fff',
-                        fontSize: '1.2rem',
+                        fontSize: '1rem',
                         letterSpacing: 2,
                         lineHeight: 1.25,
                         textShadow: '0 2px 4px rgba(0,0,0,0.8)',
                       }}
                     >
-                      {scen.name}
+                      {displayName}
                     </h3>
 
                     <p
@@ -1284,9 +1266,9 @@ return (
                         position: 'relative',
                         zIndex: 2,
                         color: 'rgba(255,255,255,0.64)',
-                        fontSize: '0.9rem',
-                        lineHeight: 1.55,
-                        minHeight: 46,
+                        fontSize: '0.78rem',
+                        lineHeight: 1.4,
+                        minHeight: 34,
                         margin: 0,
                       }}
                     >
@@ -1297,12 +1279,12 @@ return (
                       style={{
                         position: 'relative',
                         zIndex: 2,
-                        marginTop: 20,
-                        padding: '10px 12px',
+                        marginTop: 12,
+                        padding: '8px 10px',
                         border: `1px solid ${accent}22`,
                         background: 'rgba(0,0,0,0.45)',
                         color: accent,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: 900,
                         letterSpacing: 3,
                       }}
@@ -1336,14 +1318,14 @@ return (
               justifyContent: 'space-between',
               alignItems: 'center',
               color: 'rgba(255,255,255,0.28)',
-              fontSize: 11,
-              letterSpacing: 5,
+              fontSize: 10,
+              letterSpacing: 4,
               padding: '0 4px',
             }}
           >
             <span>LATENCY_ROUTE: LOCAL_LOW</span>
             <span>ENGINE: EMX_SUITE_HUB_SAFE</span>
-            <span>© 2026 EMX BRANDING ELITE</span>
+            <span>(C) 2026 EMX BRANDING ELITE</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,18 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -18,33 +31,62 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app); 
 
+const cleanUsername = (username: string) => {
+  const trimmed = username.trim();
+
+  return (trimmed || "EMX TWEAKS").substring(0, 16);
+};
+
+const cleanScenario = (scenario: string) => {
+  return scenario.trim().toLowerCase().replace(/[^a-z0-9_]/g, "").substring(0, 80);
+};
+
+const cleanScore = (score: number) => {
+  return Math.max(0, Math.min(10_000_000, Math.round(Number.isFinite(score) ? score : 0)));
+};
+
+const cleanAccuracy = (accuracy: number) => {
+  return Math.max(0, Math.min(100, Math.round(Number.isFinite(accuracy) ? accuracy : 0)));
+};
+
 // --- LEADERBOARD LOGIC ---
 export const submitScore = async (scenario: string, username: string, score: number, accuracy: number) => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    return false;
+  }
+
   try {
     await addDoc(collection(db, "leaderboards"), {
-      scenario,
-      username,
-      score,
-      accuracy,
-      timestamp: new Date()
+      uid: user.uid,
+      scenario: cleanScenario(scenario),
+      username: cleanUsername(username),
+      score: cleanScore(score),
+      accuracy: cleanAccuracy(accuracy),
+      timestamp: serverTimestamp()
     });
-    console.log("EFECT Score uploaded to Global Network.");
+    console.log("EMX Score uploaded to Global Network.");
+    return true;
   } catch (e) {
     console.error("Error pushing score: ", e);
+    return false;
   }
 };
 
 export const fetchTopScores = async (scenario: string) => {
   try {
-    const q = query(collection(db, "leaderboards"), orderBy("score", "desc"), limit(100));
+    const q = query(
+      collection(db, "leaderboards"),
+      where("scenario", "==", cleanScenario(scenario)),
+      orderBy("score", "desc"),
+      limit(100)
+    );
     const querySnapshot = await getDocs(q);
     const scores: any[] = [];
     
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.scenario === scenario) {
-        scores.push({ id: doc.id, ...data });
-      }
+    querySnapshot.forEach((scoreDoc) => {
+      scores.push({ id: scoreDoc.id, ...scoreDoc.data() });
     });
     
     return scores;

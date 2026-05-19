@@ -200,6 +200,15 @@ export default function Login() {
     }
   };
 
+  const handleOfflinePlay = () => {
+    const cleanUsername = cleanDisplayName(username) || DEFAULT_DISPLAY_NAME;
+
+    setSettings({
+      username: cleanUsername,
+      gameState: 'scenarioSelect',
+    });
+  };
+
   const canSubmit = isRegistering
     ? email.trim().length > 0 && password.trim().length >= 6 && cleanDisplayName(username).length >= 3
     : email.trim().length > 0 && password.trim().length >= 6;
@@ -909,6 +918,27 @@ export default function Login() {
                   : isRegistering
                     ? 'INITIALIZE ACCOUNT'
                     : 'DECRYPT AND ENTER'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOfflinePlay}
+                className="emx-auth-ghost"
+                style={{
+                  padding: 15,
+                  borderRadius: 12,
+                  border: `1px solid ${color}55`,
+                  background: 'rgba(0,0,0,0.46)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 900,
+                  fontSize: 13,
+                  letterSpacing: 3,
+                  textTransform: 'uppercase',
+                  boxShadow: `0 0 18px ${color}18`,
+                }}
+              >
+                PLAY OFFLINE
               </button>
             </form>
 

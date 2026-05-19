@@ -207,7 +207,10 @@ export default function Gun() {
   const gunModelRef = useRef<THREE.Group>(null);
   const slideRef = useRef<THREE.Group>(null);
   const muzzleFlashRef = useRef<THREE.Group>(null);
+  const projectileBeamRef = useRef<THREE.Group>(null);
   const muzzleFlashMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const projectileBeamMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const projectileCoreMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
 
   const prevShots = useRef(shots);
 
@@ -221,6 +224,7 @@ export default function Gun() {
   const currentSway = useRef(new THREE.Vector3(0, 0, 0));
 
   const muzzleFlash = useRef(0);
+  const projectileLife = useRef(0);
   const time = useRef(0);
 
   const activeWeaponClass: WeaponClass =
@@ -231,6 +235,18 @@ export default function Gun() {
       : 'pistol';
 
   const profile = WEAPON_PROFILES[activeWeaponClass];
+  const projectileColor =
+    bulletEffect === 'spark'
+      ? '#ffffff'
+      : bulletEffect === 'plasma'
+        ? '#b967ff'
+        : bulletEffect === 'rail'
+          ? '#00ffcc'
+          : color;
+  const projectileLength =
+    bulletEffect === 'rail' ? 3.6 : bulletEffect === 'tracer' ? 2.8 : bulletEffect === 'plasma' ? 2.35 : 2.15;
+  const projectileRadius =
+    bulletEffect === 'rail' ? 0.012 : bulletEffect === 'tracer' ? 0.018 : bulletEffect === 'plasma' ? 0.03 : 0.015;
 
   useEffect(() => {
     prevRotation.current.copy(camera.rotation);
@@ -247,6 +263,7 @@ export default function Gun() {
       recoilTarget.current.y += profile.recoilY;
       recoilRotTarget.current += profile.rotX;
       muzzleFlash.current = 1;
+      projectileLife.current = weaponMode !== 'stealth' && bulletEffect !== 'none' ? 1 : 0;
       prevShots.current = shots;
     }
 
@@ -297,6 +314,7 @@ export default function Gun() {
     gunModelRef.current.scale.setScalar(profile.viewScale);
 
     muzzleFlash.current = THREE.MathUtils.lerp(muzzleFlash.current, 0, dt * 18);
+    projectileLife.current = Math.max(0, projectileLife.current - dt * (bulletEffect === 'rail' ? 7 : 10));
 
     if (muzzleFlashRef.current) {
       muzzleFlashRef.current.visible =
@@ -316,6 +334,26 @@ export default function Gun() {
 
     if (muzzleFlashMaterialRef.current) {
       muzzleFlashMaterialRef.current.opacity = muzzleFlash.current;
+    }
+
+    if (projectileBeamRef.current) {
+      const visible =
+        projectileLife.current > 0.025 && weaponMode !== 'stealth' && bulletEffect !== 'none';
+
+      projectileBeamRef.current.visible = visible;
+      projectileBeamRef.current.scale.set(
+        1 + (1 - projectileLife.current) * 0.1,
+        1 + (1 - projectileLife.current) * 0.1,
+        1
+      );
+    }
+
+    if (projectileBeamMaterialRef.current) {
+      projectileBeamMaterialRef.current.opacity = projectileLife.current * 0.62;
+    }
+
+    if (projectileCoreMaterialRef.current) {
+      projectileCoreMaterialRef.current.opacity = projectileLife.current;
     }
   });
 
@@ -387,6 +425,51 @@ export default function Gun() {
           </mesh>
 
           <pointLight color={color} intensity={2.4} distance={2.4} />
+        </group>
+
+        <group ref={projectileBeamRef} position={profile.muzzlePosition} visible={false} raycast={null as any}>
+          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -projectileLength / 2]}>
+            <cylinderGeometry
+              args={[
+                projectileRadius * (bulletEffect === 'plasma' ? 0.65 : 0.72),
+                projectileRadius,
+                projectileLength,
+                bulletEffect === 'spark' ? 7 : 16,
+              ]}
+            />
+            <meshBasicMaterial
+              ref={projectileBeamMaterialRef}
+              color={projectileColor}
+              transparent
+              opacity={0}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              toneMapped={false}
+            />
+          </mesh>
+
+          <mesh position={[0, 0, -projectileLength]}>
+            {bulletEffect === 'plasma' ? (
+              <sphereGeometry args={[0.085, 18, 18]} />
+            ) : bulletEffect === 'spark' ? (
+              <octahedronGeometry args={[0.105, 0]} />
+            ) : bulletEffect === 'rail' ? (
+              <boxGeometry args={[0.05, 0.05, 0.16]} />
+            ) : (
+              <coneGeometry args={[0.055, 0.18, 10]} />
+            )}
+            <meshBasicMaterial
+              ref={projectileCoreMaterialRef}
+              color={projectileColor}
+              transparent
+              opacity={0}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              toneMapped={false}
+            />
+          </mesh>
+
+          <pointLight color={projectileColor} intensity={0.9} distance={3.8} />
         </group>
       </group>
     </group>
