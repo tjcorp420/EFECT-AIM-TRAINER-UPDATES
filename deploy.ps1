@@ -33,8 +33,7 @@ if (-not $AllowDirty) {
     }
 }
 
-if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY) -and
-    -not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PATH)) {
+if (-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PATH)) {
     if (-not (Test-Path $env:TAURI_SIGNING_PRIVATE_KEY_PATH)) {
         throw "TAURI_SIGNING_PRIVATE_KEY_PATH does not exist: $env:TAURI_SIGNING_PRIVATE_KEY_PATH"
     }
@@ -46,6 +45,39 @@ if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY) -or
     [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)) {
     throw "Missing Tauri updater signing env vars. Set TAURI_SIGNING_PRIVATE_KEY or TAURI_SIGNING_PRIVATE_KEY_PATH, plus TAURI_SIGNING_PRIVATE_KEY_PASSWORD."
 }
+
+function Test-UpdaterSigningKey {
+    $probePath = Join-Path $env:TEMP "emx-updater-sign-probe-$PID.txt"
+    Set-Content -LiteralPath $probePath -Value "emx updater signing probe" -Encoding ascii
+
+    $previousNativeErrorPreference = $null
+    $previousErrorActionPreference = $ErrorActionPreference
+    if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue) {
+        $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
+    }
+
+    try {
+        $ErrorActionPreference = "Continue"
+        $signOutput = & npm run tauri signer sign -- $probePath 2>&1
+        $signExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+        if ($null -ne $previousNativeErrorPreference) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+        }
+        Remove-Item -LiteralPath $probePath -ErrorAction SilentlyContinue
+    }
+
+    if ($signExitCode -ne 0) {
+        $signOutput | Select-Object -Last 10 | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+        throw "Updater signing key/password validation failed. Re-enter the correct password, or rotate the updater key again."
+    }
+}
+
+Write-Host ">>> Validating updater signing key..." -ForegroundColor Yellow
+Test-UpdaterSigningKey
 
 $previousNativeErrorPreference = $null
 $previousErrorActionPreference = $ErrorActionPreference

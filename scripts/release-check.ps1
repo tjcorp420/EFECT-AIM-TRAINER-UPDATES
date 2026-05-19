@@ -69,6 +69,7 @@ if (-not $config.plugins.updater.endpoints -or $config.plugins.updater.endpoints
 if (-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PATH)) {
     if (Test-Path $env:TAURI_SIGNING_PRIVATE_KEY_PATH) {
         Add-Pass "Signing private key path exists"
+        $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $env:TAURI_SIGNING_PRIVATE_KEY_PATH -Raw).Trim()
     } else {
         Add-Failure "TAURI_SIGNING_PRIVATE_KEY_PATH does not exist"
     }
@@ -82,6 +83,39 @@ if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)) {
     Add-Warning "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is not set. Deploy will fail until you set it."
 } else {
     Add-Pass "Signing password env var is set"
+}
+
+if (-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY) -and
+    -not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)) {
+    $probePath = Join-Path $env:TEMP "emx-updater-sign-probe-$PID.txt"
+    Set-Content -LiteralPath $probePath -Value "emx updater signing probe" -Encoding ascii
+
+    $previousNativeErrorPreference = $null
+    $previousErrorActionPreference = $ErrorActionPreference
+    if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue) {
+        $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
+    }
+
+    try {
+        $ErrorActionPreference = "Continue"
+        $signOutput = & npm run tauri signer sign -- $probePath 2>&1
+        $signExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+        if ($null -ne $previousNativeErrorPreference) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+        }
+        Remove-Item -LiteralPath $probePath -ErrorAction SilentlyContinue
+    }
+
+    if ($signExitCode -ne 0) {
+        $signOutput | Select-Object -Last 8 | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+        Add-Failure "Updater signing key/password validation failed."
+    } else {
+        Add-Pass "Updater signing key/password validated"
+    }
 }
 
 $previousNativeErrorPreference = $null
