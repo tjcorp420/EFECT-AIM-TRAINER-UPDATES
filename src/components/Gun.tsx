@@ -1,10 +1,9 @@
 import { Suspense, useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useStore } from '../store/useStore';
+import type { WeaponClass } from '../store/useStore';
 import WeaponModel from './WeaponModel';
 import * as THREE from 'three';
-
-type WeaponClass = 'pistol' | 'smg' | 'sniper' | 'nerf';
 
 type Vec3 = [number, number, number];
 
@@ -140,6 +139,58 @@ const WEAPON_PROFILES: Record<WeaponClass, WeaponProfile> = {
 
     muzzlePosition: [0, 0.035, -0.56],
   },
+
+  scifi: {
+    recoilZ: 0.16,
+    recoilY: 0.026,
+    rotX: 0.12,
+    recovery: 13,
+    kickSpeed: 36,
+
+    baseX: 0.54,
+    baseY: -0.45,
+    baseZ: -1.18,
+
+    viewRotX: 0.0,
+    viewRotY: -0.14,
+    viewRotZ: -0.025,
+
+    viewScale: 1,
+    targetLength: 1.08,
+    modelPath: '/models/weapons/scifi/scifigun.fbx',
+
+    modelPosition: [0, 0, 0],
+    modelRotation: [0, Math.PI / 2, 0],
+    modelScale: 1,
+
+    muzzlePosition: [0, 0.04, -0.66],
+  },
+
+  scifi2: {
+    recoilZ: 0.105,
+    recoilY: 0.018,
+    rotX: 0.082,
+    recovery: 17,
+    kickSpeed: 46,
+
+    baseX: 0.5,
+    baseY: -0.43,
+    baseZ: -1.08,
+
+    viewRotX: 0.004,
+    viewRotY: -0.16,
+    viewRotZ: -0.025,
+
+    viewScale: 1,
+    targetLength: 0.9,
+    modelPath: '/models/weapons/scifi2/scifi_gun_2.fbx',
+
+    modelPosition: [0, 0, 0],
+    modelRotation: [0, Math.PI / 2, 0],
+    modelScale: 1,
+
+    muzzlePosition: [0, 0.034, -0.52],
+  },
 };
 
 function FallbackGun({
@@ -152,12 +203,13 @@ function FallbackGun({
   const isSmg = weaponClass === 'smg';
   const isSniper = weaponClass === 'sniper';
   const isNerf = weaponClass === 'nerf';
+  const isSciFi = weaponClass === 'scifi' || weaponClass === 'scifi2';
 
-  const bodyLength = isSniper ? 0.58 : isSmg || isNerf ? 0.46 : 0.34;
-  const barrelLength = isSniper ? 0.58 : isSmg || isNerf ? 0.34 : 0.28;
+  const bodyLength = isSniper ? 0.58 : isSmg || isNerf || isSciFi ? 0.46 : 0.34;
+  const barrelLength = isSniper ? 0.58 : isSmg || isNerf || isSciFi ? 0.34 : 0.28;
 
-  const bodyColor = isNerf ? '#20202a' : '#090d0d';
-  const accentColor = isNerf ? '#ff8a00' : color;
+  const bodyColor = isNerf ? '#20202a' : isSciFi ? '#07141c' : '#090d0d';
+  const accentColor = isNerf ? '#ff8a00' : isSciFi ? '#00aaff' : color;
 
   return (
     <group>
@@ -228,11 +280,7 @@ export default function Gun() {
   const time = useRef(0);
 
   const activeWeaponClass: WeaponClass =
-    rawWeaponClass === 'smg' ||
-    rawWeaponClass === 'sniper' ||
-    rawWeaponClass === 'nerf'
-      ? rawWeaponClass
-      : 'pistol';
+    rawWeaponClass in WEAPON_PROFILES ? (rawWeaponClass as WeaponClass) : 'pistol';
 
   const profile = WEAPON_PROFILES[activeWeaponClass];
   const projectileColor =

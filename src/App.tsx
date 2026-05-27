@@ -327,6 +327,8 @@ const getWeaponTitle = (weaponClass: string) => {
   if (weaponClass === 'smg') return 'SMG AUTOMATIC';
   if (weaponClass === 'sniper') return 'SNIPER HIGH IMPACT';
   if (weaponClass === 'nerf') return 'NERF TRAINING BLASTER';
+  if (weaponClass === 'scifi') return 'SCI-FI RIFLE MK1';
+  if (weaponClass === 'scifi2') return 'SCI-FI SIDEARM MK2';
 
   return 'PISTOL TACTICAL';
 };
@@ -919,7 +921,7 @@ export default function App() {
       if (gameState === 'playing') return;
 
       const target = event.target as HTMLElement | null;
-      const isControl = Boolean(target?.closest('button, a, input, [role="slider"]'));
+      const isControl = Boolean(target?.closest('button, a, input, select, [role="slider"]'));
 
       if (isControl) {
         playUiSound('soft');

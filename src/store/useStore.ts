@@ -64,12 +64,62 @@ export const TRACK_LIST = [
   { id: 'bass', name: 'Bass' },
 ];
 
-export type WeaponClass = 'pistol' | 'smg' | 'sniper' | 'nerf';
+type SampleSoundOption = {
+  id: string;
+  label: string;
+  path?: string;
+  volume?: number;
+  playbackRate?: number;
+  duration?: number;
+};
+
+export const HIT_SOUND_OPTIONS = [
+  { id: 'none', label: 'Muted' },
+  { id: 'tick', label: 'Digital Tick' },
+  { id: 'pop', label: 'Hollow Pop' },
+  { id: 'ding', label: 'Combat Ding' },
+  { id: 'crit', label: 'Headshot Crit' },
+  { id: 'arcade', label: 'Arcade Pulse' },
+  { id: 'sfx_hit', label: 'SFX Hit', path: '/sfx/back-in-time/hit.wav', volume: 0.42, duration: 0.18 },
+  { id: 'sfx_select', label: 'SFX Select', path: '/sfx/back-in-time/select-2.wav', volume: 0.36, duration: 0.16 },
+  { id: 'sfx_robot_smash', label: 'Robot Smash', path: '/sfx/back-in-time/robot-smash.wav', volume: 0.38, duration: 0.22 },
+  { id: 'sfx_sword_clash', label: 'Sword Clash', path: '/sfx/back-in-time/sword-clash.wav', volume: 0.34, duration: 0.2 },
+  { id: 'sfx_success', label: 'Success Ping', path: '/sfx/back-in-time/success.wav', volume: 0.32, duration: 0.24 },
+  { id: 'sfx_explosion', label: 'Impact Burst', path: '/sfx/back-in-time/explosion.wav', volume: 0.3, duration: 0.22 },
+] as const satisfies readonly SampleSoundOption[];
+
+export const FIRE_SOUND_OPTIONS = [
+  { id: 'auto', label: 'Auto By Weapon' },
+  { id: 'classic', label: 'Classic Synth' },
+  { id: 'aircraft_laser_blast', label: 'Aircraft Laser Blast', path: '/sfx/back-in-time/aircraft-laser-blast.wav', volume: 0.34, duration: 0.28 },
+  { id: 'aircraft_hyper_laser', label: 'Aircraft Hyper Laser', path: '/sfx/back-in-time/aircraft-hyper-laser.wav', volume: 0.34, duration: 0.24 },
+  { id: 'laser_beam_1', label: 'Laser Beam 1', path: '/sfx/back-in-time/laser-beam-1.wav', volume: 0.36, duration: 0.22 },
+  { id: 'laser_beam_2', label: 'Laser Beam 2', path: '/sfx/back-in-time/laser-beam-2.wav', volume: 0.36, duration: 0.22 },
+  { id: 'laser_cutter_1', label: 'Laser Cutter 1', path: '/sfx/back-in-time/laser-cutter-1.wav', volume: 0.34, duration: 0.26 },
+  { id: 'laser_cutter_3', label: 'Laser Cutter 3', path: '/sfx/back-in-time/laser-cutter-3.wav', volume: 0.34, duration: 0.24 },
+  { id: 'machine_gun_1', label: 'Machine Gun 1', path: '/sfx/back-in-time/machine-gun-1.wav', volume: 0.32, duration: 0.2 },
+  { id: 'machine_gun_2', label: 'Machine Gun 2', path: '/sfx/back-in-time/machine-gun-2.wav', volume: 0.32, duration: 0.18 },
+  { id: 'mini_laser_canon', label: 'Mini Laser Canon', path: '/sfx/back-in-time/mini-laser-canon.wav', volume: 0.35, duration: 0.22 },
+  { id: 'mini_laser', label: 'Mini Laser', path: '/sfx/back-in-time/mini-laser.wav', volume: 0.34, duration: 0.2 },
+  { id: 'old_shotgun', label: 'Old Shotgun', path: '/sfx/back-in-time/old-shotgun.wav', volume: 0.36, duration: 0.24 },
+  { id: 'ray_gun', label: 'Ray Gun', path: '/sfx/back-in-time/ray-gun.wav', volume: 0.36, duration: 0.22 },
+  { id: 'supersonic_laser_1', label: 'Supersonic Laser 1', path: '/sfx/back-in-time/supersonic-laser-1.wav', volume: 0.34, duration: 0.28 },
+  { id: 'supersonic_laser_2', label: 'Supersonic Laser 2', path: '/sfx/back-in-time/supersonic-laser-2.wav', volume: 0.34, duration: 0.28 },
+  { id: 'ice_gun', label: 'Ice Gun', path: '/sfx/back-in-time/ice-gun.wav', volume: 0.34, duration: 0.2 },
+  { id: 'empty', label: 'Empty Click', path: '/sfx/back-in-time/empty.wav', volume: 0.3, duration: 0.14 },
+  { id: 'nuclear_explosion', label: 'Nuclear Boom', path: '/sfx/back-in-time/nuclear-explosion.wav', volume: 0.24, duration: 0.3 },
+] as const satisfies readonly SampleSoundOption[];
+
+const HIT_SOUND_IDS = new Set<string>(HIT_SOUND_OPTIONS.map((option) => option.id));
+const FIRE_SOUND_IDS = new Set<string>(FIRE_SOUND_OPTIONS.map((option) => option.id));
+
+export type WeaponClass = 'pistol' | 'smg' | 'sniper' | 'nerf' | 'scifi' | 'scifi2';
 export type WeaponMode = 'stealth' | 'laser';
 export type BulletEffect = 'none' | 'tracer' | 'plasma' | 'spark' | 'rail';
 export type TargetShape = 'sphere' | 'cube' | 'humanoid';
 export type TargetSkinMode = 'custom' | 'original';
-export type HitSound = 'tick' | 'pop' | 'ding' | 'crit' | 'arcade' | 'none';
+export type HitSound = (typeof HIT_SOUND_OPTIONS)[number]['id'];
+export type FireSound = (typeof FIRE_SOUND_OPTIONS)[number]['id'];
 export type GraphicsQuality = 'high' | 'performance';
 export type CrosshairHitReact = 'off' | 'pulse' | 'burst';
 
@@ -185,6 +235,7 @@ const PROFILE_KEYS = [
   'targetShape',
   'targetSkinMode',
   'hitSound',
+  'fireSound',
   'scenario',
   'weaponMode',
   'bulletEffect',
@@ -204,6 +255,7 @@ const PROFILE_KEYS = [
 ] as const;
 
 let sharedAudioContext: AudioContext | null = null;
+const sampleBufferCache = new Map<string, Promise<AudioBuffer | null>>();
 
 const safeJsonParse = <T,>(raw: string | null, fallback: T): T => {
   try {
@@ -239,7 +291,16 @@ const sanitizeUsername = (value: unknown) => {
 };
 
 const normalizeWeaponClass = (value: unknown): WeaponClass => {
-  if (value === 'smg' || value === 'sniper' || value === 'nerf') return value;
+  if (
+    value === 'smg' ||
+    value === 'sniper' ||
+    value === 'nerf' ||
+    value === 'scifi' ||
+    value === 'scifi2'
+  ) {
+    return value;
+  }
+
   return 'pistol';
 };
 
@@ -272,11 +333,19 @@ const normalizeTargetSkinMode = (value: unknown): TargetSkinMode => {
 };
 
 const normalizeHitSound = (value: unknown): HitSound => {
-  if (value === 'pop' || value === 'ding' || value === 'crit' || value === 'arcade' || value === 'none') {
-    return value;
+  if (typeof value === 'string' && HIT_SOUND_IDS.has(value)) {
+    return value as HitSound;
   }
 
   return 'tick';
+};
+
+const normalizeFireSound = (value: unknown): FireSound => {
+  if (typeof value === 'string' && FIRE_SOUND_IDS.has(value)) {
+    return value as FireSound;
+  }
+
+  return 'auto';
 };
 
 const normalizeGraphicsQuality = (value: unknown): GraphicsQuality => {
@@ -620,8 +689,75 @@ export const playUiSound = (kind: 'soft' | 'confirm' | 'error' | 'countdown' = '
   }
 };
 
+const loadSampleBuffer = (ctx: AudioContext, path: string) => {
+  if (!sampleBufferCache.has(path)) {
+    sampleBufferCache.set(
+      path,
+      fetch(path)
+        .then((response) => {
+          if (!response.ok) throw new Error(`Unable to load audio sample: ${path}`);
+          return response.arrayBuffer();
+        })
+        .then((buffer) => ctx.decodeAudioData(buffer.slice(0)))
+        .catch(() => null)
+    );
+  }
+
+  return sampleBufferCache.get(path)!;
+};
+
+const playAudioSample = (option: SampleSoundOption, volumeMultiplier = 1) => {
+  if (!option.path) return;
+
+  try {
+    const ctx = getAudioContext();
+
+    if (!ctx) return;
+
+    const play = async () => {
+      const buffer = await loadSampleBuffer(ctx, option.path!);
+
+      if (!buffer) return;
+
+      const now = ctx.currentTime;
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      const duration = Math.min(buffer.duration, option.duration ?? buffer.duration);
+
+      source.buffer = buffer;
+      source.playbackRate.setValueAtTime(option.playbackRate ?? 1, now);
+      gain.gain.setValueAtTime((option.volume ?? 0.34) * volumeMultiplier, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.04, duration));
+
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(now, 0, duration);
+      source.stop(now + duration + 0.01);
+    };
+
+    if (ctx.state === 'suspended') {
+      void ctx.resume().then(play).catch(() => null);
+      return;
+    }
+
+    void play();
+  } catch {
+    // External samples are optional. Generated sounds remain as fallback.
+  }
+};
+
 export const playHitSound = (type: string, hitType: HitType = 'normal') => {
   if (type === 'none') return;
+
+  const isHeadshot = hitType === 'headshot';
+  const sampleSound = (HIT_SOUND_OPTIONS as readonly SampleSoundOption[]).find(
+    (option) => option.id === type && Boolean(option.path)
+  );
+
+  if (sampleSound?.path) {
+    playAudioSample(sampleSound, isHeadshot ? 1.18 : 1);
+    return;
+  }
 
   try {
     const ctx = getAudioContext();
@@ -631,7 +767,6 @@ export const playHitSound = (type: string, hitType: HitType = 'normal') => {
     const play = () => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      const isHeadshot = hitType === 'headshot';
       const volumeBoost = 1.75;
 
       if (type === 'tick') {
@@ -693,7 +828,22 @@ export const playHitSound = (type: string, hitType: HitType = 'normal') => {
   }
 };
 
-export const playWeaponFireSound = (weaponClass: WeaponClass = 'pistol') => {
+export const playWeaponFireSound = (
+  weaponClass: WeaponClass = 'pistol',
+  fireSound: FireSound = 'auto'
+) => {
+  const autoSampleId =
+    weaponClass === 'scifi' ? 'ray_gun' : weaponClass === 'scifi2' ? 'mini_laser_canon' : null;
+  const requestedSampleId = fireSound === 'auto' ? autoSampleId : fireSound;
+  const sampleSound = (FIRE_SOUND_OPTIONS as readonly SampleSoundOption[]).find(
+    (option) => option.id === requestedSampleId && Boolean(option.path)
+  );
+
+  if (sampleSound?.path) {
+    playAudioSample(sampleSound);
+    return;
+  }
+
   try {
     const ctx = getAudioContext();
 
@@ -708,6 +858,8 @@ export const playWeaponFireSound = (weaponClass: WeaponClass = 'pistol') => {
             ? { start: 230, end: 96, duration: 0.055, toneGain: 0.065, noiseGain: 0.04, filter: 900 }
             : weaponClass === 'nerf'
               ? { start: 440, end: 190, duration: 0.075, toneGain: 0.052, noiseGain: 0.024, filter: 1320 }
+              : weaponClass === 'scifi' || weaponClass === 'scifi2'
+                ? { start: 620, end: 120, duration: 0.11, toneGain: 0.09, noiseGain: 0.035, filter: 1540 }
               : { start: 260, end: 92, duration: 0.09, toneGain: 0.085, noiseGain: 0.052, filter: 760 };
 
       const osc = ctx.createOscillator();
@@ -725,7 +877,7 @@ export const playWeaponFireSound = (weaponClass: WeaponClass = 'pistol') => {
       const noise = ctx.createBufferSource();
       noise.buffer = noiseBuffer;
 
-      osc.type = weaponClass === 'nerf' ? 'triangle' : 'sawtooth';
+      osc.type = weaponClass === 'nerf' ? 'triangle' : weaponClass.startsWith('scifi') ? 'square' : 'sawtooth';
       osc.frequency.setValueAtTime(profile.start, now);
       osc.frequency.exponentialRampToValueAtTime(profile.end, now + profile.duration);
 
@@ -772,6 +924,7 @@ const normalizeSettings = (settings: Partial<GameState>): Partial<GameState> => 
   if ('targetShape' in next) next.targetShape = normalizeTargetShape(next.targetShape);
   if ('targetSkinMode' in next) next.targetSkinMode = normalizeTargetSkinMode(next.targetSkinMode);
   if ('hitSound' in next) next.hitSound = normalizeHitSound(next.hitSound);
+  if ('fireSound' in next) next.fireSound = normalizeFireSound(next.fireSound);
   if ('graphicsQuality' in next) next.graphicsQuality = normalizeGraphicsQuality(next.graphicsQuality);
   if ('mapTheme' in next) next.mapTheme = normalizeMapTheme(next.mapTheme);
   if ('gameProfile' in next) next.gameProfile = normalizeGameProfile(next.gameProfile);
@@ -827,6 +980,7 @@ interface GameState {
   targetShape: TargetShape;
   targetSkinMode: TargetSkinMode;
   hitSound: HitSound;
+  fireSound: FireSound;
 
   scenario: string;
 
@@ -933,6 +1087,7 @@ export const useStore = create<GameState>((set, get) => ({
   targetShape: normalizeTargetShape(profile.targetShape),
   targetSkinMode: normalizeTargetSkinMode(profile.targetSkinMode),
   hitSound: normalizeHitSound(profile.hitSound),
+  fireSound: normalizeFireSound(profile.fireSound),
 
   weaponMode: normalizeWeaponMode(profile.weaponMode),
   bulletEffect: normalizeBulletEffect(profile.bulletEffect),
@@ -1223,7 +1378,7 @@ export const useStore = create<GameState>((set, get) => ({
 
     const ctx = getAudioContext();
     if (ctx?.state === 'suspended') void ctx.resume();
-    playWeaponFireSound(state.weaponClass);
+    playWeaponFireSound(state.weaponClass, state.fireSound);
 
     set((current) => {
       const nextShots = current.shots + 1;

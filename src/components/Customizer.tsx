@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { useStore, TRACK_LIST, GAME_PROFILES, playHitSound } from '../store/useStore';
+import {
+  useStore,
+  TRACK_LIST,
+  GAME_PROFILES,
+  HIT_SOUND_OPTIONS,
+  FIRE_SOUND_OPTIONS,
+  playHitSound,
+  playWeaponFireSound,
+} from '../store/useStore';
 import { auth, syncArmoryToCloud } from '../firebase';
 import EfectSlider from './EfectSlider';
 
@@ -18,7 +25,7 @@ type CrosshairStyle =
   | 'plus'
   | 'triad'
   | 'hybrid';
-type WeaponId = 'pistol' | 'smg' | 'sniper' | 'nerf';
+type WeaponId = 'pistol' | 'smg' | 'sniper' | 'nerf' | 'scifi' | 'scifi2';
 
 type CrosshairPreset = {
   id: CrosshairStyle;
@@ -357,6 +364,38 @@ const WEAPON_PRESETS: Record<WeaponId, WeaponPreset> = {
     perk: 'BEST FOR: warmups and casual target flow',
     accent: '#ff8a00',
   },
+  scifi: {
+    id: 'scifi',
+    name: 'SCI-FI RIFLE MK1',
+    shortName: 'SCI-FI MK1',
+    role: 'ENERGY RIFLE',
+    model: 'scifigun.fbx',
+    behavior: 'Imported FBX sci-fi rifle with a heavier energy-shot profile.',
+    fireRate: 72,
+    recoil: 44,
+    control: 76,
+    range: 78,
+    mobility: 68,
+    loadout: 'FBX energy rifle / custom textures',
+    perk: 'BEST FOR: laser-style precision reps',
+    accent: '#00aaff',
+  },
+  scifi2: {
+    id: 'scifi2',
+    name: 'SCI-FI SIDEARM MK2',
+    shortName: 'SCI-FI MK2',
+    role: 'COMPACT ENERGY',
+    model: 'scifi_gun_2.fbx',
+    behavior: 'Lightweight imported FBX sidearm for fast reactive drills.',
+    fireRate: 82,
+    recoil: 36,
+    control: 82,
+    range: 64,
+    mobility: 86,
+    loadout: 'FBX compact energy weapon',
+    perk: 'BEST FOR: quick target chains',
+    accent: '#ff3b8a',
+  },
 };
 
 const readCrosshairStyle = (): CrosshairStyle => {
@@ -651,6 +690,16 @@ function WeaponSilhouette({
     );
   }
 
+  if (weapon.id === 'scifi' || weapon.id === 'scifi2') {
+    return (
+      <div className="weapon-silhouette weapon-silhouette-smg">
+        <span style={{ background: accent, boxShadow: `0 0 18px ${accent}` }} />
+        <i style={{ background: accent }} />
+        <b style={{ borderColor: accent }} />
+      </div>
+    );
+  }
+
   if (weapon.id === 'nerf') {
     return (
       <div className="weapon-silhouette weapon-silhouette-nerf">
@@ -731,142 +780,75 @@ function ArmorySelect({
   color: string;
   onChange: (value: string | number) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const selected = options.find((option) => String(option.value) === String(value)) || options[0];
-
-  useEffect(() => {
-    if (!open) return;
-
-    const syncPosition = () => {
-      if (buttonRef.current) {
-        setMenuRect(buttonRef.current.getBoundingClientRect());
-      }
-    };
-    const close = () => setOpen(false);
-
-    syncPosition();
-    window.addEventListener('pointerdown', close);
-    window.addEventListener('keydown', close);
-    window.addEventListener('resize', syncPosition);
-    window.addEventListener('scroll', syncPosition, true);
-
-    return () => {
-      window.removeEventListener('pointerdown', close);
-      window.removeEventListener('keydown', close);
-      window.removeEventListener('resize', syncPosition);
-      window.removeEventListener('scroll', syncPosition, true);
-    };
-  }, [open]);
+  const normalizedValue = String(value);
 
   return (
     <div
       style={{
         position: 'relative',
-        zIndex: open ? 20000 : 2,
+        zIndex: 2,
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <button
-        ref={buttonRef}
-        type="button"
+      <select
         className="armory-custom-select"
-        onClick={(e) => {
-          e.preventDefault();
+        value={normalizedValue}
+        onChange={(e) => {
           e.stopPropagation();
-          setOpen((prev) => !prev);
+          const selectedOption =
+            options.find((option) => String(option.value) === e.target.value) || options[0];
+
+          if (selectedOption) {
+            onChange(selectedOption.value);
+          }
         }}
         style={{
           width: '100%',
           minHeight: 47,
           padding: '13px 42px 13px 14px',
           borderRadius: 8,
-          border: `1px solid ${open ? color : 'rgba(255,255,255,0.16)'}`,
-          background: open ? 'rgba(0,0,0,0.86)' : 'rgba(0,0,0,0.72)',
+          border: '1px solid rgba(255,255,255,0.16)',
+          background: 'rgba(0,0,0,0.72)',
           color: '#fff',
           cursor: 'pointer',
           fontFamily: 'inherit',
           fontWeight: 900,
           letterSpacing: 1,
           textAlign: 'left',
-          boxShadow: open ? `0 0 24px ${color}33` : 'none',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          pointerEvents: 'auto',
+          touchAction: 'manipulation',
+          boxShadow: 'none',
           position: 'relative',
         }}
       >
-        <span>{selected?.label || 'Select'}</span>
-        <span
-          style={{
-            position: 'absolute',
-            right: 14,
-            top: '50%',
-            transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
-            color,
-            transition: 'transform 0.16s ease',
-          }}
-        >
-          v
-        </span>
-      </button>
+        {options.map((option) => (
+          <option
+            key={String(option.value)}
+            value={String(option.value)}
+            style={{ backgroundColor: '#070707', color: '#fff' }}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
 
-      {open && menuRect && createPortal(
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed',
-            left: menuRect.left,
-            top: Math.min(
-              menuRect.bottom + 8,
-              window.innerHeight - Math.min(260, options.length * 45 + 14) - 10
-            ),
-            width: menuRect.width,
-            maxHeight: 260,
-            overflowY: 'auto',
-            zIndex: 2147483200,
-            borderRadius: 12,
-            border: `1px solid ${color}66`,
-            background:
-              'linear-gradient(180deg, rgba(18,18,22,0.98), rgba(0,0,0,0.98))',
-            boxShadow: `0 18px 48px rgba(0,0,0,0.72), 0 0 26px ${color}30`,
-            padding: 6,
-          }}
-        >
-          {options.map((option) => {
-            const active = String(option.value) === String(value);
-
-            return (
-              <button
-                key={String(option.value)}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '11px 12px',
-                  borderRadius: 8,
-                  border: `1px solid ${active ? color : 'transparent'}`,
-                  background: active ? `${color}22` : 'transparent',
-                  color: active ? color : 'rgba(255,255,255,0.76)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontFamily: 'inherit',
-                  fontWeight: 900,
-                  letterSpacing: 1,
-                }}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>,
-        document.body
-      )}
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          right: 14,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          color,
+          pointerEvents: 'none',
+          fontWeight: 900,
+        }}
+      >
+        v
+      </span>
     </div>
   );
 }
@@ -888,6 +870,7 @@ export default function Customizer() {
     targetShape,
     targetSkinMode,
     hitSound,
+    fireSound,
     scenario,
     weaponMode,
     bulletEffect,
@@ -1038,6 +1021,7 @@ const forceDeploy = () => {
       targetShape: state.targetShape,
       targetSkinMode: state.targetSkinMode,
       hitSound: state.hitSound,
+      fireSound: state.fireSound,
       weaponMode: state.weaponMode,
       bulletEffect: state.bulletEffect,
       weaponClass: state.weaponClass,
@@ -1349,7 +1333,8 @@ const forceDeploy = () => {
         }
 
         .armory-input:focus,
-        .armory-select:focus {
+        .armory-select:focus,
+        .armory-custom-select:focus {
           border-color: ${color} !important;
           box-shadow: 0 0 20px ${color}33 !important;
         }
@@ -1933,12 +1918,10 @@ letterSpacing: 14,
                     <ArmorySelect
                       value={weaponClass}
                       color={color}
-                      options={[
-                        { value: 'pistol', label: 'Pistol Tactical' },
-                        { value: 'smg', label: 'SMG Automatic' },
-                        { value: 'sniper', label: 'Sniper High Impact' },
-                        { value: 'nerf', label: 'Nerf Training Blaster' },
-                      ]}
+                      options={Object.values(WEAPON_PRESETS).map((weapon) => ({
+                        value: weapon.id,
+                        label: weapon.name,
+                      }))}
                       onChange={(nextValue) => setWeapon(nextValue as any)}
                     />
                   </div>
@@ -1960,7 +1943,7 @@ letterSpacing: 14,
                     />
                   </div>
 
-                  <div style={{ gridColumn: '1 / span 2' }}>
+                  <div>
                     <FieldLabel>Bullet Effect</FieldLabel>
                     <ArmorySelect
                       value={bulletEffect}
@@ -1977,6 +1960,24 @@ letterSpacing: 14,
                           bulletEffect: nextValue as any,
                         })
                       }
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabel>Gun Sound</FieldLabel>
+                    <ArmorySelect
+                      value={fireSound}
+                      color={color}
+                      options={FIRE_SOUND_OPTIONS.map((option) => ({
+                        value: option.id,
+                        label: option.label,
+                      }))}
+                      onChange={(nextValue) => {
+                        setSettings({
+                          fireSound: nextValue as any,
+                        });
+                        playWeaponFireSound(weaponClass as any, nextValue as any);
+                      }}
                     />
                   </div>
                 </div>
@@ -2157,14 +2158,10 @@ letterSpacing: 14,
                     <ArmorySelect
                       value={hitSound}
                       color={color}
-                      options={[
-                        { value: 'none', label: 'Muted' },
-                        { value: 'tick', label: 'Digital Tick' },
-                        { value: 'pop', label: 'Hollow Pop' },
-                        { value: 'ding', label: 'Combat Ding' },
-                        { value: 'crit', label: 'Headshot Crit' },
-                        { value: 'arcade', label: 'Arcade Pulse' },
-                      ]}
+                      options={HIT_SOUND_OPTIONS.map((option) => ({
+                        value: option.id,
+                        label: option.label,
+                      }))}
                       onChange={(nextValue) =>
                         {
                           setSettings({

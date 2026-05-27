@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useFBX, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
 type Vec3 = [number, number, number];
@@ -31,18 +31,16 @@ function upgradeMaterial(material: THREE.Material): THREE.Material {
   return cloned;
 }
 
-export default function WeaponModel({
-  modelPath,
+function PreparedWeaponModel({
+  source,
   color,
   targetLength,
   modelPosition = [0, 0, 0],
   modelRotation = [0, 0, 0],
   modelScale = 1,
-}: WeaponModelProps) {
-  const gltf = useGLTF(modelPath);
-
+}: Omit<WeaponModelProps, 'modelPath'> & { source: THREE.Object3D }) {
   const processed = useMemo(() => {
-    const clonedScene = gltf.scene.clone(true);
+    const clonedScene = source.clone(true);
 
     clonedScene.traverse((child) => {
       const mesh = child as THREE.Mesh;
@@ -75,7 +73,7 @@ export default function WeaponModel({
       scene: clonedScene,
       scale: normalizedScale * modelScale,
     };
-  }, [gltf.scene, targetLength, modelScale, color]);
+  }, [source, targetLength, modelScale, color]);
 
   return (
     <group position={modelPosition} rotation={modelRotation} scale={processed.scale}>
@@ -84,7 +82,27 @@ export default function WeaponModel({
   );
 }
 
+function GLTFWeaponModel(props: WeaponModelProps) {
+  const gltf = useGLTF(props.modelPath);
+
+  return <PreparedWeaponModel {...props} source={gltf.scene} />;
+}
+
+function FBXWeaponModel(props: WeaponModelProps) {
+  const fbx = useFBX(props.modelPath);
+
+  return <PreparedWeaponModel {...props} source={fbx} />;
+}
+
+export default function WeaponModel(props: WeaponModelProps) {
+  const isFbx = props.modelPath.toLowerCase().endsWith('.fbx');
+
+  return isFbx ? <FBXWeaponModel {...props} /> : <GLTFWeaponModel {...props} />;
+}
+
 useGLTF.preload('/models/weapons/pistol.glb');
 useGLTF.preload('/models/weapons/smg.glb');
 useGLTF.preload('/models/weapons/sniper.glb');
 useGLTF.preload('/models/weapons/nerf.glb');
+useFBX.preload('/models/weapons/scifi/scifigun.fbx');
+useFBX.preload('/models/weapons/scifi2/scifi_gun_2.fbx');
