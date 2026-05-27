@@ -6,6 +6,7 @@ export default function Leaderboard() {
   const { color, setSettings, scenario, username, highScores, recentSessions } = useStore();
   const [topScores, setTopScores] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const normalizedUsername = username.trim().toLowerCase();
   const localBest = highScores[scenario] || 0;
   const scenarioRuns = recentSessions.filter((session) => session.scenario === scenario);
   const localPercentile =
@@ -69,10 +70,13 @@ export default function Leaderboard() {
             <tbody>
               {topScores.map((s, i) => {
                 // IDENTIFY LOGGED IN PLAYER
-                const isMe = s.username === username;
+                const displayName = String(s.username || 'EMX TWEAKS').substring(0, 16);
+                const score = Number.isFinite(Number(s.score)) ? Number(s.score) : 0;
+                const accuracy = Math.max(0, Math.min(100, Math.round(Number(s.accuracy) || 0)));
+                const isMe = displayName.trim().toLowerCase() === normalizedUsername;
                 
                 return (
-                  <tr key={i} style={{ 
+                  <tr key={s.id || `${displayName}-${score}-${i}`} style={{
                     borderBottom: '1px solid #222', 
                     background: isMe ? `${color}15` : 'transparent',
                     boxShadow: isMe ? `inset 4px 0 0 ${color}` : 'none',
@@ -82,11 +86,11 @@ export default function Leaderboard() {
                       #{i + 1} {i === 0 && '👑'}
                     </td>
                     <td style={{ fontWeight: 'bold', color: isMe ? color : '#fff', letterSpacing: '1px' }}>
-                      {s.username} 
+                      {displayName}
                       {isMe && <span style={{ fontSize: '0.7rem', background: color, color: '#000', padding: '2px 6px', borderRadius: '4px', marginLeft: '10px', verticalAlign: 'middle', fontWeight: '900' }}>YOU</span>}
                     </td>
-                    <td style={{ color: color, fontWeight: 'bold', letterSpacing: '1px' }}>{s.score.toLocaleString()}</td>
-                    <td style={{ opacity: isMe ? 1 : 0.6, color: isMe ? '#fff' : 'inherit' }}>{s.accuracy}%</td>
+                    <td style={{ color: color, fontWeight: 'bold', letterSpacing: '1px' }}>{score.toLocaleString()}</td>
+                    <td style={{ opacity: isMe ? 1 : 0.6, color: isMe ? '#fff' : 'inherit' }}>{accuracy}%</td>
                   </tr>
                 )
               })}

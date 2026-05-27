@@ -134,6 +134,9 @@ export type MapTheme =
   | 'efect_arena'
   | 'luxury_lounge'
   | 'cyber_rooftop'
+  | 'dark_neon_void'
+  | 'emerald_night_ops'
+  | 'purple_afterglow'
   | 'cyber'
   | 'minimal'
   | 'galaxy'
@@ -234,6 +237,7 @@ const PROFILE_KEYS = [
   'targetColor',
   'targetShape',
   'targetSkinMode',
+  'targetOutline',
   'hitSound',
   'fireSound',
   'scenario',
@@ -389,6 +393,9 @@ const normalizeMapTheme = (value: unknown): MapTheme => {
     'efect_arena',
     'luxury_lounge',
     'cyber_rooftop',
+    'dark_neon_void',
+    'emerald_night_ops',
+    'purple_afterglow',
   ]);
 
   if (validThemes.has(value)) return value as MapTheme;
@@ -923,6 +930,7 @@ const normalizeSettings = (settings: Partial<GameState>): Partial<GameState> => 
   if ('bulletEffect' in next) next.bulletEffect = normalizeBulletEffect(next.bulletEffect);
   if ('targetShape' in next) next.targetShape = normalizeTargetShape(next.targetShape);
   if ('targetSkinMode' in next) next.targetSkinMode = normalizeTargetSkinMode(next.targetSkinMode);
+  if ('targetOutline' in next) next.targetOutline = safeBoolean(next.targetOutline, true);
   if ('hitSound' in next) next.hitSound = normalizeHitSound(next.hitSound);
   if ('fireSound' in next) next.fireSound = normalizeFireSound(next.fireSound);
   if ('graphicsQuality' in next) next.graphicsQuality = normalizeGraphicsQuality(next.graphicsQuality);
@@ -979,6 +987,7 @@ interface GameState {
   targetColor: string;
   targetShape: TargetShape;
   targetSkinMode: TargetSkinMode;
+  targetOutline: boolean;
   hitSound: HitSound;
   fireSound: FireSound;
 
@@ -997,6 +1006,7 @@ interface GameState {
   isMusicPlaying: boolean;
 
   isFiring: boolean;
+  hasStartedSession: boolean;
 
   targetSpeed: number;
   modelScale: number;
@@ -1086,6 +1096,7 @@ export const useStore = create<GameState>((set, get) => ({
   targetColor: typeof profile.targetColor === 'string' ? profile.targetColor : '#00ff00',
   targetShape: normalizeTargetShape(profile.targetShape),
   targetSkinMode: normalizeTargetSkinMode(profile.targetSkinMode),
+  targetOutline: safeBoolean(profile.targetOutline, true),
   hitSound: normalizeHitSound(profile.hitSound),
   fireSound: normalizeFireSound(profile.fireSound),
 
@@ -1108,6 +1119,7 @@ export const useStore = create<GameState>((set, get) => ({
 
   scenario: typeof profile.scenario === 'string' ? profile.scenario : 'gridshot_standard',
   isFiring: false,
+  hasStartedSession: false,
 
   score: 0,
   shots: 0,
@@ -1192,26 +1204,28 @@ export const useStore = create<GameState>((set, get) => ({
     set({
       gameState: 'scenarioSelect',
       isFiring: false,
+      hasStartedSession: false,
     }),
 
   goToCustomizer: () =>
     set({
       gameState: 'customizer',
       isFiring: false,
+      hasStartedSession: false,
     }),
 
   startGame: () =>
     set((state) => {
       const safeDuration = safeNumber(state.drillDuration, 60, 10, 600);
-      const initialShots = state.skipClickToBegin ? 1 : 0;
       const previousBestBeforeSession = state.highScores[state.scenario] || 0;
 
       return {
         gameState: 'playing',
         isFiring: false,
+        hasStartedSession: state.skipClickToBegin,
 
         score: 0,
-        shots: initialShots,
+        shots: 0,
         misses: 0,
         combo: 0,
         bestCombo: 0,
@@ -1345,6 +1359,7 @@ export const useStore = create<GameState>((set, get) => ({
       return {
         gameState: 'gameover',
         isFiring: false,
+        hasStartedSession: false,
         highScores: newHighScores,
         xp: nextProgression.xp,
         level: nextProgression.level,
@@ -1384,6 +1399,7 @@ export const useStore = create<GameState>((set, get) => ({
       const nextShots = current.shots + 1;
 
       return {
+        hasStartedSession: true,
         shots: nextShots,
         misses: Math.max(0, nextShots - current.hitTrigger),
       };

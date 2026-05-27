@@ -2,7 +2,6 @@ import { initializeApp } from "firebase/app";
 import {
   getFirestore,
   collection,
-  addDoc,
   query,
   where,
   orderBy,
@@ -49,6 +48,10 @@ const cleanAccuracy = (accuracy: number) => {
   return Math.max(0, Math.min(100, Math.round(Number.isFinite(accuracy) ? accuracy : 0)));
 };
 
+const getLeaderboardId = (scenario: string, uid: string) => {
+  return `${cleanScenario(scenario)}_${uid.replace(/[^a-zA-Z0-9_-]/g, "").substring(0, 96)}`;
+};
+
 // --- LEADERBOARD LOGIC ---
 export const submitScore = async (scenario: string, username: string, score: number, accuracy: number) => {
   const user = auth.currentUser;
@@ -58,14 +61,33 @@ export const submitScore = async (scenario: string, username: string, score: num
   }
 
   try {
-    await addDoc(collection(db, "leaderboards"), {
+    const scenarioKey = cleanScenario(scenario);
+    const leaderboardRef = doc(db, "leaderboards", getLeaderboardId(scenario, user.uid));
+    const existingSnap = await getDoc(leaderboardRef);
+    const existingScore = existingSnap.exists() ? cleanScore(Number(existingSnap.data().score)) : 0;
+    const nextScore = cleanScore(score);
+    const sharedPayload = {
       uid: user.uid,
-      scenario: cleanScenario(scenario),
+      scenario: scenarioKey,
       username: cleanUsername(username),
-      score: cleanScore(score),
-      accuracy: cleanAccuracy(accuracy),
-      timestamp: serverTimestamp()
-    });
+      updatedAt: serverTimestamp(),
+    };
+
+    if (nextScore >= existingScore) {
+      await setDoc(
+        leaderboardRef,
+        {
+          ...sharedPayload,
+          score: nextScore,
+          accuracy: cleanAccuracy(accuracy),
+          timestamp: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } else {
+      await setDoc(leaderboardRef, sharedPayload, { merge: true });
+    }
+
     console.log("EMX Score uploaded to Global Network.");
     return true;
   } catch (e) {
@@ -80,16 +102,36 @@ export const fetchTopScores = async (scenario: string) => {
       collection(db, "leaderboards"),
       where("scenario", "==", cleanScenario(scenario)),
       orderBy("score", "desc"),
-      limit(100)
+      limit(500)
     );
     const querySnapshot = await getDocs(q);
-    const scores: any[] = [];
+    const bestByPlayer = new Map<string, any>();
     
     querySnapshot.forEach((scoreDoc) => {
-      scores.push({ id: scoreDoc.id, ...scoreDoc.data() });
+      const data = scoreDoc.data();
+      const username = cleanUsername(String(data.username || ""));
+      const score = cleanScore(Number(data.score));
+      const accuracy = cleanAccuracy(Number(data.accuracy));
+      const playerKey =
+        typeof data.uid === "string" && data.uid
+          ? data.uid
+          : username.trim().toLowerCase().replace(/\s+/g, "_");
+      const currentBest = bestByPlayer.get(playerKey);
+
+      if (!currentBest || score > currentBest.score) {
+        bestByPlayer.set(playerKey, {
+          id: scoreDoc.id,
+          ...data,
+          username,
+          score,
+          accuracy,
+        });
+      }
     });
     
-    return scores;
+    return Array.from(bestByPlayer.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 100);
   } catch (e) {
     console.error("Error fetching leaderboard: ", e);
     return [];

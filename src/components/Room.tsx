@@ -311,6 +311,90 @@ const ROOM_STYLES: Record<string, ThemeStyle> = {
     ringOpacity: 0.24,
   },
 
+  dark_neon_void: {
+    floor: '#010306',
+    platform: '#041013',
+    trim: '#08272b',
+    accent: '#00ffcc',
+
+    ambient: 0.18,
+    hemiSky: '#0c5a63',
+    hemiGround: '#010204',
+    hemi: 0.28,
+
+    keyLight: 0.36,
+    fillLight: 0.16,
+    topPoint: 0.42,
+    frontPoint: 0.18,
+    rearPoint: 0.14,
+
+    roughness: 0.58,
+    metalness: 0.28,
+    floorOpacity: 0.88,
+    platformOpacity: 0.92,
+    envMapIntensity: 0.08,
+
+    platformGlow: 0.07,
+    trimGlow: 0.055,
+    ringOpacity: 0.3,
+  },
+
+  emerald_night_ops: {
+    floor: '#020703',
+    platform: '#071009',
+    trim: '#0c2b12',
+    accent: '#39ff14',
+
+    ambient: 0.2,
+    hemiSky: '#1b6f2d',
+    hemiGround: '#010301',
+    hemi: 0.3,
+
+    keyLight: 0.38,
+    fillLight: 0.17,
+    topPoint: 0.45,
+    frontPoint: 0.2,
+    rearPoint: 0.14,
+
+    roughness: 0.55,
+    metalness: 0.3,
+    floorOpacity: 0.9,
+    platformOpacity: 0.93,
+    envMapIntensity: 0.09,
+
+    platformGlow: 0.08,
+    trimGlow: 0.06,
+    ringOpacity: 0.32,
+  },
+
+  purple_afterglow: {
+    floor: '#05020a',
+    platform: '#0d0715',
+    trim: '#26103a',
+    accent: '#b967ff',
+
+    ambient: 0.22,
+    hemiSky: '#6d43c8',
+    hemiGround: '#040006',
+    hemi: 0.32,
+
+    keyLight: 0.4,
+    fillLight: 0.18,
+    topPoint: 0.46,
+    frontPoint: 0.2,
+    rearPoint: 0.16,
+
+    roughness: 0.46,
+    metalness: 0.38,
+    floorOpacity: 0.86,
+    platformOpacity: 0.92,
+    envMapIntensity: 0.1,
+
+    platformGlow: 0.065,
+    trimGlow: 0.05,
+    ringOpacity: 0.28,
+  },
+
   default: {
     floor: '#040604',
     platform: '#091009',

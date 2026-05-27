@@ -178,6 +178,7 @@ export default function Target() {
     targetShape,
     targetColor,
     targetSkinMode,
+    targetOutline,
     modelScale,
     scenario,
     targetDistance,
@@ -1076,6 +1077,51 @@ export default function Target() {
 
 <group raycast={NO_RAYCAST}>
   <ScenarioBotAura color={targetColor} targetShape={targetShape} config={scenarioConfig} />
+
+  {targetOutline && (
+    <group raycast={NO_RAYCAST}>
+      {targetShape === 'humanoid' ? (
+        <mesh position={[0, 0.18, 0]} scale={[1.1, 1.08, 1.1]} raycast={NO_RAYCAST}>
+          <capsuleGeometry args={[0.42, 1.82, 4, 16]} />
+          <meshBasicMaterial
+            color={targetColor}
+            transparent
+            opacity={0.42}
+            wireframe
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : targetShape === 'sphere' ? (
+        <mesh scale={[1.09, 1.09, 1.09]} raycast={NO_RAYCAST}>
+          <sphereGeometry args={[1, 32, 32]} />
+          <meshBasicMaterial
+            color={targetColor}
+            transparent
+            opacity={0.5}
+            wireframe
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : (
+        <mesh scale={[1.08, 1.08, 1.08]} raycast={NO_RAYCAST}>
+          <boxGeometry args={[1.55, 1.55, 1.55]} />
+          <meshBasicMaterial
+            color={targetColor}
+            transparent
+            opacity={0.5}
+            wireframe
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+    </group>
+  )}
 
   {targetShape === 'humanoid' ? (
     <Suspense fallback={null}>

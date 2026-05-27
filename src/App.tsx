@@ -412,6 +412,18 @@ function AudioListener() {
   return null;
 }
 
+function CameraSpawnReset() {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    camera.position.set(0, 1.5, 0);
+    camera.rotation.set(0, 0, 0);
+    camera.quaternion.setFromEuler(new THREE.Euler(0, 0, 0));
+  }, [camera]);
+
+  return null;
+}
+
 function FireController() {
   const { fireShot, weaponClass, gameState, isFiring, setIsFiring } = useStore();
   const flashLightRef = useRef<THREE.PointLight>(null);
@@ -642,6 +654,7 @@ export default function App() {
     lastHitBonus,
     timeLeft,
     gameState,
+    hasStartedSession,
     startGame,
     endGame,
     tickTimer,
@@ -702,7 +715,7 @@ export default function App() {
     headshots
   );
 
-  const hasStartedFiring = shots > 0;
+  const hasStartedFiring = hasStartedSession;
 
   const elapsedTime = Math.max(0, drillDuration - timeLeft);
   const liveHitsPerSecond = elapsedTime > 0 ? hits / elapsedTime : 0;
@@ -2004,6 +2017,8 @@ export default function App() {
             pointerSpeed={truePointerSpeed}
             onUnlock={handlePointerUnlock}
           />
+
+          <CameraSpawnReset />
 
           <Suspense fallback={null}>
             <RoomBackdrop />

@@ -277,6 +277,27 @@ const BACKGROUND_PRESETS = [
     desc: 'Purple-blue rooftop skyline for aesthetic sessions.',
     tone: 'NEON / NIGHT',
   },
+  {
+    id: 'dark_neon_void',
+    name: 'DARK_NEON_VOID',
+    file: 'cosmic_space.png',
+    desc: 'Low-glare black space mix with cyan edge light.',
+    tone: 'DARK / NEON / SPACE',
+  },
+  {
+    id: 'emerald_night_ops',
+    name: 'EMERALD_NIGHT_OPS',
+    file: 'training_chamber.png',
+    desc: 'Extra dark chamber tuned for green target contrast.',
+    tone: 'DARK / ARENA / NIGHT',
+  },
+  {
+    id: 'purple_afterglow',
+    name: 'PURPLE_AFTERGLOW',
+    file: 'cyber_rooftop.png',
+    desc: 'Moody neon rooftop with purple afterglow lighting.',
+    tone: 'NEON / NIGHT',
+  },
 ];
 
 const COLOR_SWATCHES = [
@@ -789,7 +810,10 @@ function ArmorySelect({
         zIndex: 2,
       }}
       onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       <select
         className="armory-custom-select"
@@ -869,6 +893,7 @@ export default function Customizer() {
     targetColor,
     targetShape,
     targetSkinMode,
+    targetOutline,
     hitSound,
     fireSound,
     scenario,
@@ -1020,6 +1045,7 @@ const forceDeploy = () => {
       targetColor: state.targetColor,
       targetShape: state.targetShape,
       targetSkinMode: state.targetSkinMode,
+      targetOutline: state.targetOutline,
       hitSound: state.hitSound,
       fireSound: state.fireSound,
       weaponMode: state.weaponMode,
@@ -1722,14 +1748,10 @@ letterSpacing: 14,
             <button
               type="button"
               onPointerDown={(e) => {
-                e.preventDefault();
                 e.stopPropagation();
-                forceDeploy();
               }}
               onMouseDown={(e) => {
-                e.preventDefault();
                 e.stopPropagation();
-                forceDeploy();
               }}
               onClick={(e) => {
                 e.preventDefault();
@@ -2350,6 +2372,38 @@ letterSpacing: 14,
                         targetShape: nextValue as any,
                       })
                     }
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: 15,
+                    background: 'rgba(0,0,0,0.48)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 900, color: '#fff', letterSpacing: 1 }}>
+                      Neon Outline
+                    </div>
+                    <div style={{ color: '#666', fontSize: 12, marginTop: 5 }}>
+                      Extra target edge glow
+                    </div>
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={targetOutline}
+                    onChange={(e) =>
+                      setSettings({
+                        targetOutline: e.target.checked,
+                      })
+                    }
+                    style={toggleStyle}
                   />
                 </div>
 
@@ -3109,14 +3163,10 @@ letterSpacing: 14,
           <button
             type="button"
             onPointerDown={(e) => {
-              e.preventDefault();
               e.stopPropagation();
-              forceDeploy();
             }}
             onMouseDown={(e) => {
-              e.preventDefault();
               e.stopPropagation();
-              forceDeploy();
             }}
             onClick={(e) => {
               e.preventDefault();

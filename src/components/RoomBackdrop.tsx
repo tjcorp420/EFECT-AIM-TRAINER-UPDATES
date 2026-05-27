@@ -82,6 +82,27 @@ const BACKGROUNDS: Record<string, BackdropSettings> = {
     environmentIntensity: 0.72,
     blur: 0.02,
   },
+  dark_neon_void: {
+    path: '/backgrounds/cosmic_space.png',
+    exposure: 0.68,
+    overlayOpacity: 0.38,
+    environmentIntensity: 0.42,
+    blur: 0.035,
+  },
+  emerald_night_ops: {
+    path: '/backgrounds/training_chamber.png',
+    exposure: 0.72,
+    overlayOpacity: 0.34,
+    environmentIntensity: 0.48,
+    blur: 0.028,
+  },
+  purple_afterglow: {
+    path: '/backgrounds/cyber_rooftop.png',
+    exposure: 0.76,
+    overlayOpacity: 0.32,
+    environmentIntensity: 0.52,
+    blur: 0.03,
+  },
 };
 
 const FALLBACK_THEME = 'luxury_lounge';

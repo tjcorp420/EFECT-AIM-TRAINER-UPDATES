@@ -147,23 +147,23 @@ const WEAPON_PROFILES: Record<WeaponClass, WeaponProfile> = {
     recovery: 13,
     kickSpeed: 36,
 
-    baseX: 0.54,
-    baseY: -0.45,
-    baseZ: -1.18,
+    baseX: 0.58,
+    baseY: -0.51,
+    baseZ: -1.3,
 
     viewRotX: 0.0,
     viewRotY: -0.14,
     viewRotZ: -0.025,
 
     viewScale: 1,
-    targetLength: 1.08,
+    targetLength: 0.78,
     modelPath: '/models/weapons/scifi/scifigun.fbx',
 
     modelPosition: [0, 0, 0],
-    modelRotation: [0, Math.PI / 2, 0],
-    modelScale: 1,
+    modelRotation: [0, -Math.PI / 2, 0],
+    modelScale: 0.84,
 
-    muzzlePosition: [0, 0.04, -0.66],
+    muzzlePosition: [0, 0.04, -0.5],
   },
 
   scifi2: {
@@ -173,23 +173,23 @@ const WEAPON_PROFILES: Record<WeaponClass, WeaponProfile> = {
     recovery: 17,
     kickSpeed: 46,
 
-    baseX: 0.5,
-    baseY: -0.43,
-    baseZ: -1.08,
+    baseX: 0.6,
+    baseY: -0.5,
+    baseZ: -1.18,
 
     viewRotX: 0.004,
     viewRotY: -0.16,
     viewRotZ: -0.025,
 
     viewScale: 1,
-    targetLength: 0.9,
+    targetLength: 0.62,
     modelPath: '/models/weapons/scifi2/scifi_gun_2.fbx',
 
     modelPosition: [0, 0, 0],
-    modelRotation: [0, Math.PI / 2, 0],
-    modelScale: 1,
+    modelRotation: [0, -Math.PI / 2, 0],
+    modelScale: 0.82,
 
-    muzzlePosition: [0, 0.034, -0.52],
+    muzzlePosition: [0, 0.034, -0.44],
   },
 };
 
