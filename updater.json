@@ -1,12 +1,12 @@
 {
     "platforms":  {
                       "windows-x86_64":  {
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.5/EMX.Aim.Trainer_0.3.5_x64-setup.exe",
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVV0Z0lFWmZlVGJHZW1GZ2tQSEFlc0ptYnZsMndjRTkzbmVxK0wxVWZZeDRMU3d1SVBoNmRSYXdBU0FISk5kQWhiNlRwKy9Gd0lSRWE3cDY4Zkl4R0FjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODg2NDcwCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy41X3g2NC1zZXR1cC5leGUKbVltaTFVUzN0SkxKRWRlaVlzbDNKMHFwTmZHdGZCMHIyU2ozZk0rQ2VnbWFNSDJSbFpPQk5NTkxTa0xoM05HYTFINzFWNnZXTk9PVm9xVndha3BjQWc9PQo=",
+                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.6/EMX.Aim.Trainer_0.3.6_x64-setup.exe",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVJGMkRjRlZpVStlSm94U3pWbC9IUi91Y1BqZkNnSkFyTHZKQUNYZWFtcGdqT0pPM1BBc0pHNzB3REhTcjlzcm5RaTBSa0w2UFlyL3MyQ1dDN3ArdkFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODg4OTUwCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy42X3g2NC1zZXR1cC5leGUKbnhESHdxQ3ErWURmRFd6em9iZzFBUUsvWWxYK2pnOGIzVHBqNFBPMC9CNEhEMDVjY3d0V2pOZm11VklRZVkzVEZkaGxVMzdvOUlzamNTK1daQXJjQUE9PQo=",
                                              "format":  "nsis"
                                          }
                   },
-    "pub_date":  "2026-05-27T12:54:31Z",
-    "version":  "0.3.5",
-    "notes":  "v0.3.5 leaderboard and weapon polish pass: companion leaderboards now merge legacy EMX callsigns into EMX TWEAKS, the PWA leaderboard dropdown exposes all 51 trainer scenarios, the companion service worker cache is refreshed, trainer leaderboard reads use the same alias cleanup, and the sci-fi rifle/sidearm choices now load the real FBX weapons with corrected first-person orientation."
+    "pub_date":  "2026-05-27T13:36:23Z",
+    "version":  "0.3.6",
+    "notes":  "v0.3.6 final gun and leaderboard hotfix: flips the sci-fi rifle and sidearm FBX weapons 180 degrees, removes the extra generic slide block overlay from weapon renders, and shows the player local PB on trainer leaderboards when a global module board has no cloud row yet."
 }
