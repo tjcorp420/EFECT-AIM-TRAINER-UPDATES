@@ -1,12 +1,12 @@
 {
     "platforms":  {
                       "windows-x86_64":  {
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.4/EMX.Aim.Trainer_0.3.4_x64-setup.exe",
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTWZNMVZldmlXdlFockg5SUZzZzlWUHdrb3VjZFc5eHo2M1pCdE1LNTVjNGFaZ2x4eWp2bDY3OGlZeUhvK2d6YVp5S1VuaFptQzRZbHdtSmlPR1BZK3dBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODgzNzU0CWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy40X3g2NC1zZXR1cC5leGUKai9oUnYxR1gwZW9DV3d2VStROXFyalIvUEM4VW9NWnlGWmZSMS8vdlE2Sjh3TDdEbVZiR1hpU2M3RkovQ01leXprOWV5RTlBN3NHOEhta3BCeFFyQVE9PQo=",
+                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.5/EMX.Aim.Trainer_0.3.5_x64-setup.exe",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVV0Z0lFWmZlVGJHZW1GZ2tQSEFlc0ptYnZsMndjRTkzbmVxK0wxVWZZeDRMU3d1SVBoNmRSYXdBU0FISk5kQWhiNlRwKy9Gd0lSRWE3cDY4Zkl4R0FjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODg2NDcwCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy41X3g2NC1zZXR1cC5leGUKbVltaTFVUzN0SkxKRWRlaVlzbDNKMHFwTmZHdGZCMHIyU2ozZk0rQ2VnbWFNSDJSbFpPQk5NTkxTa0xoM05HYTFINzFWNnZXTk9PVm9xVndha3BjQWc9PQo=",
                                              "format":  "nsis"
                                          }
                   },
-    "pub_date":  "2026-05-27T12:09:15Z",
-    "version":  "0.3.4",
-    "notes":  "v0.3.4 companion polish pass: adds EMX companion login with the same Firebase account as the trainer, enables signed-in playerProgress cloud sync for level/XP/badges/recent runs, fixes PWA leaderboard reads, clarifies Aimlabs raw sensitivity versus EMX trainer profile values, and replaces GitHub release links with an internal what-is-new update page."
+    "pub_date":  "2026-05-27T12:54:31Z",
+    "version":  "0.3.5",
+    "notes":  "v0.3.5 leaderboard and weapon polish pass: companion leaderboards now merge legacy EMX callsigns into EMX TWEAKS, the PWA leaderboard dropdown exposes all 51 trainer scenarios, the companion service worker cache is refreshed, trainer leaderboard reads use the same alias cleanup, and the sci-fi rifle/sidearm choices now load the real FBX weapons with corrected first-person orientation."
 }
