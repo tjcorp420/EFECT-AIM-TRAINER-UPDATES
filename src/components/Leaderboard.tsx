@@ -6,9 +6,30 @@ export default function Leaderboard() {
   const { color, setSettings, scenario, username, highScores, recentSessions } = useStore();
   const [topScores, setTopScores] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const normalizedUsername = username.trim().toLowerCase();
+  const normalizeName = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalizedUsername = normalizeName(username);
   const localBest = highScores[scenario] || 0;
   const scenarioRuns = recentSessions.filter((session) => session.scenario === scenario);
+  const localBestRun = scenarioRuns.reduce(
+    (best, session) => (!best || session.score > best.score ? session : best),
+    scenarioRuns[0] || null
+  );
+  const hasRemoteCurrentPlayer = topScores.some(
+    (entry) => normalizeName(String(entry.username || '')) === normalizedUsername
+  );
+  const displayScores =
+    localBest > 0 && !hasRemoteCurrentPlayer
+      ? [
+          ...topScores,
+          {
+            id: 'local-best',
+            username,
+            score: localBest,
+            accuracy: localBestRun?.accuracy,
+            localOnly: true,
+          },
+        ].sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+      : topScores;
   const localPercentile =
     scenarioRuns.length > 0
       ? Math.max(
@@ -53,7 +74,7 @@ export default function Leaderboard() {
             <style>{`@keyframes pulseText { 0% { opacity: 0.4; } 50% { opacity: 1; text-shadow: 0 0 15px ${color}; } 100% { opacity: 0.4; } }`}</style>
             <div style={{ animation: 'pulseText 1.5s infinite' }}>DECRYPTING GLOBAL NETWORK...</div>
           </div>
-        ) : topScores.length === 0 ? (
+        ) : displayScores.length === 0 ? (
           <div style={{ color: '#666', textAlign: 'center', marginTop: '100px', fontSize: '1.2rem', letterSpacing: '2px' }}>
             NO DATA FOUND. BE THE FIRST TO SET A RECORD.
           </div>
@@ -68,12 +89,13 @@ export default function Leaderboard() {
               </tr>
             </thead>
             <tbody>
-              {topScores.map((s, i) => {
+              {displayScores.map((s, i) => {
                 // IDENTIFY LOGGED IN PLAYER
                 const displayName = String(s.username || 'EMX TWEAKS').substring(0, 16);
                 const score = Number.isFinite(Number(s.score)) ? Number(s.score) : 0;
+                const hasAccuracy = Number.isFinite(Number(s.accuracy));
                 const accuracy = Math.max(0, Math.min(100, Math.round(Number(s.accuracy) || 0)));
-                const isMe = displayName.trim().toLowerCase() === normalizedUsername;
+                const isMe = normalizeName(displayName) === normalizedUsername || Boolean(s.localOnly);
                 
                 return (
                   <tr key={s.id || `${displayName}-${score}-${i}`} style={{
@@ -88,9 +110,10 @@ export default function Leaderboard() {
                     <td style={{ fontWeight: 'bold', color: isMe ? color : '#fff', letterSpacing: '1px' }}>
                       {displayName}
                       {isMe && <span style={{ fontSize: '0.7rem', background: color, color: '#000', padding: '2px 6px', borderRadius: '4px', marginLeft: '10px', verticalAlign: 'middle', fontWeight: '900' }}>YOU</span>}
+                      {s.localOnly && <span style={{ fontSize: '0.7rem', border: `1px solid ${color}`, color, padding: '2px 6px', borderRadius: '4px', marginLeft: '8px', verticalAlign: 'middle', fontWeight: '900' }}>LOCAL PB</span>}
                     </td>
                     <td style={{ color: color, fontWeight: 'bold', letterSpacing: '1px' }}>{score.toLocaleString()}</td>
-                    <td style={{ opacity: isMe ? 1 : 0.6, color: isMe ? '#fff' : 'inherit' }}>{accuracy}%</td>
+                    <td style={{ opacity: isMe ? 1 : 0.6, color: isMe ? '#fff' : 'inherit' }}>{hasAccuracy ? `${accuracy}%` : '--'}</td>
                   </tr>
                 )
               })}
