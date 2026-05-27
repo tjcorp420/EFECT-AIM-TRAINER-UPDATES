@@ -162,3 +162,60 @@ export const fetchCloudArmory = async (uid: string) => {
     return null;
   }
 };
+
+export const syncPlayerProgress = async (username: string, progress: any) => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    return false;
+  }
+
+  try {
+    const recentSessions = Array.isArray(progress.recentSessions)
+      ? progress.recentSessions.slice(0, 12).map((session: any) => ({
+          id: String(session.id || "").substring(0, 96),
+          date: String(session.date || new Date().toISOString()).substring(0, 40),
+          scenario: cleanScenario(String(session.scenario || "gridshot_standard")),
+          score: cleanScore(Number(session.score)),
+          accuracy: cleanAccuracy(Number(session.accuracy)),
+          hits: cleanScore(Number(session.hits)),
+          headshots: cleanScore(Number(session.headshots)),
+          bestCombo: cleanScore(Number(session.bestCombo)),
+          hps: Math.max(0, Math.min(1000, Number(session.hps) || 0)),
+          grade: String(session.grade || "D").substring(0, 4),
+          xpEarned: cleanScore(Number(session.xpEarned)),
+        }))
+      : [];
+
+    await setDoc(
+      doc(db, "playerProgress", user.uid),
+      {
+        uid: user.uid,
+        username: cleanUsername(username),
+        xp: cleanScore(Number(progress.xp)),
+        level: Math.max(1, Math.min(999, Math.round(Number(progress.level) || 1))),
+        xpToNextLevel: cleanScore(Number(progress.xpToNextLevel)),
+        totalSessions: cleanScore(Number(progress.totalSessions)),
+        totalHitsLifetime: cleanScore(Number(progress.totalHitsLifetime)),
+        totalHeadshotsLifetime: cleanScore(Number(progress.totalHeadshotsLifetime)),
+        bestScoreOverall: cleanScore(Number(progress.bestScoreOverall)),
+        dailyStreak: Math.max(0, Math.min(3650, Math.round(Number(progress.dailyStreak) || 0))),
+        lastPlayDate: String(progress.lastPlayDate || "").substring(0, 20),
+        badges: Array.isArray(progress.badges)
+          ? progress.badges
+              .filter((badge: unknown) => typeof badge === "string")
+              .map((badge: string) => badge.substring(0, 48))
+              .slice(0, 24)
+          : [],
+        recentSessions,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return true;
+  } catch (e) {
+    console.error("Error syncing player progress: ", e);
+    return false;
+  }
+};

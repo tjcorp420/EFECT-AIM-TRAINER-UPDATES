@@ -1354,6 +1354,11 @@ export const useStore = create<GameState>((set, get) => ({
 
       if (shouldRecordSession) {
         saveProgression(nextProgression);
+        import('../firebase')
+          .then(({ syncPlayerProgress }) => {
+            syncPlayerProgress(sanitizeUsername(state.username), nextProgression);
+          })
+          .catch((err) => console.warn('Firebase progress sync not loaded:', err));
       }
 
       return {

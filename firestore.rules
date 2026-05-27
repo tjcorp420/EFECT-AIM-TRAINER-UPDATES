@@ -96,7 +96,9 @@ service cloud.firestore {
           'targetColor',
           'targetShape',
           'targetSkinMode',
+          'targetOutline',
           'hitSound',
+          'fireSound',
           'weaponMode',
           'bulletEffect',
           'weaponClass',
@@ -119,10 +121,11 @@ service cloud.firestore {
         optionalEnum('crosshairHitReact', ['off', 'pulse', 'burst']) &&
         optionalEnum('targetShape', ['sphere', 'cube', 'humanoid']) &&
         optionalEnum('targetSkinMode', ['custom', 'original']) &&
-        optionalEnum('hitSound', ['tick', 'pop', 'ding', 'crit', 'arcade', 'none']) &&
+        optionalString('hitSound', 80) &&
+        optionalString('fireSound', 80) &&
         optionalEnum('weaponMode', ['stealth', 'laser']) &&
         optionalEnum('bulletEffect', ['none', 'tracer', 'plasma', 'spark', 'rail']) &&
-        optionalEnum('weaponClass', ['pistol', 'smg', 'sniper', 'nerf']) &&
+        optionalEnum('weaponClass', ['pistol', 'smg', 'sniper', 'nerf', 'scifi', 'scifi2']) &&
         optionalEnum('graphicsQuality', ['high', 'performance']) &&
         optionalString('mapTheme', 80) &&
         optionalString('gameProfile', 40) &&
@@ -142,7 +145,62 @@ service cloud.firestore {
         optionalNumber('fov', 60, 130) &&
         optionalBool('dot') &&
         optionalBool('crosshairOutline') &&
+        optionalBool('targetOutline') &&
         optionalBool('skipClickToBegin');
+    }
+
+    function validPlayerProgressWrite(userId) {
+      return request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly([
+          'uid',
+          'username',
+          'xp',
+          'level',
+          'xpToNextLevel',
+          'totalSessions',
+          'totalHitsLifetime',
+          'totalHeadshotsLifetime',
+          'bestScoreOverall',
+          'dailyStreak',
+          'lastPlayDate',
+          'badges',
+          'recentSessions',
+          'updatedAt'
+        ]) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.username is string &&
+        request.resource.data.username.size() >= 1 &&
+        request.resource.data.username.size() <= 16 &&
+        request.resource.data.xp is int &&
+        request.resource.data.xp >= 0 &&
+        request.resource.data.xp <= 10000000 &&
+        request.resource.data.level is int &&
+        request.resource.data.level >= 1 &&
+        request.resource.data.level <= 999 &&
+        request.resource.data.xpToNextLevel is int &&
+        request.resource.data.xpToNextLevel >= 0 &&
+        request.resource.data.xpToNextLevel <= 10000000 &&
+        request.resource.data.totalSessions is int &&
+        request.resource.data.totalSessions >= 0 &&
+        request.resource.data.totalSessions <= 10000000 &&
+        request.resource.data.totalHitsLifetime is int &&
+        request.resource.data.totalHitsLifetime >= 0 &&
+        request.resource.data.totalHitsLifetime <= 10000000 &&
+        request.resource.data.totalHeadshotsLifetime is int &&
+        request.resource.data.totalHeadshotsLifetime >= 0 &&
+        request.resource.data.totalHeadshotsLifetime <= 10000000 &&
+        request.resource.data.bestScoreOverall is int &&
+        request.resource.data.bestScoreOverall >= 0 &&
+        request.resource.data.bestScoreOverall <= 10000000 &&
+        request.resource.data.dailyStreak is int &&
+        request.resource.data.dailyStreak >= 0 &&
+        request.resource.data.dailyStreak <= 3650 &&
+        optionalString('lastPlayDate', 20) &&
+        request.resource.data.badges is list &&
+        request.resource.data.badges.size() <= 24 &&
+        request.resource.data.recentSessions is list &&
+        request.resource.data.recentSessions.size() <= 12 &&
+        request.resource.data.updatedAt == request.time;
     }
 
     match /leaderboards/{scoreId} {
@@ -155,6 +213,12 @@ service cloud.firestore {
     match /armory/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create, update: if signedIn() && validArmoryWrite(userId);
+      allow delete: if false;
+    }
+
+    match /playerProgress/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn() && validPlayerProgressWrite(userId);
       allow delete: if false;
     }
 

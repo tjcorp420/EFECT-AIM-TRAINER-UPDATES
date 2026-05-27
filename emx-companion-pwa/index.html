@@ -24,6 +24,34 @@
             <span>Aim Companion</span>
           </div>
         </div>
+        <section class="account-card" id="accountCard">
+          <div class="account-signed-out" id="signedOutPanel">
+            <p class="eyebrow">Account Sync</p>
+            <input id="authEmail" type="email" autocomplete="email" placeholder="Aim trainer email" />
+            <input
+              id="authPassword"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Password"
+            />
+            <input id="authCallsign" maxlength="16" placeholder="Callsign for register" />
+            <div class="button-row">
+              <button id="loginButton" class="primary-button" type="button">Login</button>
+              <button id="registerButton" class="icon-action" type="button">Register</button>
+            </div>
+            <div class="mini-status" id="authStatus">Use the same login as EMX Aim Trainer.</div>
+          </div>
+          <div class="account-signed-in" id="signedInPanel" hidden>
+            <p class="eyebrow">Signed In</p>
+            <strong id="accountName">EMX Player</strong>
+            <span id="accountEmail">--</span>
+            <div class="account-level">
+              <span id="accountLevel">LVL 1</span>
+              <span id="accountXp">0 XP</span>
+            </div>
+            <button id="logoutButton" class="icon-action" type="button">Logout</button>
+          </div>
+        </section>
 
         <nav class="app-tabs" aria-label="Primary">
           <button class="tab-button active" data-tab="command">Command</button>
@@ -79,9 +107,9 @@
               </div>
               <div class="release-version" id="releaseVersion">Loading...</div>
               <p id="releaseNotes">Checking GitHub release info.</p>
-              <a id="releaseLink" class="link-button" href="#" target="_blank" rel="noreferrer">
-                Open Release
-              </a>
+              <button id="latestReleaseButton" class="link-button" type="button">
+                View What's New
+              </button>
             </article>
 
             <article class="panel">
@@ -189,12 +217,16 @@
                 <span>Physical Match</span>
                 <strong id="convertedCm">-- cm/360</strong>
               </div>
+              <div class="converted-value subtle">
+                <span>EMX Trainer Match</span>
+                <strong id="emxEquivalent">--</strong>
+              </div>
             </article>
           </div>
 
-          <div class="info-strip">
-            Uses hipfire yaw constants to preserve cm/360. Keep DPI and FOV matched in the trainer
-            for the cleanest transfer.
+          <div class="info-strip" id="converterNote">
+            Uses hipfire yaw constants for game-to-game cm/360, and EMX profile math for values you
+            type into the trainer.
           </div>
         </section>
 
@@ -204,10 +236,30 @@
               <p class="eyebrow">Updater</p>
               <h2>Release Info</h2>
             </div>
-            <a class="link-button" href="https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases" target="_blank" rel="noreferrer">
-              GitHub Releases
-            </a>
+            <button id="latestUpdateButton" class="icon-action" type="button">Latest Update</button>
           </div>
+          <article class="release-spotlight" id="releaseSpotlight">
+            <div class="release-spotlight-copy">
+              <p class="eyebrow">Update Brief</p>
+              <h3 id="releaseSpotlightTitle">Loading update...</h3>
+              <p id="releaseSpotlightBody">Checking the EMX update feed.</p>
+            </div>
+            <div class="release-meta-grid">
+              <div>
+                <span>Version</span>
+                <strong id="releaseSpotlightVersion">--</strong>
+              </div>
+              <div>
+                <span>Published</span>
+                <strong id="releaseSpotlightDate">--</strong>
+              </div>
+              <div>
+                <span>Channel</span>
+                <strong>Stable</strong>
+              </div>
+            </div>
+            <div class="highlight-grid" id="releaseHighlights"></div>
+          </article>
           <div class="release-list" id="releaseList"></div>
         </section>
 
@@ -229,6 +281,10 @@
                 <input id="scoreGoal" inputmode="numeric" value="20000" />
               </label>
               <label>
+                Best Score
+                <input id="bestScore" inputmode="numeric" value="0" />
+              </label>
+              <label>
                 Main Game
                 <select id="mainGame">
                   <option>Valorant</option>
@@ -238,14 +294,47 @@
                   <option>Overwatch 2</option>
                 </select>
               </label>
-              <button id="saveProfile" class="primary-button">Save Tracker</button>
+              <label>
+                Latest Run
+                <input id="latestRunScore" inputmode="numeric" value="" placeholder="Score after a run" />
+              </label>
+              <div class="button-row">
+                <button id="saveProfile" class="primary-button">Save Tracker</button>
+                <button id="logRun" class="icon-action" type="button">Log Run</button>
+              </div>
             </article>
+
+            <article class="panel tracker-summary">
+              <div class="panel-heading">
+                <p class="eyebrow">Progress</p>
+                <h3>Goal Tracker</h3>
+              </div>
+              <div class="tracker-progress">
+                <div id="trackerProgressBar"></div>
+              </div>
+              <div class="tracker-stat-grid">
+                <div>
+                  <span>Best</span>
+                  <strong id="trackerBest">0</strong>
+                </div>
+                <div>
+                  <span>Today</span>
+                  <strong id="trackerRuns">0 runs</strong>
+                </div>
+                <div>
+                  <span>Gap</span>
+                  <strong id="trackerGap">20,000</strong>
+                </div>
+              </div>
+              <div class="run-history" id="runHistory"></div>
+            </article>
+
             <article class="panel">
               <div class="panel-heading">
                 <p class="eyebrow">Routine</p>
                 <h3>Recommended Stack</h3>
               </div>
-              <ol class="routine-list">
+              <ol class="routine-list" id="routineList">
                 <li>Gridshot Standard: hand speed and clean target switches.</li>
                 <li>Glider Night Track: smoothness and reading movement.</li>
                 <li>Void Cluster: close target control without overflicking.</li>

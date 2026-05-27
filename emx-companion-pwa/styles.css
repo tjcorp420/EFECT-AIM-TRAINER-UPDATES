@@ -17,6 +17,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -86,6 +90,53 @@ select {
   letter-spacing: 3px;
   font-size: 11px;
   font-weight: 900;
+}
+
+.account-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid rgba(0, 255, 204, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(57, 255, 20, 0.08), rgba(185, 103, 255, 0.06)),
+    rgba(0, 0, 0, 0.34);
+}
+
+.account-signed-out,
+.account-signed-in {
+  display: grid;
+  gap: 9px;
+}
+
+.account-signed-in strong {
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.account-signed-in > span,
+.mini-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.account-level {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.account-level span {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.42);
+  color: var(--green);
+  font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 .app-tabs {
@@ -290,13 +341,18 @@ h3 {
 .quick-sens,
 .converter-grid,
 .tracker-grid,
-.control-row {
+.control-row,
+.button-row {
   display: grid;
   gap: 12px;
 }
 
 .converter-grid,
 .tracker-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.button-row {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -376,6 +432,63 @@ td:nth-child(3) {
   gap: 12px;
 }
 
+.release-spotlight {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 22px;
+  border: 1px solid rgba(57, 255, 20, 0.34);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 14% 16%, rgba(57, 255, 20, 0.16), transparent 30%),
+    radial-gradient(circle at 92% 12%, rgba(0, 255, 204, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(0, 0, 0, 0.68), rgba(17, 9, 32, 0.72));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
+.release-spotlight h3 {
+  font-size: clamp(28px, 4vw, 52px);
+  line-height: 1;
+  margin: 6px 0 12px;
+}
+
+.release-meta-grid,
+.highlight-grid,
+.tracker-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.release-meta-grid div,
+.highlight-tile,
+.tracker-stat-grid div {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.38);
+  padding: 13px;
+}
+
+.release-meta-grid span,
+.highlight-tile span,
+.tracker-stat-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+.release-meta-grid strong,
+.highlight-tile strong,
+.tracker-stat-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--green);
+  font-weight: 950;
+}
+
 .release-item {
   padding: 18px;
   border: 1px solid var(--line);
@@ -383,10 +496,63 @@ td:nth-child(3) {
   background: var(--panel-strong);
 }
 
-.release-item h3 {
+.release-item.selected {
+  border-color: rgba(57, 255, 20, 0.55);
+}
+
+.release-item-top {
   display: flex;
   justify-content: space-between;
   gap: 14px;
+}
+
+.release-item-top span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.tracker-summary {
+  border-color: rgba(0, 255, 204, 0.25);
+}
+
+.tracker-progress {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.5);
+  margin-bottom: 14px;
+}
+
+.tracker-progress div {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.6);
+  transition: width 0.24s ease;
+}
+
+.run-history {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.run-history div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.run-history span {
+  color: var(--muted);
+}
+
+.run-history strong {
+  color: var(--cyan);
 }
 
 .routine-list {
@@ -417,7 +583,10 @@ td:nth-child(3) {
 
   .command-grid,
   .converter-grid,
-  .tracker-grid {
+  .tracker-grid,
+  .release-meta-grid,
+  .highlight-grid,
+  .tracker-stat-grid {
     grid-template-columns: 1fr;
   }
 
