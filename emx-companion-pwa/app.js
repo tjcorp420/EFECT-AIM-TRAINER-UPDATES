@@ -28,6 +28,7 @@ const GITHUB_RELEASES =
 const UPDATER_JSON =
   'https://raw.githubusercontent.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/main/updater.json';
 const PROFILE_KEY = 'emx_companion_profile';
+const withCacheBust = (url) => `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
 
 const gameYaws = {
   aimlabs: { label: 'Aimlabs / EMX', yaw: 0.022 },
@@ -194,8 +195,8 @@ async function loadLeaderboard() {
 async function loadReleaseInfo() {
   try {
     const [updaterRes, releasesRes] = await Promise.all([
-      fetch(UPDATER_JSON, { cache: 'no-store' }),
-      fetch(GITHUB_RELEASES, { cache: 'no-store' }),
+      fetch(withCacheBust(UPDATER_JSON), { cache: 'no-store' }),
+      fetch(withCacheBust(GITHUB_RELEASES), { cache: 'no-store' }),
     ]);
     const updater = await updaterRes.json();
     const releases = await releasesRes.json();
