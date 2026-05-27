@@ -1,12 +1,12 @@
 {
     "platforms":  {
                       "windows-x86_64":  {
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.2/EMX.Aim.Trainer_0.3.2_x64-setup.exe",
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVltK3BkZkJFT3ZONGx2c2RFS3BDbUZmd1U4cUZ5V2ZiK3U4RkVKSXVxTlhBaGdseTF3QUlRVzNxa0NmdkhmWEc2a28rMk5XVFNzdHpHVWVVclM4R1E0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODc5MDAxCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy4yX3g2NC1zZXR1cC5leGUKZGJhcENINXJZcmVPdVYrem1XNWtSU2J0Y1podEVCSW1CZEozZmx1eVBaeHl5d1dRVnVrUW42aXNZS091Y1FUcE8xWTllZXpHZDQ0cWl4a09LcjJBQ3c9PQo=",
+                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.3/EMX.Aim.Trainer_0.3.3_x64-setup.exe",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVVpRHpqK2dGMmc3U0Y2UjBMbzNwbFRuc3ZNK0FkdjVLZ2YrV0s5L3FUWmhOT0RBd0FxRWRNNkZ0TjQrdnJlTk5aVXFTQkM0Z1dkMXJsVVdPdnhsVHc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODgxNTkzCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy4zX3g2NC1zZXR1cC5leGUKRmtpc2VnN0ZsSENHM0JYNE16QWoxZVRXanp6ZHB6ZjZ1SjRoYlV6Y3QycVBranBRME5FUkZPS3Vnd04ycDNrdUlrenduN3M1SXFqWmhFdHVZZnNhQ1E9PQo=",
                                              "format":  "nsis"
                                          }
                   },
-    "pub_date":  "2026-05-27T10:50:02Z",
-    "version":  "0.3.2",
-    "notes":  "Fixes leaderboard duplicate spam and impossible accuracy values, repairs instant launch start behavior, stabilizes armory dropdown/deploy clicks, tunes sci-fi FBX weapon glare/rotation, adds neon outline/background customization, and adds Neon Popcorn, Void Cluster, and Glider Night Track modes."
+    "pub_date":  "2026-05-27T11:33:14Z",
+    "version":  "0.3.3",
+    "notes":  "v0.3.3 premium upgrade pass: fixes instant deploy/autostart, repairs customizer and end-screen leaderboard navigation, swaps the sci-fi FBX in-game weapon render for optimized low-glare forward-facing models, trims arena bloom/DPR for smoother launches, and adds the live EMX Companion PWA at https://emx-companion-pwa.vercel.app with leaderboards, release info, sensitivity conversion, tracker goals, and reference/QA screenshots."
 }
