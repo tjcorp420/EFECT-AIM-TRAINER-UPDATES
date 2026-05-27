@@ -160,7 +160,7 @@ const WEAPON_PROFILES: Record<WeaponClass, WeaponProfile> = {
     modelPath: '/models/weapons/scifi/scifigun.fbx',
 
     modelPosition: [0, 0, 0],
-    modelRotation: [0, -Math.PI / 2, 0],
+    modelRotation: [0, 0, 0],
     modelScale: 0.84,
 
     muzzlePosition: [0, 0.04, -0.5],
@@ -186,7 +186,7 @@ const WEAPON_PROFILES: Record<WeaponClass, WeaponProfile> = {
     modelPath: '/models/weapons/scifi2/scifi_gun_2.fbx',
 
     modelPosition: [0, 0, 0],
-    modelRotation: [0, -Math.PI / 2, 0],
+    modelRotation: [0, 0, 0],
     modelScale: 0.82,
 
     muzzlePosition: [0, 0.034, -0.44],
@@ -246,80 +246,6 @@ function FallbackGun({
   );
 }
 
-function OptimizedSciFiGun({
-  color,
-  weaponClass,
-}: {
-  color: string;
-  weaponClass: WeaponClass;
-}) {
-  const isSidearm = weaponClass === 'scifi2';
-  const accent = isSidearm ? '#39ff14' : '#00ffcc';
-  const bodyLength = isSidearm ? 0.58 : 0.86;
-  const bodyWidth = isSidearm ? 0.16 : 0.2;
-  const bodyHeight = isSidearm ? 0.13 : 0.15;
-  const barrelLength = isSidearm ? 0.42 : 0.64;
-
-  return (
-    <group raycast={null as any}>
-      <mesh position={[0, 0.01, -0.04]}>
-        <boxGeometry args={[bodyWidth, bodyHeight, bodyLength]} />
-        <meshStandardMaterial
-          color="#111719"
-          metalness={0.58}
-          roughness={0.46}
-          envMapIntensity={0.12}
-        />
-      </mesh>
-
-      <mesh position={[0, 0.09, -0.08]}>
-        <boxGeometry args={[bodyWidth * 0.72, 0.035, bodyLength * 0.78]} />
-        <meshStandardMaterial color="#2d3334" metalness={0.42} roughness={0.52} />
-      </mesh>
-
-      <mesh position={[0, 0.118, -0.08]}>
-        <boxGeometry args={[bodyWidth * 0.58, 0.016, bodyLength * 0.58]} />
-        <meshStandardMaterial
-          color={accent}
-          emissive={accent}
-          emissiveIntensity={0.42}
-          roughness={0.36}
-          metalness={0.2}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <mesh position={[0, 0.02, -bodyLength / 2 - barrelLength / 2 + 0.03]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.032, 0.026, barrelLength, 24]} />
-        <meshStandardMaterial color="#20282a" metalness={0.68} roughness={0.38} />
-      </mesh>
-
-      <mesh position={[0, 0.02, -bodyLength / 2 - barrelLength + 0.03]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.045, 0.038, 0.08, 24]} />
-        <meshStandardMaterial
-          color="#0b0f10"
-          emissive={color}
-          emissiveIntensity={0.12}
-          metalness={0.72}
-          roughness={0.32}
-        />
-      </mesh>
-
-      <mesh position={[0, -0.11, bodyLength * 0.22]} rotation={[0.3, 0, 0]}>
-        <boxGeometry args={[bodyWidth * 0.55, 0.28, 0.12]} />
-        <meshStandardMaterial color="#050606" metalness={0.08} roughness={0.86} />
-      </mesh>
-
-      {!isSidearm && (
-        <mesh position={[0, -0.055, 0.28]} rotation={[0.08, 0, 0]}>
-          <boxGeometry args={[bodyWidth * 0.7, 0.16, 0.24]} />
-          <meshStandardMaterial color="#080b0c" metalness={0.18} roughness={0.78} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
 export default function Gun() {
   const rawWeaponClass = useStore((state) => state.weaponClass) as string;
   const color = useStore((state) => state.color);
@@ -355,7 +281,6 @@ export default function Gun() {
 
   const activeWeaponClass: WeaponClass =
     rawWeaponClass in WEAPON_PROFILES ? (rawWeaponClass as WeaponClass) : 'pistol';
-  const isOptimizedSciFi = activeWeaponClass === 'scifi' || activeWeaponClass === 'scifi2';
 
   const profile = WEAPON_PROFILES[activeWeaponClass];
   const projectileColor =
@@ -483,20 +408,16 @@ export default function Gun() {
   return (
     <group ref={gunContainerRef}>
       <group ref={gunModelRef}>
-        {isOptimizedSciFi ? (
-          <OptimizedSciFiGun color={color} weaponClass={activeWeaponClass} />
-        ) : (
-          <Suspense fallback={<FallbackGun color={color} weaponClass={activeWeaponClass} />}>
-            <WeaponModel
-              modelPath={profile.modelPath}
-              color={color}
-              targetLength={profile.targetLength}
-              modelPosition={profile.modelPosition}
-              modelRotation={profile.modelRotation}
-              modelScale={profile.modelScale}
-            />
-          </Suspense>
-        )}
+        <Suspense fallback={<FallbackGun color={color} weaponClass={activeWeaponClass} />}>
+          <WeaponModel
+            modelPath={profile.modelPath}
+            color={color}
+            targetLength={profile.targetLength}
+            modelPosition={profile.modelPosition}
+            modelRotation={profile.modelRotation}
+            modelScale={profile.modelScale}
+          />
+        </Suspense>
 
         <group ref={slideRef} raycast={null as any}>
           <mesh>

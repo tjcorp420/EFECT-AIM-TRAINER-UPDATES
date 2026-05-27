@@ -1,4 +1,4 @@
-const CACHE_NAME = 'emx-aim-companion-v3';
+const CACHE_NAME = 'emx-aim-companion-v4';
 const APP_SHELL = [
   '/',
   '/index.html',

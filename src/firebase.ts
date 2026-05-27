@@ -36,6 +36,22 @@ const cleanUsername = (username: string) => {
   return (trimmed || "EMX TWEAKS").substring(0, 16);
 };
 
+const normalizeCallsign = (username: string) => {
+  return username.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+};
+
+const legacyEmxCallsigns = new Set(["efect2lit", "emxtweaks"]);
+
+const canonicalUsername = (username: string) => {
+  return legacyEmxCallsigns.has(normalizeCallsign(username)) ? "EMX TWEAKS" : cleanUsername(username);
+};
+
+const canonicalPlayerKey = (uid: unknown, username: string) => {
+  if (legacyEmxCallsigns.has(normalizeCallsign(username))) return "emx_tweaks_account";
+
+  return typeof uid === "string" && uid ? uid : normalizeCallsign(username) || "unknown_player";
+};
+
 const cleanScenario = (scenario: string) => {
   return scenario.trim().toLowerCase().replace(/[^a-z0-9_]/g, "").substring(0, 80);
 };
@@ -69,7 +85,7 @@ export const submitScore = async (scenario: string, username: string, score: num
     const sharedPayload = {
       uid: user.uid,
       scenario: scenarioKey,
-      username: cleanUsername(username),
+      username: canonicalUsername(username),
       updatedAt: serverTimestamp(),
     };
 
@@ -109,13 +125,10 @@ export const fetchTopScores = async (scenario: string) => {
     
     querySnapshot.forEach((scoreDoc) => {
       const data = scoreDoc.data();
-      const username = cleanUsername(String(data.username || ""));
+      const username = canonicalUsername(String(data.username || ""));
       const score = cleanScore(Number(data.score));
       const accuracy = cleanAccuracy(Number(data.accuracy));
-      const playerKey =
-        typeof data.uid === "string" && data.uid
-          ? data.uid
-          : username.trim().toLowerCase().replace(/\s+/g, "_");
+      const playerKey = canonicalPlayerKey(data.uid, username);
       const currentBest = bestByPlayer.get(playerKey);
 
       if (!currentBest || score > currentBest.score) {
@@ -191,7 +204,7 @@ export const syncPlayerProgress = async (username: string, progress: any) => {
       doc(db, "playerProgress", user.uid),
       {
         uid: user.uid,
-        username: cleanUsername(username),
+        username: canonicalUsername(username),
         xp: cleanScore(Number(progress.xp)),
         level: Math.max(1, Math.min(999, Math.round(Number(progress.level) || 1))),
         xpToNextLevel: cleanScore(Number(progress.xpToNextLevel)),

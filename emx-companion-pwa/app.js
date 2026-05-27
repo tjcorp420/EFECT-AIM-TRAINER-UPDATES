@@ -61,14 +61,61 @@ const emxProfiles = {
   overwatch: { label: 'Overwatch 2', multiplier: 10.6, defaultFov: 103 },
 };
 
-const scenarioLabels = {
-  gridshot_standard: 'Gridshot Standard',
-  neon_popcorn: 'Neon Popcorn',
-  void_cluster: 'Void Cluster',
-  glider_tracking_night: 'Glider Night Track',
-  tracking_dynamic: 'Tracking Dynamic',
-  headshot_only: 'Headshot Only',
-};
+const scenarioOptions = [
+  { value: 'efect_overdrive', label: 'EFECT Overdrive' },
+  { value: 'neon_popcorn', label: 'Neon Popcorn' },
+  { value: 'void_cluster', label: 'Void Cluster' },
+  { value: 'glider_tracking_night', label: 'Glider Night Track' },
+  { value: 'gridshot_standard', label: 'Wall Gridshot' },
+  { value: 'gridshot_ultimate', label: 'Gridshot Ultimate' },
+  { value: 'gridshot_precision', label: 'Gridshot Precision' },
+  { value: 'sixshot_precision', label: 'Sixshot Precision' },
+  { value: 'tile_frenzy', label: 'Tile Frenzy' },
+  { value: 'tile_frenzy_mini', label: 'Tile Frenzy Mini' },
+  { value: 'multishot_speed', label: 'Multishot Speed' },
+  { value: 'microflick_standard', label: 'Microflick' },
+  { value: 'microflick_react', label: 'Microflick React' },
+  { value: 'microflick_track', label: 'Microflick Track' },
+  { value: 'microshot_speed', label: 'Microshot Speed' },
+  { value: 'headshot_only', label: 'Headshot Only' },
+  { value: 'tracking_dynamic', label: 'Dynamic Tracking' },
+  { value: 'tracking_smooth', label: 'Smooth Tracking' },
+  { value: 'tracking_fast', label: 'Fast Tracking' },
+  { value: 'tracking_long_strafe', label: 'Long Strafe Track' },
+  { value: 'tracking_dodge', label: 'Dodge Tracking' },
+  { value: 'tracking_sphere', label: 'Sphere Tracking' },
+  { value: 'switchtrack_standard', label: 'Switchtrack' },
+  { value: 'switchtrack_micro', label: 'Micro Switchtrack' },
+  { value: 'popcorn_standard', label: 'Popcorn' },
+  { value: 'popcorn_small', label: 'Popcorn Precision' },
+  { value: 'popcorn_heavy', label: 'Popcorn Heavy' },
+  { value: 'pasu_standard', label: 'Pasu Jump' },
+  { value: 'vertical_switch', label: 'Vertical Switch' },
+  { value: 'flick360_standard', label: '360 Awareness' },
+  { value: 'flick360_react', label: '360 React' },
+  { value: 'flick360_tracking', label: '360 Tracking' },
+  { value: 'flick360_precision', label: '360 Precision' },
+  { value: 'spidershot_standard', label: 'Spidershot' },
+  { value: 'spidershot_180', label: 'Spidershot 180' },
+  { value: 'spidershot_rapid', label: 'Spidershot Rapid' },
+  { value: 'spidershot_precision', label: 'Spidershot Precision' },
+  { value: 'motionshot_standard', label: 'Motionshot' },
+  { value: 'motionshot_fast', label: 'Motionshot Fast' },
+  { value: 'motionshot_small', label: 'Motionshot Precision' },
+  { value: 'reactive_switch', label: 'Reactive Switch' },
+  { value: 'close_strafe_flick', label: 'Close Strafe Flick' },
+  { value: 'snipershot_standard', label: 'Snipershot' },
+  { value: 'snipershot_moving', label: 'Snipershot Moving' },
+  { value: 'snipershot_react', label: 'Snipershot React' },
+  { value: 'reflex_standard', label: 'Reflex Shot' },
+  { value: 'reflex_micro', label: 'Reflex Micro' },
+  { value: 'reflex_cluster', label: 'Reflex Cluster' },
+  { value: 'glider_tracking', label: 'Glider Tracking' },
+  { value: 'bounce_tracking', label: 'Bounce Tracking' },
+  { value: 'pump_flick', label: 'Pump Flick' },
+];
+
+const scenarioLabels = Object.fromEntries(scenarioOptions.map((scenario) => [scenario.value, scenario.label]));
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -77,6 +124,15 @@ const cleanScore = (score) => Math.max(0, Math.min(10000000, Math.round(Number(s
 const cleanAccuracy = (accuracy) => Math.max(0, Math.min(100, Math.round(Number(accuracy) || 0)));
 const cleanName = (name) => String(name || 'EMX TWEAKS').trim().slice(0, 16) || 'EMX TWEAKS';
 const cleanPercent = (value) => Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+const normalizeCallsign = (name) => String(name || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+const legacyEmxCallsigns = new Set(['efect2lit', 'emxtweaks']);
+const canonicalName = (name) =>
+  legacyEmxCallsigns.has(normalizeCallsign(name)) ? 'EMX TWEAKS' : cleanName(name);
+const canonicalPlayerKey = (data, username) => {
+  if (legacyEmxCallsigns.has(normalizeCallsign(username))) return 'emx_tweaks_account';
+
+  return data.uid || normalizeCallsign(username) || 'unknown_player';
+};
 const escapeHtml = (value) =>
   String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -131,6 +187,13 @@ function populateGames() {
   $('#targetGame').innerHTML = options;
   $('#originGame').value = 'valorant';
   $('#targetGame').value = 'aimlabs';
+}
+
+function populateScenarios() {
+  $('#scenarioSelect').innerHTML = scenarioOptions
+    .map((scenario) => `<option value="${scenario.value}">${scenario.label}</option>`)
+    .join('');
+  $('#scenarioSelect').value = 'gridshot_standard';
 }
 
 function cmPer360(sens, dpi, yaw) {
@@ -207,10 +270,10 @@ async function loadLeaderboard() {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      const username = cleanName(data.username);
+      const username = canonicalName(data.username);
       const score = cleanScore(data.score);
       const accuracy = cleanAccuracy(data.accuracy);
-      const key = data.uid || username.toLowerCase().replace(/\s+/g, '_');
+      const key = canonicalPlayerKey(data, username);
       const current = bestByPlayer.get(key);
 
       if (!current || score > current.score) {
@@ -441,7 +504,7 @@ function renderTracker(localProfile = JSON.parse(localStorage.getItem(PROFILE_KE
           .slice(0, 5)
           .map((run) => {
             const date = run.date ? new Date(run.date).toLocaleDateString() : 'Today';
-            const label = run.scenario || run.game || 'Manual run';
+            const label = scenarioLabels[run.scenario] || run.scenario || run.game || 'Manual run';
             return `<div><span>${escapeHtml(date)}</span><strong>${escapeHtml(label)} // ${cleanScore(run.score).toLocaleString()}</strong></div>`;
           })
           .join('')
@@ -611,6 +674,7 @@ if ('serviceWorker' in navigator) {
 }
 
 populateGames();
+populateScenarios();
 hydrateSavedSens();
 loadProfile();
 updateConverter();
