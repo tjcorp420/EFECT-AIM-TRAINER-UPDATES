@@ -1,12 +1,12 @@
 {
     "platforms":  {
                       "windows-x86_64":  {
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.1/EMX.Aim.Trainer_0.3.1_x64-setup.exe",
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTWUxWW5kRkxvWEpJMlo4YUdJMzN5dE0yY2ptVkZBN1BYd3E2VnRrdXVub053M2NIcXV0ZzQ1VTdHYy9YVk40OG1BZ3BLbkJwTi9lZHpZNHV4a1FtMVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODc2NzY2CWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy4xX3g2NC1zZXR1cC5leGUKTFhpNkRpd1VtaGJ2am9XUWV6M2V5ck94UmZxelBTdXRESUdYY25zSVdqbEFqanBWaWlhblZWMDlwNW5WdG5NcjZ1UVFaNmVGQnVxRWNMZlVvRkJSREE9PQo=",
+                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.2/EMX.Aim.Trainer_0.3.2_x64-setup.exe",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVltK3BkZkJFT3ZONGx2c2RFS3BDbUZmd1U4cUZ5V2ZiK3U4RkVKSXVxTlhBaGdseTF3QUlRVzNxa0NmdkhmWEc2a28rMk5XVFNzdHpHVWVVclM4R1E0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODc5MDAxCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy4yX3g2NC1zZXR1cC5leGUKZGJhcENINXJZcmVPdVYrem1XNWtSU2J0Y1podEVCSW1CZEozZmx1eVBaeHl5d1dRVnVrUW42aXNZS091Y1FUcE8xWTllZXpHZDQ0cWl4a09LcjJBQ3c9PQo=",
                                              "format":  "nsis"
                                          }
                   },
-    "pub_date":  "2026-05-27T10:12:47Z",
-    "version":  "0.3.1",
-    "notes":  "EMX Aim Trainer v0.3.1: fixes armory dropdowns, adds sci-fi FBX weapon choices, and expands gun/hit sound customization."
+    "pub_date":  "2026-05-27T10:50:02Z",
+    "version":  "0.3.2",
+    "notes":  "Fixes leaderboard duplicate spam and impossible accuracy values, repairs instant launch start behavior, stabilizes armory dropdown/deploy clicks, tunes sci-fi FBX weapon glare/rotation, adds neon outline/background customization, and adds Neon Popcorn, Void Cluster, and Glider Night Track modes."
 }
