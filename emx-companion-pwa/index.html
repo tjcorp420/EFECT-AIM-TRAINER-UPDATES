@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#050706" />
+    <meta
+      name="description"
+      content="EMX Aim Trainer companion app for leaderboards, releases, sensitivity conversion, and player tracking."
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+    <title>EMX Aim Companion</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-lockup">
+          <img src="/icons/icon.svg" alt="EMX" class="brand-mark" />
+          <div>
+            <strong>EMX</strong>
+            <span>Aim Companion</span>
+          </div>
+        </div>
+
+        <nav class="app-tabs" aria-label="Primary">
+          <button class="tab-button active" data-tab="command">Command</button>
+          <button class="tab-button" data-tab="leaderboards">Leaderboards</button>
+          <button class="tab-button" data-tab="sens">Sens Converter</button>
+          <button class="tab-button" data-tab="releases">Releases</button>
+          <button class="tab-button" data-tab="profile">Tracker</button>
+        </nav>
+
+        <button id="installButton" class="install-button" hidden>Install PWA</button>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Live Network</p>
+            <h1>EMX Player Command Center</h1>
+          </div>
+          <div class="status-pill" id="networkStatus">SYNCING</div>
+        </header>
+
+        <section class="tab-panel active" id="command">
+          <div class="command-grid">
+            <article class="hero-panel">
+              <div class="hero-copy">
+                <p class="eyebrow">Next Session</p>
+                <h2 id="todayRoutineTitle">Precision Warmup</h2>
+                <p id="todayRoutineBody">
+                  Run one flick module, one tracking module, then one pressure module. Keep your
+                  sensitivity consistent and review the leaderboard after each run.
+                </p>
+              </div>
+              <div class="hero-metrics">
+                <div>
+                  <span>Latest Version</span>
+                  <strong id="latestVersion">--</strong>
+                </div>
+                <div>
+                  <span>Top Score</span>
+                  <strong id="topScorePreview">--</strong>
+                </div>
+                <div>
+                  <span>Saved Goal</span>
+                  <strong id="goalPreview">--</strong>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel release-card">
+              <div class="panel-heading">
+                <p class="eyebrow">Release Feed</p>
+                <h3>Latest Patch</h3>
+              </div>
+              <div class="release-version" id="releaseVersion">Loading...</div>
+              <p id="releaseNotes">Checking GitHub release info.</p>
+              <a id="releaseLink" class="link-button" href="#" target="_blank" rel="noreferrer">
+                Open Release
+              </a>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <p class="eyebrow">Quick Converter</p>
+                <h3>Sens Snapshot</h3>
+              </div>
+              <div class="quick-sens">
+                <label>
+                  Valorant Sens
+                  <input id="quickSens" inputmode="decimal" value="0.35" />
+                </label>
+                <label>
+                  DPI
+                  <input id="quickDpi" inputmode="numeric" value="800" />
+                </label>
+              </div>
+              <div class="output-number" id="quickCm">-- cm/360</div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <p class="eyebrow">Install Ready</p>
+                <h3>Home Screen App</h3>
+              </div>
+              <p>
+                This companion works as an installable PWA on desktop and mobile with cached shell
+                pages for release notes, tracker goals, and saved converter settings.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="leaderboards">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Global Network</p>
+              <h2>Leaderboards</h2>
+            </div>
+            <div class="control-row">
+              <select id="scenarioSelect" aria-label="Scenario">
+                <option value="gridshot_standard">Gridshot Standard</option>
+                <option value="neon_popcorn">Neon Popcorn</option>
+                <option value="void_cluster">Void Cluster</option>
+                <option value="glider_tracking_night">Glider Night Track</option>
+                <option value="tracking_dynamic">Tracking Dynamic</option>
+                <option value="headshot_only">Headshot Only</option>
+              </select>
+              <button id="refreshLeaderboard" class="icon-action">Refresh</button>
+            </div>
+          </div>
+          <div class="leaderboard-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Player</th>
+                  <th>Score</th>
+                  <th>Accuracy</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardRows">
+                <tr>
+                  <td colspan="4">Loading leaderboard...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="sens">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Mouse Tuning</p>
+              <h2>Sensitivity Converter</h2>
+            </div>
+          </div>
+
+          <div class="converter-grid">
+            <article class="panel converter-card">
+              <label>
+                Origin Game
+                <select id="originGame"></select>
+              </label>
+              <label>
+                Origin Sens
+                <input id="originSens" inputmode="decimal" value="0.35" />
+              </label>
+              <label>
+                Mouse DPI
+                <input id="originDpi" inputmode="numeric" value="800" />
+              </label>
+            </article>
+
+            <article class="panel converter-card">
+              <label>
+                Target Game
+                <select id="targetGame"></select>
+              </label>
+              <div class="converted-value">
+                <span>Converted Sens</span>
+                <strong id="convertedSens">--</strong>
+              </div>
+              <div class="converted-value subtle">
+                <span>Physical Match</span>
+                <strong id="convertedCm">-- cm/360</strong>
+              </div>
+            </article>
+          </div>
+
+          <div class="info-strip">
+            Uses hipfire yaw constants to preserve cm/360. Keep DPI and FOV matched in the trainer
+            for the cleanest transfer.
+          </div>
+        </section>
+
+        <section class="tab-panel" id="releases">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Updater</p>
+              <h2>Release Info</h2>
+            </div>
+            <a class="link-button" href="https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases" target="_blank" rel="noreferrer">
+              GitHub Releases
+            </a>
+          </div>
+          <div class="release-list" id="releaseList"></div>
+        </section>
+
+        <section class="tab-panel" id="profile">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Local Tracker</p>
+              <h2>Player Goals</h2>
+            </div>
+          </div>
+          <div class="tracker-grid">
+            <article class="panel">
+              <label>
+                Callsign
+                <input id="profileName" value="EMX TWEAKS" />
+              </label>
+              <label>
+                Score Goal
+                <input id="scoreGoal" inputmode="numeric" value="20000" />
+              </label>
+              <label>
+                Main Game
+                <select id="mainGame">
+                  <option>Valorant</option>
+                  <option>Fortnite</option>
+                  <option>CS2</option>
+                  <option>Apex Legends</option>
+                  <option>Overwatch 2</option>
+                </select>
+              </label>
+              <button id="saveProfile" class="primary-button">Save Tracker</button>
+            </article>
+            <article class="panel">
+              <div class="panel-heading">
+                <p class="eyebrow">Routine</p>
+                <h3>Recommended Stack</h3>
+              </div>
+              <ol class="routine-list">
+                <li>Gridshot Standard: hand speed and clean target switches.</li>
+                <li>Glider Night Track: smoothness and reading movement.</li>
+                <li>Void Cluster: close target control without overflicking.</li>
+              </ol>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

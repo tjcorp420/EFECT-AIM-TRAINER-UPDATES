@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import {
   useStore,
@@ -953,7 +954,20 @@ const forceDeploy = () => {
     if (deployLockRef.current) return;
 
     deployLockRef.current = true;
-    useStore.getState().startGame();
+
+    flushSync(() => {
+      useStore.getState().startGame();
+    });
+
+    try {
+      const arenaCanvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+      const lockRequest = arenaCanvas?.requestPointerLock?.() as Promise<void> | void;
+      if (lockRequest && 'catch' in lockRequest) {
+        lockRequest.catch(() => null);
+      }
+    } catch {
+      // Browser may require one more click, but Tauri can usually lock from deploy.
+    }
 
     window.setTimeout(() => {
       deployLockRef.current = false;

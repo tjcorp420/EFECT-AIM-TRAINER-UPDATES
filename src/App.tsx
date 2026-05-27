@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import { flushSync } from 'react-dom';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PointerLockControls } from '@react-three/drei';
@@ -881,6 +882,26 @@ export default function App() {
     )
   );
   const trackingUptime = hits > 0 ? Math.round((trackingHits / hits) * 100) : 0;
+
+  const requestArenaPointerLock = useCallback(() => {
+    try {
+      const arenaCanvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+      const lockRequest = arenaCanvas?.requestPointerLock?.() as Promise<void> | void;
+
+      if (lockRequest && 'catch' in lockRequest) {
+        lockRequest.catch(() => null);
+      }
+    } catch {
+      // Pointer lock can be denied outside a direct user gesture.
+    }
+  }, []);
+
+  const deployFromSession = useCallback(() => {
+    flushSync(() => {
+      startGame();
+    });
+    requestArenaPointerLock();
+  }, [startGame, requestArenaPointerLock]);
 
   const handlePointerUnlock = useCallback(() => {
     const msSinceDeploy = performance.now() - deployGraceRef.current;
@@ -1967,7 +1988,7 @@ export default function App() {
             </div>
 
             <div className="emx-session-actions">
-              <button onClick={startGame} className="emx-primary-action">
+              <button onClick={deployFromSession} className="emx-primary-action">
                 REDEPLOY
               </button>
 
@@ -1977,6 +1998,13 @@ export default function App() {
 
               <button onClick={goToScenarios} className="emx-secondary-action">
                 HUB
+              </button>
+
+              <button
+                onClick={() => setSettings({ gameState: 'leaderboard' })}
+                className="emx-secondary-action"
+              >
+                LEADERBOARD
               </button>
 
               <button
@@ -2000,9 +2028,11 @@ export default function App() {
       {gameState === 'playing' && (
         <Canvas
           camera={{ position: [0, 1.5, 0], fov }}
-          dpr={graphicsQuality === 'performance' ? [0.75, 1] : [1, 1.5]}
+          dpr={graphicsQuality === 'performance' ? [0.7, 1] : [0.85, 1.2]}
           gl={{
-            antialias: graphicsQuality === 'high',
+            antialias: false,
+            alpha: false,
+            stencil: false,
             powerPreference: 'high-performance',
           }}
           style={{
@@ -2028,7 +2058,7 @@ export default function App() {
 
           {graphicsQuality === 'high' && (
             <EffectComposer>
-              <Bloom luminanceThreshold={0.76} intensity={0.28} />
+              <Bloom luminanceThreshold={0.88} intensity={0.12} />
             </EffectComposer>
           )}
 

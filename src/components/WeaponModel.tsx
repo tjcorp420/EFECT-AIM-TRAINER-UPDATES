@@ -152,5 +152,3 @@ useGLTF.preload('/models/weapons/pistol.glb');
 useGLTF.preload('/models/weapons/smg.glb');
 useGLTF.preload('/models/weapons/sniper.glb');
 useGLTF.preload('/models/weapons/nerf.glb');
-useFBX.preload('/models/weapons/scifi/scifigun.fbx');
-useFBX.preload('/models/weapons/scifi2/scifi_gun_2.fbx');

@@ -1,0 +1,40 @@
+{
+  "name": "EMX Aim Companion",
+  "short_name": "EMX Aim",
+  "description": "EMX Aim Trainer companion app for leaderboards, releases, sensitivity conversion, and player tracking.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#030504",
+  "theme_color": "#39ff14",
+  "categories": ["games", "utilities", "sports"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Leaderboards",
+      "short_name": "Ranks",
+      "description": "Open global EMX leaderboards.",
+      "url": "/#leaderboards"
+    },
+    {
+      "name": "Sensitivity Converter",
+      "short_name": "Sens",
+      "description": "Open the EMX mouse sensitivity converter.",
+      "url": "/#sens"
+    },
+    {
+      "name": "Release Info",
+      "short_name": "Updates",
+      "description": "Open the latest EMX Aim Trainer release notes.",
+      "url": "/#releases"
+    }
+  ]
+}

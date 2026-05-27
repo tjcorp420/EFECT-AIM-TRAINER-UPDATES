@@ -1222,7 +1222,7 @@ export const useStore = create<GameState>((set, get) => ({
       return {
         gameState: 'playing',
         isFiring: false,
-        hasStartedSession: state.skipClickToBegin,
+        hasStartedSession: true,
 
         score: 0,
         shots: 0,

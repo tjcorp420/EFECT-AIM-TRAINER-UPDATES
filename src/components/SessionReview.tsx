@@ -34,6 +34,7 @@ export default function SessionReview() {
     highScores,
     goToScenarios,
     startGame,
+    setSettings,
   } = useStore();
 
   const hits = hitLog.length;
@@ -628,6 +629,26 @@ export default function SessionReview() {
             }}
           >
             ↻ RUN IT BACK
+          </button>
+
+          <button
+            className="emx-review-ghost"
+            onClick={() => setSettings({ gameState: 'leaderboard' })}
+            style={{
+              padding: '16px 42px',
+              fontSize: '1rem',
+              background: 'rgba(0,0,0,0.46)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              color: 'rgba(255,255,255,0.72)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              letterSpacing: 3,
+              transition: 'all 0.2s',
+              borderRadius: 10,
+              fontWeight: 900,
+            }}
+          >
+            LEADERBOARD
           </button>
 
           <button

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">EMX Aim Companion</title>
+  <desc id="desc">Neon green EMX aim mark on a dark background.</desc>
+  <defs>
+    <linearGradient id="edge" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#39ff14"/>
+      <stop offset="0.54" stop-color="#00ffcc"/>
+      <stop offset="1" stop-color="#b967ff"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(190 240 -240 190 248 228)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#39ff14" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#39ff14" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="92" fill="#030504"/>
+  <rect x="16" y="16" width="480" height="480" rx="80" fill="url(#glow)"/>
+  <path d="M256 74 431 424h-77l-31-69H188l-31 69H81L256 74Zm0 139-43 96h86l-43-96Z" fill="url(#edge)"/>
+  <path d="M137 146h73l46 95 46-95h73L256 374 137 146Z" fill="#030504" opacity="0.88"/>
+  <circle cx="256" cy="256" r="112" fill="none" stroke="#39ff14" stroke-width="14" stroke-opacity="0.86"/>
+  <path d="M256 116v60M256 336v60M116 256h60M336 256h60" stroke="#00ffcc" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="28" fill="#39ff14"/>
+</svg>
