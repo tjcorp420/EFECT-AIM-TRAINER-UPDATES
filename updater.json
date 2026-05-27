@@ -1,12 +1,12 @@
 {
     "platforms":  {
                       "windows-x86_64":  {
-                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.0/EMX.Aim.Trainer_0.3.0_x64-setup.exe",
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTVh1ZGtFUFNIU1ZYMk9Cb2lwTjBDT25UTlROM1NPc2pJTDJZYm5XVVFwNDhhTjd0KzJLRUxhZ0txL1R3STdHWUFCSVdKUXpFOGVqd0RqRnZaOGN3N1FVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5MjMwMjYxCWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy4wX3g2NC1zZXR1cC5leGUKdDQ2ejQvOXFCaXhzUUxXb1N3OU9zaTdDT1lETVNDTmozYkZ6NUthZlNZNWRCWktWc3Q1MHFKWmNLOFdzendUdXlWYnhFdFBGRWRGdy9wZjlCSEwxQlE9PQo=",
+                                             "url":  "https://github.com/tjcorp420/EFECT-AIM-TRAINER-UPDATES/releases/download/v0.3.1/EMX.Aim.Trainer_0.3.1_x64-setup.exe",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRNnVqRlJ0YmlOTWUxWW5kRkxvWEpJMlo4YUdJMzN5dE0yY2ptVkZBN1BYd3E2VnRrdXVub053M2NIcXV0ZzQ1VTdHYy9YVk40OG1BZ3BLbkJwTi9lZHpZNHV4a1FtMVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5ODc2NzY2CWZpbGU6RU1YIEFpbSBUcmFpbmVyXzAuMy4xX3g2NC1zZXR1cC5leGUKTFhpNkRpd1VtaGJ2am9XUWV6M2V5ck94UmZxelBTdXRESUdYY25zSVdqbEFqanBWaWlhblZWMDlwNW5WdG5NcjZ1UVFaNmVGQnVxRWNMZlVvRkJSREE9PQo=",
                                              "format":  "nsis"
                                          }
                   },
-    "pub_date":  "2026-05-19T22:37:43Z",
-    "version":  "0.3.0",
-    "notes":  "EMX Aim Trainer v0.3.0 release"
+    "pub_date":  "2026-05-27T10:12:47Z",
+    "version":  "0.3.1",
+    "notes":  "EMX Aim Trainer v0.3.1: fixes armory dropdowns, adds sci-fi FBX weapon choices, and expands gun/hit sound customization."
 }
